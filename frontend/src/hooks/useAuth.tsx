@@ -1,0 +1,88 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'seller' | 'buyer' | 'admin';
+  status: 'pending' | 'approved' | 'rejected';
+  adminFeedback?: string;
+  sectionStatus?: {
+    basic: string;
+    business: string;
+    compliance: string;
+    bank: string;
+    documents: string;
+  };
+}
+
+interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  login: (token: string, user: User) => void;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [loading, setLoading] = useState(true);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+    setLoading(false);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const currentToken = localStorage.getItem('token');
+    if (!currentToken) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${currentToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+      } else {
+        logout();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [logout]);
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  const login = useCallback((token: string, user: User) => {
+    localStorage.setItem('token', token);
+    setToken(token);
+    setUser(user);
+    setLoading(false);
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, token, loading, login, logout, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+};
