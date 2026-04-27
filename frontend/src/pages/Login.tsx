@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { api } from '../lib/api';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
@@ -29,11 +30,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+      const res = await api.post('/api/auth/login', { email, password });
       const data = await res.json();
       
       if (res.ok) {

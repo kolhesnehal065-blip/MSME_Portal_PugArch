@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '../components/ui/Card';
 import { Tabs } from '../components/ui/Tabs';
@@ -24,7 +25,7 @@ export default function AdminOnboarding() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/admin/onboarding', {
+      const res = await api.fetch('/api/admin/onboarding', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
@@ -43,13 +44,10 @@ export default function AdminOnboarding() {
 
   const handleUpdateStatus = async (userId: string, status: string) => {
     try {
-      const res = await fetch('/api/admin/status', {
-        method: 'POST',
+      const res = await api.post('/api/admin/status', { userId, status }, {
         headers: { 
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ userId, status })
+        }
       });
       if (res.ok) {
         toast.success(`Complete application ${status}`);
@@ -81,13 +79,10 @@ export default function AdminOnboarding() {
 
   const handleUpdateSectionStatus = async (userId: string, section: string, status: string, reason?: string) => {
     try {
-      const res = await fetch('/api/admin/section-status', {
-        method: 'POST',
+      const res = await api.post('/api/admin/section-status', { userId, section, status, rejectionReason: reason }, {
         headers: { 
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ userId, section, status, rejectionReason: reason })
+        }
       });
       if (res.ok) {
         toast.success(`${section} status updated to ${status}`);
@@ -141,13 +136,10 @@ export default function AdminOnboarding() {
   const handleSendFeedback = async () => {
     if (!selectedItem || !feedback.trim()) return;
     try {
-      const res = await fetch('/api/admin/feedback', {
-        method: 'POST',
+      const res = await api.post('/api/admin/feedback', { userId: selectedItem._id, feedback }, {
         headers: { 
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ userId: selectedItem._id, feedback })
+        }
       });
       if (res.ok) {
         toast.success('Feedback sent to stakeholder');

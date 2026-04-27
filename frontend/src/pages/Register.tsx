@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
@@ -30,11 +31,7 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
     }
     setIsSendingOtp(true);
     try {
-      const res = await fetch('/api/auth/send-email-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
-      });
+      const res = await api.post('/api/auth/send-email-otp', { email: formData.email });
       if (res.ok) {
         setOtpSent(true);
         toast.success('Verification code sent to your email');
@@ -56,11 +53,7 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
     }
     setIsVerifyingOtp(true);
     try {
-      const res = await fetch('/api/auth/verify-email-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, otp })
-      });
+      const res = await api.post('/api/auth/verify-email-otp', { email: formData.email, otp });
       if (res.ok) {
         setIsEmailVerified(true);
         toast.success('Email verified successfully!');
@@ -84,11 +77,7 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, role: type })
-      });
+      const res = await api.post('/api/auth/register', { ...formData, role: type });
       const data = await res.json();
       
       if (res.ok) {

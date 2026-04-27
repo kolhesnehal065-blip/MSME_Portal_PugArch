@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from '../../lib/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input, Select } from '../ui/Input';
@@ -127,11 +128,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
     if (!formData.email) return toast.error('Email is required');
     setIsSendingOtp(true);
     try {
-      const res = await fetch('/api/auth/send-email-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
-      });
+      const res = await api.post('/api/auth/send-email-otp', { email: formData.email });
       if (res.ok) {
         setOtpSent(true);
         toast.success('OTP sent successfully');
@@ -149,11 +146,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
   const handleVerifyOtp = async () => {
     if (!emailOtp) return toast.error('Enter OTP');
     try {
-      const res = await fetch('/api/auth/verify-email-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, otp: emailOtp })
-      });
+      const res = await api.post('/api/auth/verify-email-otp', { email: formData.email, otp: emailOtp });
       if (res.ok) {
         setIsEmailVerified(true);
         toast.success('Email verified!');
@@ -173,21 +166,17 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
     
     setIsLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.personalName || formData.businessName,
-          email: formData.email,
-          password: formData.password,
-          role,
-          registrationDetails: {
-            businessType,
-            businessName: formData.businessName,
-            verificationMethod: formData.personalVerificationMethod,
-            isEmailVerified: true
-          }
-        })
+      const res = await api.post('/api/auth/register', {
+        name: formData.personalName || formData.businessName,
+        email: formData.email,
+        password: formData.password,
+        role,
+        registrationDetails: {
+          businessType,
+          businessName: formData.businessName,
+          verificationMethod: formData.personalVerificationMethod,
+          isEmailVerified: true
+        }
       });
       
       const data = await res.json();

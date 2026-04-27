@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { api } from '../lib/api';
 
 interface User {
   id: string;
@@ -47,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const res = await fetch('/api/auth/me', {
+      const res = await api.fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${currentToken}` }
       });
       if (res.ok) {

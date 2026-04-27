@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { api } from '../lib/api';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
@@ -24,7 +25,7 @@ export default function Dashboard() {
         const headers = { Authorization: `Bearer ${token}` };
         
         // Fetch profile (for both roles)
-        const profileRes = await fetch('/api/auth/me', { headers });
+        const profileRes = await api.fetch('/api/auth/me', { headers });
         if (profileRes.status === 401) {
           logout();
           navigate('/', { replace: true });
@@ -37,7 +38,7 @@ export default function Dashboard() {
         // Fetch stats if admin
         const currentUser = profileData.user;
         if (currentUser?.role === 'admin') {
-          const statsRes = await fetch('/api/admin/stats', { headers });
+          const statsRes = await api.fetch('/api/admin/stats', { headers });
           if (statsRes.ok) {
             const statsData = await statsRes.json();
             setAdminStats(statsData);

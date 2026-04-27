@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
@@ -89,7 +90,7 @@ export default function SellerOnboarding() {
     const fetchProfile = async () => {
       try {
         await refreshUser();
-        const res = await fetch('/api/auth/me', {
+        const res = await api.fetch('/api/auth/me', {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         const data = await res.json();
@@ -187,7 +188,7 @@ export default function SellerOnboarding() {
     formDataUpload.append('file', file);
 
     try {
-      const res = await fetch('/api/upload', {
+      const res = await api.fetch('/api/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -258,21 +259,16 @@ export default function SellerOnboarding() {
 
     setIsLoading(true);
     try {
-      const res = await fetch('/api/seller/register', {
-        method: 'POST',
+      const res = await api.post('/api/seller/register', formData, {
         headers: { 
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(formData)
+        }
       });
       
       if (res.ok) {
         // Update onboarding status to 'pending_validation'
-        await fetch('/api/admin/onboarding/submit', {
-          method: 'POST',
+        await api.post('/api/admin/onboarding/submit', {}, {
           headers: { 
-            'Content-Type': 'application/json',
              'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
