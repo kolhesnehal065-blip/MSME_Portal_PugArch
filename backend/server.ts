@@ -54,7 +54,10 @@ async function startServer() {
   app.use(express.json());
 
   // Connect to MongoDB
-  mongoose.connect(MONGODB_URI)
+  mongoose.connect(MONGODB_URI, {
+    connectTimeoutMS: 10000,
+    serverSelectionTimeoutMS: 10000,
+  })
     .then(async () => {
       console.log('Connected to MongoDB');
       // Seed sample data if empty
@@ -558,8 +561,16 @@ async function startServer() {
     });
   });
 
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  return new Promise<void>((resolve, reject) => {
+    const server = app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      resolve();
+    });
+
+    server.on('error', (err) => {
+      console.error('Server error:', err);
+      reject(err);
+    });
   });
 }
 
