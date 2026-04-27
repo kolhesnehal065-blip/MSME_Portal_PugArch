@@ -10,11 +10,6 @@ import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock
 import { cn } from '../lib/utils';
 import { validateField, FieldType } from '../lib/validation';
 
-const PHASES = [
-  { id: 1, label: 'Pre-requisites' },
-  { id: 2, label: 'Terms & Conditions' },
-  { id: 3, label: 'Registration' },
-];
 
 const SIDEBAR_SECTIONS = [
   { id: 'org', label: 'Organisation Details' },
@@ -27,23 +22,7 @@ const SIDEBAR_SECTIONS = [
 
 export default function BuyerOnboarding() {
   const { user, refreshUser } = useAuth();
-  const [onboardingPhase, setOnboardingPhase] = useState(1);
   const [activeSection, setActiveSection] = useState('org');
-  
-  // Phase 1: Pre-requisites State
-  const [checkedPrerequisites, setCheckedPrerequisites] = useState<Record<string, boolean>>({
-    pan: false,
-    mobile: false,
-    registration: false,
-    address: false,
-    procurement: false,
-    gst: false,
-    website: false
-  });
-
-  // Phase 2: Terms State
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -246,20 +225,6 @@ export default function BuyerOnboarding() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (onboardingPhase === 1) {
-      const required = ['pan', 'mobile', 'registration', 'address', 'procurement'];
-      const allChecked = required.every(key => checkedPrerequisites[key]);
-      if (allChecked) setOnboardingPhase(2);
-      else toast.error('Please complete all required pre-requisites');
-      return;
-    }
-
-    if (onboardingPhase === 2) {
-      if (termsAccepted && hasScrolledToBottom) setOnboardingPhase(3);
-      else toast.error('Please read and agree to the Terms & Conditions');
-      return;
-    }
-
     // Final Submission Logic
     if (activeSection === 'account') {
       if (!validateSection('account')) return;
@@ -326,35 +291,7 @@ export default function BuyerOnboarding() {
             </div>
           </div>
 
-          {/* TOP STEPPER */}
-          <div className="hidden md:flex items-center space-x-8">
-            {PHASES.map((phase, idx) => (
-              <React.Fragment key={phase.id}>
-                <div className="flex items-center space-x-3">
-                  <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all duration-300",
-                    onboardingPhase > phase.id ? "bg-green-500 text-white" :
-                    onboardingPhase === phase.id ? "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-110" :
-                    "bg-slate-100 text-slate-400"
-                  )}>
-                    {onboardingPhase > phase.id ? <CheckCircle2 className="h-5 w-5" /> : phase.id}
-                  </div>
-                  <span className={cn(
-                    "text-[10px] font-bold uppercase tracking-widest italic",
-                    onboardingPhase === phase.id ? "text-blue-600" : "text-slate-400"
-                  )}>
-                    {phase.label}
-                  </span>
-                </div>
-                {idx < PHASES.length - 1 && (
-                  <div className={cn(
-                    "w-12 h-0.5 rounded-full",
-                    onboardingPhase > phase.id ? "bg-green-500" : "bg-slate-100"
-                  )} />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
+          <div></div>
 
           <div className="flex items-center space-x-4">
              <div className="text-right">
@@ -367,199 +304,9 @@ export default function BuyerOnboarding() {
 
       <div className="max-w-7xl mx-auto px-4 mt-10">
         <form onSubmit={handleSubmit}>
-          {/* PHASE 1: PRE-REQUISITES */}
-          {onboardingPhase === 1 && (
-            <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-500">
-              <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
-                <div className="p-12 space-y-10">
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase italic tracking-tight">Compliance Pre-requisites</h2>
-                    <p className="text-slate-500 font-medium italic">Please ensure you have the following ready before starting registration.</p>
-                  </div>
-
-                  <div className="space-y-8">
-                    {/* REQUIRED ITEMS */}
-                    <div className="space-y-4">
-                      <h3 className="text-xs font-black text-red-500 uppercase tracking-[0.2em] italic flex items-center">
-                        <span className="w-8 h-px bg-red-100 mr-3" /> Required Items
-                      </h3>
-                      <div className="grid gap-3">
-                        {[
-                          { id: 'pan', label: 'Organization PAN Card', desc: 'Valid 10-digit Permanent Account Number' },
-                          { id: 'mobile', label: 'Aadhaar-Linked Mobile', desc: 'Required for OTP based e-verification' },
-                          { id: 'registration', label: 'Business Registration details', desc: 'CIN / LLPIN or equivalent proof' },
-                          { id: 'address', label: 'Office Address Details', desc: 'Utility bill or Rent agreement proof' },
-                          { id: 'procurement', label: 'Procurement Information', desc: 'Budget and category estimates' },
-                        ].map(item => (
-                          <div 
-                            key={item.id}
-                            onClick={() => setCheckedPrerequisites(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
-                            className={cn(
-                              "p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between group",
-                              checkedPrerequisites[item.id] ? "bg-green-50/50 border-green-500/20" : "bg-white border-slate-100 hover:border-slate-200"
-                            )}
-                          >
-                            <div className="flex items-center space-x-4">
-                              <div className={cn(
-                                "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
-                                checkedPrerequisites[item.id] ? "bg-green-500 text-white" : "bg-slate-100 text-slate-300 group-hover:bg-slate-200"
-                              )}>
-                                {checkedPrerequisites[item.id] ? <CheckCircle2 className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
-                              </div>
-                              <div>
-                                <p className={cn("text-sm font-black italic uppercase", checkedPrerequisites[item.id] ? "text-green-700" : "text-slate-700")}>{item.label}</p>
-                                <p className="text-[10px] font-medium text-slate-400 italic mt-0.5">{item.desc}</p>
-                              </div>
-                            </div>
-                            <div className={cn(
-                              "text-xl",
-                              checkedPrerequisites[item.id] ? "text-green-500" : "text-red-400"
-                            )}>
-                              {checkedPrerequisites[item.id] ? "✔" : "❌"}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* OPTIONAL ITEMS */}
-                    <div className="space-y-4 pt-4">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic flex items-center">
-                        <span className="w-8 h-px bg-slate-100 mr-3" /> Optional Items
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {[
-                          { id: 'gst', label: 'GST Details' },
-                          { id: 'website', label: 'Website URL' },
-                        ].map(item => (
-                          <div 
-                            key={item.id}
-                            onClick={() => setCheckedPrerequisites(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
-                            className={cn(
-                              "p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center space-x-3",
-                              checkedPrerequisites[item.id] ? "bg-blue-50/50 border-blue-500/20" : "bg-white border-slate-100"
-                            )}
-                          >
-                            <div className={cn(
-                                "w-5 h-5 rounded-md flex items-center justify-center",
-                                checkedPrerequisites[item.id] ? "bg-blue-500 text-white" : "bg-slate-100 text-slate-300"
-                              )}>
-                                {checkedPrerequisites[item.id] ? <CheckCircle2 className="h-3 w-3" /> : null}
-                              </div>
-                            <span className="text-[10px] font-black text-slate-600 uppercase italic">{item.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button 
-                    type="submit"
-                    className="w-full py-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-blue-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
-                    disabled={!['pan', 'mobile', 'registration', 'address', 'procurement'].every(k => checkedPrerequisites[k])}
-                  >
-                    Proceed to Terms & Conditions
-                  </Button>
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* PHASE 2: TERMS & CONDITIONS */}
-          {onboardingPhase === 2 && (
-            <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-right-8 duration-500">
-              <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
-                <div className="p-12 space-y-10">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                      <h2 className="text-3xl font-black text-slate-900 uppercase italic tracking-tight">Legal Consent</h2>
-                      <p className="text-slate-500 font-medium italic">Please review our Master Services Agreement for Buyers.</p>
-                    </div>
-                    <div className="p-4 bg-blue-50 rounded-2xl">
-                      <ArrowRight className="h-8 w-8 text-blue-600 animate-pulse" />
-                    </div>
-                  </div>
-
-                  <div 
-                    className="h-96 overflow-y-auto p-8 bg-slate-50 rounded-3xl border border-slate-100 text-sm leading-loose text-slate-600 font-medium italic scroll-smooth"
-                    onScroll={(e) => {
-                      const target = e.target as HTMLDivElement;
-                      if (target.scrollHeight - target.scrollTop <= target.clientHeight + 50) {
-                        setHasScrolledToBottom(true);
-                      }
-                    }}
-                  >
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-black text-slate-900 uppercase italic underline decoration-blue-500 decoration-4 underline-offset-8">1. Acceptance of Terms</h3>
-                      <p>By registering as a Buyer on the PugArch Unified Digital Procurement Portal, you agree to be bound by these Terms and Conditions. These terms govern your access to and use of the platform's procurement services.</p>
-                      
-                      <h3 className="text-lg font-black text-slate-900 uppercase italic underline decoration-blue-500 decoration-4 underline-offset-8">2. Buyer Eligibility</h3>
-                      <p>Buyer accounts are exclusively for legally registered entities, including corporations, SMEs, NGOs, and government institutions. Casual or individual signups are strictly prohibited.</p>
-
-                      <h3 className="text-lg font-black text-slate-900 uppercase italic underline decoration-blue-500 decoration-4 underline-offset-8">3. Verification Protocol</h3>
-                      <p>All information provided during onboarding is subject to verification by our compliance team. PugArch reserves the right to request additional documentation or physically verify business addresses.</p>
-
-                      <h3 className="text-lg font-black text-slate-900 uppercase italic underline decoration-blue-500 decoration-4 underline-offset-8">4. Transaction Integrity</h3>
-                      <p>Buyers agree to conduct all procurement activities in a transparent, ethical manner. Any attempt to manipulate bidding, provide false requirements, or engage in fraudulent activities will result in immediate permanent debarment.</p>
-
-                      <div className="p-6 bg-blue-600 rounded-2xl text-white">
-                        <p className="font-black uppercase tracking-widest italic text-xs mb-2">Notice to Corporates</p>
-                        <p className="text-[10px] opacity-80 leading-relaxed">Ensure you have an official Authorization Letter if you are not the registered Director or Proprietor of the organization.</p>
-                      </div>
-
-                      <p>End of Agreement. Version 2.4.1 (April 2024)</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <label className={cn(
-                      "flex items-start gap-4 p-6 rounded-2xl border-2 transition-all cursor-pointer group",
-                      termsAccepted ? "bg-green-50 border-green-500/20" : "bg-white border-slate-100 hover:border-slate-200"
-                    )}>
-                      <input 
-                        type="checkbox" 
-                        checked={termsAccepted}
-                        onChange={(e) => setTermsAccepted(e.target.checked)}
-                        className="mt-1 w-6 h-6 rounded accent-green-600"
-                      />
-                      <span className={cn(
-                        "text-sm font-bold italic",
-                        termsAccepted ? "text-green-700" : "text-slate-600"
-                      )}>
-                        I confirm that I have read the complete agreement and I agree to be legally bound by the terms and conditions of the PugArch Platform.
-                      </span>
-                    </label>
-
-                    <div className="flex items-center justify-between">
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        onClick={() => setOnboardingPhase(1)}
-                        className="px-10 h-16 rounded-2xl font-black uppercase italic text-slate-400 hover:text-slate-900 transition-all"
-                      >
-                        Back
-                      </Button>
-                      <Button 
-                        type="submit"
-                        className="px-16 h-16 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-blue-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
-                        disabled={!termsAccepted || !hasScrolledToBottom}
-                      >
-                        Proceed to Registration
-                      </Button>
-                    </div>
-                    {!hasScrolledToBottom && (
-                      <p className="text-center text-[10px] font-black text-red-500 uppercase tracking-widest animate-pulse">Please scroll to the bottom of the agreement to enable acceptance</p>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* PHASE 3: REGISTRATION */}
-          {onboardingPhase === 3 && (
-            <div className="max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-700">
-               <div className="grid grid-cols-12 gap-8">
+          {/* REGISTRATION */}
+          <div className="max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-700">
+             <div className="grid grid-cols-12 gap-8">
                   {/* SIDEBAR NAVIGATION */}
                   <div className="col-span-3 space-y-4">
                     <div className="bg-white rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 border border-slate-100 sticky top-28">
@@ -870,8 +617,7 @@ export default function BuyerOnboarding() {
                     </Card>
                   </div>
                </div>
-            </div>
-          )}
+             </div>
         </form>
     </div>
   </div>

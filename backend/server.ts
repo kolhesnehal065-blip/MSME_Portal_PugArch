@@ -37,11 +37,14 @@ const upload = multer({ storage });
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  secure: false, // false for port 587 (STARTTLS), true for port 465
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  tls: {
+    rejectUnauthorized: false // allows self-signed certs in dev
+  }
 });
 
 async function startServer() {
@@ -189,7 +192,7 @@ async function startServer() {
       res.json({ success: true, message: 'OTP sent successfully' });
     } catch (err: any) {
       console.error('Error sending OTP:', err);
-      res.status(500).json({ message: 'Failed to send OTP. Please check SMTP settings.' });
+      res.status(500).json({ message: `Failed to send OTP: ${err.message || 'Check SMTP settings'}` });
     }
   });
 
