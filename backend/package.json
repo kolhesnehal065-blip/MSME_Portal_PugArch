@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "npx tsx server.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
