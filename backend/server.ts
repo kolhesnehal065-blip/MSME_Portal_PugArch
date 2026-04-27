@@ -3,7 +3,6 @@ dotenv.config();
 
 import express from 'express';
 import mongoose from 'mongoose';
-import * as net from 'node:net';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -49,8 +48,7 @@ const transporter = nodemailer.createTransport({
 
 async function startServer() {
   const app = express();
-  const HOST = '0.0.0.0';
-  const DEFAULT_PORT = Number(process.env.PORT) || 3000;
+  const PORT = Number(process.env.PORT) || 5000;
 
   app.use(cors());
   app.use(express.json());
@@ -560,38 +558,8 @@ async function startServer() {
     });
   });
 
-  const port = await findAvailablePort(DEFAULT_PORT, HOST);
-
-  app.listen(port, HOST, () => {
-    console.log(`Server running on http://localhost:${port}`);
-  });
-}
-
-async function findAvailablePort(startPort: number, host: string) {
-  let port = startPort;
-
-  while (true) {
-    const available = await isPortAvailable(port, host);
-    if (available) {
-      return port;
-    }
-    port += 1;
-  }
-}
-
-async function isPortAvailable(port: number, host: string) {
-  return new Promise<boolean>((resolve) => {
-    const server = net.createServer();
-
-    server.once('error', () => {
-      resolve(false);
-    });
-
-    server.once('listening', () => {
-      server.close(() => resolve(true));
-    });
-
-    server.listen(port, host);
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
   });
 }
 
