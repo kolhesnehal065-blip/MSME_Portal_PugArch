@@ -21,12 +21,14 @@ import { v2 as cloudinary } from 'cloudinary';
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-procure-key';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pugarch';
 
-// Cloudinary Configuration
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
+// Cloudinary Configuration - loads CLOUDINARY_URL automatically
+if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  });
+}
 
 // Multer Storage Configuration
 const storage = multer.memoryStorage();
