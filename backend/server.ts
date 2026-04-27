@@ -8,12 +8,12 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 // Import Models
-import { User } from './src/models/User.ts';
-import { SellerProfile } from './src/models/SellerProfile.ts';
-import { BuyerProfile } from './src/models/BuyerProfile.ts';
-import { Otp } from './src/models/Otp.ts';
-import { authenticate, authorizeAdmin } from './src/middleware/auth.ts';
-import type { AuthRequest } from './src/middleware/auth.ts';
+import { User } from './src/models/User.js';
+import { SellerProfile } from './src/models/SellerProfile.js';
+import { BuyerProfile } from './src/models/BuyerProfile.js';
+import { Otp } from './src/models/Otp.js';
+import { authenticate, authorizeAdmin } from './src/middleware/auth.js';
+import type { AuthRequest } from './src/middleware/auth.js';
 import nodemailer from 'nodemailer';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
