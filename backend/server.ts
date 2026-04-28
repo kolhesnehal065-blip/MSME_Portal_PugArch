@@ -57,9 +57,6 @@ async function startServer() {
       "http://localhost:3000",
       "http://localhost:5173",
       process.env.FRONTEND_URL || "https://msme-portal-pug-arch-frontend.vercel.app"
-Status
-Ready
-Created"
     ],
     credentials: true
   }));
