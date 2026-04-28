@@ -10,6 +10,7 @@ export const api = {
     }
 
     return fetch(url, {
+      credentials: 'include',
       ...options,
       headers,
     });
