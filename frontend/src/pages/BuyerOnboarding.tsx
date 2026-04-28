@@ -7,7 +7,7 @@ import { Input, Select } from '../components/ui/Input';
 import { Card, CardContent, Badge } from '../components/ui/Card';
 import { Stepper, Step } from '../components/ui/Stepper';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck, X, ExternalLink } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { validateField, FieldType } from '../lib/validation';
 
@@ -23,6 +23,7 @@ const SIDEBAR_SECTIONS = [
 
 const DEPARTMENT_OPTIONS = ['Procurement', 'Finance', 'Admin', 'Operations', 'Management', 'Others'];
 const PROCUREMENT_CATEGORY_OPTIONS = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
+const PROCUREMENT_METHOD_OPTIONS = ['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction'];
 
 export default function BuyerOnboarding() {
   const { user, refreshUser } = useAuth();
@@ -195,6 +196,18 @@ export default function BuyerOnboarding() {
     }
   };
 
+  const handleProcurementMethodSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { value } = e.target;
+    if (!value) return;
+
+    if (!formData.preferredMethods.includes(value)) {
+      setFormData({
+        ...formData,
+        preferredMethods: [...formData.preferredMethods, value]
+      });
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -307,8 +320,6 @@ export default function BuyerOnboarding() {
   if (isFetching) return <div className="flex h-screen items-center justify-center font-bold text-indigo-600 italic">Loading form...</div>;
 
   const categories = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
-  const methods = ['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction'];
-
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-20">
       {/* HEADER SECTION */}
@@ -542,26 +553,39 @@ export default function BuyerOnboarding() {
 
                             <div className="space-y-4">
                               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Preferred Procurement Methods</h4>
-                              <div className="grid grid-cols-2 gap-4">
-                                {['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction'].map(method => (
-                                  <button
-                                    key={method}
-                                    type="button"
-                                    onClick={() => toggleTag('preferredMethods', method)}
-                                    className={cn(
-                                      "p-5 rounded-2xl border-2 text-left transition-all",
-                                      formData.preferredMethods.includes(method)
-                                        ? "bg-blue-50 border-blue-500 text-blue-700"
-                                        : "bg-white border-slate-100 hover:border-slate-200"
-                                    )}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-sm font-black uppercase italic tracking-tight">{method}</span>
-                                      {formData.preferredMethods.includes(method) && <CheckCircle2 className="h-5 w-5" />}
-                                    </div>
-                                  </button>
+                              <Select
+                                label="Method Dropdown"
+                                name="preferredMethodPicker"
+                                value=""
+                                onChange={handleProcurementMethodSelect}
+                                className="rounded-2xl h-14"
+                              >
+                                <option value="" disabled>Select a procurement method</option>
+                                {PROCUREMENT_METHOD_OPTIONS.map((method) => (
+                                  <option key={method} value={method} disabled={formData.preferredMethods.includes(method)}>
+                                    {method}
+                                  </option>
                                 ))}
-                              </div>
+                              </Select>
+                              {formData.preferredMethods.length > 0 && (
+                                <div className="flex flex-wrap gap-3">
+                                  {formData.preferredMethods.map((method: string) => (
+                                    <span
+                                      key={method}
+                                      className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-black uppercase italic text-blue-700"
+                                    >
+                                      {method}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleTag('preferredMethods', method)}
+                                        className="text-blue-500 transition-colors hover:text-blue-700"
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -575,25 +599,39 @@ export default function BuyerOnboarding() {
                                { label: 'GST Certificate (if applicable)', name: 'documents.gstCert', field: 'gstCert' },
                                { label: 'Address Proof', name: 'documents.addressProof', field: 'addressProof' },
                                { label: 'Authorization Letter (Optional)', name: 'documents.authLetter', field: 'authLetter' },
-                             ].map(doc => (
+                             ].map(doc => {
+                               const documentUrl = formData.documents[doc.field as keyof typeof formData.documents];
+                               return (
                                <div key={doc.label} className="p-6 rounded-3xl border-2 border-dashed border-slate-100 bg-slate-50/50 flex flex-col gap-4 group hover:border-blue-300 transition-all">
                                  <span className="text-[10px] font-black text-slate-400 uppercase italic tracking-widest">{doc.label}</span>
                                  <div className="relative">
                                     <input type="file" onChange={(e) => handleFileUpload(e, doc.name)} id={`upload-${doc.field}`} className="hidden" />
                                     <label htmlFor={`upload-${doc.field}`} className="w-full h-14 flex items-center justify-center bg-white rounded-2xl border border-slate-100 text-blue-600 font-black uppercase text-[10px] italic cursor-pointer hover:bg-blue-50 transition-all shadow-sm">
-                                       {isUploading === doc.name ? 'Uploading...' : formData.documents[doc.field as keyof typeof formData.documents] ? 'Change File' : 'Choose File'}
+                                       {isUploading === doc.name ? 'Uploading...' : documentUrl ? 'Change File' : 'Choose File'}
                                     </label>
                                  </div>
-                                 {formData.documents[doc.field as keyof typeof formData.documents] && (
-                                   <div className="flex items-center space-x-2 text-[9px] font-bold text-green-600 italic">
-                                      <CheckCircle2 className="h-3 w-3" />
-                                      <span>Document Uploaded Correctly</span>
-                                   </div>
+                                 {documentUrl && (
+                                   <>
+                                     <div className="flex items-center space-x-2 text-[9px] font-bold text-green-600 italic">
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        <span>Document Uploaded Correctly</span>
+                                     </div>
+                                     <a
+                                       href={documentUrl}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white text-[10px] font-black uppercase italic text-blue-600 shadow-sm transition-all hover:bg-blue-50"
+                                     >
+                                       <span>View Document</span>
+                                       <ExternalLink className="h-3.5 w-3.5" />
+                                     </a>
+                                   </>
                                  )}
                                  </div>
-                               ))}
-                             </div>
-                           )}
+                               );
+                             })}
+                              </div>
+                            )}
  
                          {/* SECTION: Account Setup */}
                          {activeSection === 'account' && (
