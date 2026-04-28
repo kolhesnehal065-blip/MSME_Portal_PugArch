@@ -7,7 +7,7 @@ import { Input, Select } from '../components/ui/Input';
 import { Card, CardContent, Badge } from '../components/ui/Card';
 import { Stepper, Step } from '../components/ui/Stepper';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck, X, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck, X, ExternalLink, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { validateField, FieldType } from '../lib/validation';
 
@@ -24,6 +24,7 @@ const SIDEBAR_SECTIONS = [
 const DEPARTMENT_OPTIONS = ['Procurement', 'Finance', 'Admin', 'Operations', 'Management', 'Others'];
 const PROCUREMENT_CATEGORY_OPTIONS = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
 const PROCUREMENT_METHOD_OPTIONS = ['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction'];
+const BUYER_ONBOARDING_DRAFT_KEY = 'buyer-onboarding-draft';
 const DASHBOARD_SECTION_TO_BUYER_SECTION: Record<string, string> = {
   basic: 'org',
   business: 'rep',
@@ -69,6 +70,8 @@ export default function BuyerOnboarding() {
     // Procurement Profile
     procurementCategories: [],
     otherCategoryDetails: '',
+    customProcurementCategoryInput: '',
+    customProcurementCategories: [],
     annualBudget: '< ₹10 Lakh',
     preferredMethods: [],
     
@@ -112,13 +115,36 @@ export default function BuyerOnboarding() {
         const data = await res.json();
         const profileDepartment = data.profile?.department || '';
         const hasPresetDepartment = DEPARTMENT_OPTIONS.includes(profileDepartment) && profileDepartment !== 'Others';
+        const profileProcurementCategories = Array.isArray(data.profile?.procurementCategories) ? data.profile.procurementCategories : [];
+        const savedPresetProcurementCategories = profileProcurementCategories.filter((category: string) => PROCUREMENT_CATEGORY_OPTIONS.includes(category) && category !== 'Others');
+        const savedCustomProcurementCategories = profileProcurementCategories.filter((category: string) => !PROCUREMENT_CATEGORY_OPTIONS.includes(category));
+        const normalizedProcurementCategories = savedCustomProcurementCategories.length > 0
+          ? [...savedPresetProcurementCategories, 'Others']
+          : savedPresetProcurementCategories;
+        const storedDraftRaw = localStorage.getItem(BUYER_ONBOARDING_DRAFT_KEY);
+        const storedDraft = storedDraftRaw ? JSON.parse(storedDraftRaw) : null;
+        const draftDepartment = storedDraft?.formData?.department || '';
+        const hasDraftPresetDepartment = DEPARTMENT_OPTIONS.includes(draftDepartment) && draftDepartment !== 'Others';
+
         setFormData((prev: any) => ({
           ...prev,
           ...(data.profile || {}),
+          procurementCategories: normalizedProcurementCategories.length > 0 ? normalizedProcurementCategories : prev.procurementCategories,
+          customProcurementCategories: savedCustomProcurementCategories,
+          otherCategoryDetails: savedCustomProcurementCategories.join(', '),
+          customProcurementCategoryInput: '',
+          ...(storedDraft?.formData || {}),
           department: profileDepartment ? (hasPresetDepartment ? profileDepartment : 'Others') : prev.department,
           customDepartment: profileDepartment && !hasPresetDepartment ? profileDepartment : (prev.customDepartment || ''),
-          email: data.user?.email || prev.email
+          ...(storedDraft?.formData?.department ? {
+            department: hasDraftPresetDepartment ? storedDraft.formData.department : 'Others',
+            customDepartment: !hasDraftPresetDepartment ? storedDraft.formData.department : (storedDraft.formData.customDepartment || '')
+          } : {}),
+          email: storedDraft?.formData?.email || data.user?.email || prev.email
         }));
+        if (storedDraft?.activeSection && SIDEBAR_SECTIONS.some(section => section.id === storedDraft.activeSection)) {
+          setActiveSection(storedDraft.activeSection);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -127,6 +153,15 @@ export default function BuyerOnboarding() {
     };
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (isFetching) return;
+
+    localStorage.setItem(BUYER_ONBOARDING_DRAFT_KEY, JSON.stringify({
+      activeSection,
+      formData
+    }));
+  }, [activeSection, formData, isFetching]);
 
   const validate = (name: string, value: string) => {
     let fieldType: FieldType | null = null;
@@ -146,9 +181,28 @@ export default function BuyerOnboarding() {
     return true;
   };
 
+  const validateWebsite = (value: string) => {
+    if (!value.trim()) return true;
+    try {
+      const normalizedValue = value.startsWith('http://') || value.startsWith('https://')
+        ? value
+        : `https://${value}`;
+      new URL(normalizedValue);
+      setErrors(prev => ({ ...prev, website: '' }));
+      return true;
+    } catch {
+      setErrors(prev => ({ ...prev, website: 'Invalid Website URL' }));
+      return false;
+    }
+  };
+
   const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setTouched(prev => ({ ...prev, [name]: true }));
+    if (name === 'website') {
+      validateWebsite(value);
+      return;
+    }
     validate(name, value);
   };
 
@@ -182,6 +236,9 @@ export default function BuyerOnboarding() {
         department: newValue,
         customDepartment: newValue === 'Others' ? formData.customDepartment : ''
       });
+    } else if (name === 'website') {
+      setFormData({ ...formData, [name]: newValue.trim() });
+      if (touched[name]) validateWebsite(newValue);
     } else {
       setFormData({ ...formData, [name]: newValue });
       if (touched[name]) validate(name, newValue);
@@ -194,7 +251,9 @@ export default function BuyerOnboarding() {
       setFormData({
         ...formData,
         [field]: values.filter(v => v !== value),
-        ...(field === 'procurementCategories' && value === 'Others' ? { otherCategoryDetails: '' } : {})
+        ...(field === 'procurementCategories' && value === 'Others'
+          ? { otherCategoryDetails: '', customProcurementCategoryInput: '', customProcurementCategories: [] }
+          : {})
       });
     } else {
       setFormData({ ...formData, [field]: [...values, value] });
@@ -211,6 +270,42 @@ export default function BuyerOnboarding() {
         procurementCategories: [...formData.procurementCategories, value]
       });
     }
+  };
+
+  const addCustomProcurementCategory = () => {
+    const category = formData.customProcurementCategoryInput.trim();
+    if (!category) return;
+
+    const existsInPreset = formData.procurementCategories.some((item: string) => item.toLowerCase() === category.toLowerCase());
+    const existsInCustom = formData.customProcurementCategories.some((item: string) => item.toLowerCase() === category.toLowerCase());
+
+    if (existsInPreset || existsInCustom) {
+      toast.error('This procurement category is already added');
+      return;
+    }
+
+    const updatedCustomProcurementCategories = [...formData.customProcurementCategories, category];
+    setFormData({
+      ...formData,
+      procurementCategories: formData.procurementCategories.includes('Others')
+        ? formData.procurementCategories
+        : [...formData.procurementCategories, 'Others'],
+      customProcurementCategoryInput: '',
+      customProcurementCategories: updatedCustomProcurementCategories,
+      otherCategoryDetails: updatedCustomProcurementCategories.join(', ')
+    });
+  };
+
+  const removeCustomProcurementCategory = (categoryToRemove: string) => {
+    const updatedCustomProcurementCategories = formData.customProcurementCategories.filter((item: string) => item !== categoryToRemove);
+    setFormData({
+      ...formData,
+      customProcurementCategories: updatedCustomProcurementCategories,
+      otherCategoryDetails: updatedCustomProcurementCategories.join(', '),
+      procurementCategories: updatedCustomProcurementCategories.length === 0
+        ? formData.procurementCategories.filter((item: string) => item !== 'Others')
+        : formData.procurementCategories
+    });
   };
 
   const handleProcurementMethodSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -300,9 +395,15 @@ export default function BuyerOnboarding() {
 
       setIsLoading(true);
       try {
+        const normalizedProcurementCategories = formData.procurementCategories.filter((category: string) => category !== 'Others');
         const submissionData = {
           ...formData,
-          department: formData.department === 'Others' ? formData.customDepartment.trim() || 'Others' : formData.department
+          department: formData.department === 'Others' ? formData.customDepartment.trim() || 'Others' : formData.department,
+          procurementCategories: [
+            ...normalizedProcurementCategories,
+            ...formData.customProcurementCategories
+          ],
+          otherCategoryDetails: formData.customProcurementCategories.join(', ')
         };
 
         const res = await api.post('/api/buyer/register', submissionData, {
@@ -312,6 +413,7 @@ export default function BuyerOnboarding() {
         });
         
         if (res.ok) {
+          localStorage.removeItem(BUYER_ONBOARDING_DRAFT_KEY);
           toast.success('Registration finished successfully');
           navigate('/dashboard');
         } else {
@@ -455,7 +557,13 @@ export default function BuyerOnboarding() {
                               <option value="NGO / Trust">NGO / Trust</option>
                               <option value="Educational Institution">Educational Institution</option>
                             </Select>
-
+                            <Input label="Industry / Sector" name="industry" value={formData.industry} onChange={handleChange} placeholder="e.g. Construction, IT, Manufacturing" className="rounded-2xl h-14" />
+                            <Input label="CIN / Registration Number" name="cin" value={formData.cin} onChange={handleChange} onBlur={handleBlur} error={touched.cin ? errors.cin : ''} placeholder="Optional if applicable" className="rounded-2xl h-14" />
+                            <Input label="PAN of Organization" name="pan" value={formData.pan} onChange={handleChange} onBlur={handleBlur} error={touched.pan ? errors.pan : ''} placeholder="ABCDE1234F" className="rounded-2xl h-14" />
+                            <Input label="GSTIN (Optional)" name="gst" value={formData.gst} onChange={handleChange} onBlur={handleBlur} error={touched.gst ? errors.gst : ''} placeholder="22ABCDE1234F1Z5" className="rounded-2xl h-14" />
+                            <div className="md:col-span-2">
+                              <Input label="Website URL (Optional)" name="website" value={formData.website} onChange={handleChange} onBlur={handleBlur} error={touched.website ? errors.website : ''} placeholder="https://example.com" className="rounded-2xl h-14" />
+                            </div>
                           </div>
                         )}
 
@@ -540,17 +648,48 @@ export default function BuyerOnboarding() {
                                       </button>
                                     </span>
                                   ))}
+                                  {formData.customProcurementCategories.map((cat: string) => (
+                                    <span
+                                      key={cat}
+                                      className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-black uppercase italic text-blue-700"
+                                    >
+                                      {cat}
+                                      <button
+                                        type="button"
+                                        onClick={() => removeCustomProcurementCategory(cat)}
+                                        className="text-blue-500 transition-colors hover:text-blue-700"
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </span>
+                                  ))}
                                 </div>
                               )}
                               {formData.procurementCategories.includes('Others') && (
-                                <Input
-                                  label="Custom Procurement Category"
-                                  name="otherCategoryDetails"
-                                  value={formData.otherCategoryDetails}
-                                  onChange={handleChange}
-                                  placeholder="Enter your category"
-                                  className="rounded-2xl h-14"
-                                />
+                                <div className="space-y-3">
+                                  <div className="flex items-end gap-3">
+                                    <div className="flex-1">
+                                      <Input
+                                        label="Custom Procurement Category"
+                                        name="customProcurementCategoryInput"
+                                        value={formData.customProcurementCategoryInput}
+                                        onChange={handleChange}
+                                        placeholder="Enter your category"
+                                        className="rounded-2xl h-14"
+                                      />
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={addCustomProcurementCategory}
+                                      className="inline-flex h-14 items-center justify-center rounded-2xl bg-blue-600 px-4 text-white shadow-lg shadow-blue-200 transition-all hover:bg-blue-700"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 italic">
+                                    Add one or more custom categories.
+                                  </p>
+                                </div>
                               )}
                             </div>
 
