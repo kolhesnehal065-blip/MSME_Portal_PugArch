@@ -7,7 +7,7 @@ import { Input, Select } from '../components/ui/Input';
 import { Card, CardContent, Badge } from '../components/ui/Card';
 import { Stepper, Step } from '../components/ui/Stepper';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck, Loader2, ChevronDown, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { validateField, FieldType } from '../lib/validation';
 
@@ -402,23 +402,36 @@ export default function SellerOnboarding() {
               <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                  <div className="space-y-4">
                   <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest italic">Categories Offered</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map(cat => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => toggleCategory(cat)}
-                        className={cn(
-                          "px-4 py-2 rounded-xl border text-[10px] font-black uppercase italic transition-all",
-                          formData.productCategories.includes(cat)
-                            ? "bg-slate-900 text-white border-slate-900 shadow-lg"
-                            : "bg-white text-slate-500 border-slate-100 hover:border-slate-300"
-                        )}
-                      >
-                        {cat}
-                      </button>
-                    ))}
+                  <div className="relative group">
+                    <button type="button" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-left flex items-center justify-between font-bold text-sm text-slate-700 hover:border-slate-300 transition-colors">
+                      <span>{formData.productCategories.length > 0 ? `${formData.productCategories.length} Categories Selected` : 'Select Categories...'}</span>
+                      <ChevronDown className="h-4 w-4 text-slate-400" />
+                    </button>
+                    <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col max-h-60 overflow-y-auto">
+                      {categories.map(cat => (
+                        <label key={cat} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                          <input 
+                            type="checkbox" 
+                            checked={formData.productCategories.includes(cat)} 
+                            onChange={() => toggleCategory(cat)}
+                            className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+                          />
+                          <span className="text-sm font-bold text-slate-700">{cat}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
+                  {/* Selected Pills Area */}
+                  {formData.productCategories.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {formData.productCategories.map((cat: string) => (
+                        <span key={cat} className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[10px] font-black uppercase italic flex items-center gap-2 shadow-sm animate-in zoom-in-95 duration-200">
+                          {cat}
+                          <button type="button" onClick={() => toggleCategory(cat)} className="hover:text-red-400 transition-colors"><X className="h-3 w-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <Input label="Service / Product Name" name="detailedProductName" value={formData.detailedProductName} onChange={handleChange} className="rounded-xl h-12" />
                 <Input label="HSN/SAC Code" name="hsnCode" value={formData.hsnCode} onChange={handleChange} className="rounded-xl h-12" />
