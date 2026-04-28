@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || '';
+const BASE_URL = import.meta.env.DEV ? '' : import.meta.env.VITE_API_URL || '';
 
 export const api = {
   fetch: (endpoint: string, options: RequestInit = {}) => {

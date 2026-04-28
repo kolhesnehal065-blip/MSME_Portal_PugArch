@@ -21,7 +21,7 @@ export default defineConfig(({mode}) => {
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
-        '/api': env.VITE_API_URL || 'http://localhost:5000'
+        '/api': 'http://localhost:5000'
       }
     },
   };

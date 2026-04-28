@@ -1,5 +1,14 @@
 import dotenv from 'dotenv';
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({
+  path: [
+    path.resolve(__dirname, '../.env'),
+    path.resolve(__dirname, '.env')
+  ]
+});
 
 import express from 'express';
 import mongoose from 'mongoose';
@@ -61,6 +70,13 @@ async function startServer() {
     credentials: true
   }));
   app.use(express.json());
+
+  app.get("/", (req, res) => {
+    res.json({
+      message: "PugArch MSME Marketplace API is running",
+      health: "/api/test"
+    });
+  });
 
   // Test Route for verifying connection
   app.get("/api/test", (req, res) => res.json({ message: "API working" }));
