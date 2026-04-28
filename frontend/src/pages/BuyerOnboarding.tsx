@@ -596,8 +596,9 @@ export default function BuyerOnboarding() {
                             variant="ghost" 
                             onClick={() => {
                               const currentIndex = SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection);
-                              if (currentIndex === 0) setOnboardingPhase(2);
-                              else setActiveSection(SIDEBAR_SECTIONS[currentIndex - 1].id);
+                              if (currentIndex > 0) {
+                                setActiveSection(SIDEBAR_SECTIONS[currentIndex - 1].id);
+                              }
                             }}
                             className="px-10 h-16 rounded-2xl font-black uppercase italic text-slate-400 hover:text-slate-900 transition-all"
                           >
