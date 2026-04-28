@@ -1,7 +1,9 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/Button';
 import { 
+  AlertTriangle,
   Building2, 
   Store, 
   LayoutDashboard, 
@@ -92,6 +94,37 @@ export default function Sidebar() {
 export function Header() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  const sectionLabels: Record<string, string> = {
+    basic: 'Basic Details',
+    business: 'Business Details',
+    compliance: 'Compliance',
+    bank: 'Bank Details',
+    documents: 'Documents',
+  };
+
+  const sectionRouteMap: Record<string, { seller: string; buyer: string }> = {
+    basic: { seller: '/seller/onboarding?section=basic', buyer: '/buyer/onboarding?section=basic' },
+    business: { seller: '/seller/onboarding?section=business', buyer: '/buyer/onboarding?section=business' },
+    compliance: { seller: '/seller/onboarding?section=compliance', buyer: '/buyer/onboarding?section=compliance' },
+    bank: { seller: '/seller/onboarding?section=bank', buyer: '/buyer/onboarding?section=bank' },
+    documents: { seller: '/seller/onboarding?section=documents', buyer: '/buyer/onboarding?section=documents' },
+  };
+
+  const rejectionNotifications = useMemo(() => {
+    if (!user?.sectionStatus || !['seller', 'buyer'].includes(user.role)) return [];
+
+    return Object.entries(user.sectionStatus)
+      .filter(([, status]) => ['rejected', 'resubmission_required'].includes(String(status)))
+      .map(([section, status]) => ({
+        section,
+        status: String(status),
+        label: sectionLabels[section] || section,
+        message: `Your ${sectionLabels[section] || section} section has been rejected by Admin. Please review and update.`,
+      }));
+  }, [user]);
 
   if (!user) return null;
 
@@ -118,11 +151,68 @@ export function Header() {
             className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl text-xs w-64 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <button className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center cursor-pointer text-slate-400 hover:bg-slate-50 transition-colors relative">
+        <div className="relative flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsNotificationsOpen(prev => !prev)}
+            className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center cursor-pointer text-slate-400 hover:bg-slate-50 transition-colors relative"
+            aria-label="Open notifications"
+          >
             <Bell className="h-4 w-4" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full border-2 border-white"></span>
+            {rejectionNotifications.length > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white border-2 border-white text-[10px] font-black flex items-center justify-center">
+                {rejectionNotifications.length}
+              </span>
+            )}
           </button>
+          {isNotificationsOpen && (
+            <div className="absolute right-0 top-12 w-96 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/70 overflow-hidden z-50">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-900">Notifications</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Seller portal alerts</p>
+                </div>
+                {rejectionNotifications.length > 0 && (
+                  <span className="rounded-full bg-red-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-red-600">
+                    Action Required
+                  </span>
+                )}
+              </div>
+
+              <div className="max-h-96 overflow-y-auto p-3">
+                {rejectionNotifications.length === 0 ? (
+                  <div className="px-4 py-8 text-center">
+                    <p className="text-sm font-bold text-slate-700">No new alerts</p>
+                    <p className="mt-1 text-xs text-slate-400">Important onboarding updates will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {rejectionNotifications.map((item) => (
+                      <button
+                        key={item.section}
+                        type="button"
+                        onClick={() => {
+                          setIsNotificationsOpen(false);
+                          navigate(sectionRouteMap[item.section]?.[user.role as 'seller' | 'buyer'] || '/dashboard');
+                        }}
+                        className="w-full rounded-xl border border-red-100 bg-red-50/70 p-4 text-left transition-all hover:border-red-200 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-red-500 shadow-sm">
+                            <AlertTriangle className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-red-600">{item.label}</p>
+                            <p className="mt-1 text-sm font-semibold leading-relaxed text-red-950">{item.message}</p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

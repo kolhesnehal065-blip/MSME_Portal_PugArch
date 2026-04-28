@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui/Card';
-import { CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, token, logout } = useAuth();
@@ -18,6 +18,13 @@ export default function Dashboard() {
     compliance: { seller: '/seller/onboarding?section=compliance', buyer: '/buyer/onboarding?section=compliance' },
     bank: { seller: '/seller/onboarding?section=bank', buyer: '/buyer/onboarding?section=bank' },
     documents: { seller: '/seller/onboarding?section=documents', buyer: '/buyer/onboarding?section=documents' },
+  };
+  const sectionLabels: Record<string, string> = {
+    basic: 'Basic Information',
+    business: 'Business Details',
+    compliance: 'Compliance',
+    bank: 'Bank Details',
+    documents: 'Documents',
   };
 
   useEffect(() => {
@@ -81,6 +88,10 @@ export default function Dashboard() {
       default: return 'warning';
     }
   };
+  const sectionMessages = Object.entries(user?.sectionRejectionReasons || {}).filter(([section, reason]) => {
+    const status = user?.sectionStatus?.[section as keyof typeof user.sectionStatus];
+    return reason && ['rejected', 'resubmission_required'].includes(status || '');
+  });
 
   if (user?.role === 'admin') {
     return (
@@ -231,6 +242,25 @@ export default function Dashboard() {
                 </button>
               ))}
             </div>
+            {sectionMessages.length > 0 && (
+              <div className="rounded-2xl border border-red-100 bg-red-50 p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-red-700">Rejected section messages</p>
+                </div>
+                {sectionMessages.map(([section, reason]) => (
+                  <button
+                    key={section}
+                    type="button"
+                    onClick={() => navigate(sectionRouteMap[section]?.[user.role as 'seller' | 'buyer'] || '/dashboard')}
+                    className="w-full rounded-xl bg-white p-4 text-left transition-all hover:shadow-sm"
+                  >
+                    <p className="text-[10px] font-black uppercase tracking-widest text-red-500">{sectionLabels[section] || section}</p>
+                    <p className="mt-1 text-sm font-medium italic text-red-950">"{reason}"</p>
+                  </button>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

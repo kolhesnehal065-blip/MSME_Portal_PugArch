@@ -6,7 +6,8 @@ interface User {
   name: string;
   email: string;
   role: 'seller' | 'buyer' | 'admin';
-  status: 'pending' | 'approved' | 'rejected';
+  registrationStatus?: 'incomplete' | 'completed';
+  status: 'pending' | 'pending_validation' | 'under_compliance_review' | 'resubmission_required' | 'approved_for_procurement' | 'approved' | 'rejected';
   adminFeedback?: string;
   sectionStatus?: {
     basic: string;
@@ -14,6 +15,13 @@ interface User {
     compliance: string;
     bank: string;
     documents: string;
+  };
+  sectionRejectionReasons?: {
+    basic?: string;
+    business?: string;
+    compliance?: string;
+    bank?: string;
+    documents?: string;
   };
 }
 

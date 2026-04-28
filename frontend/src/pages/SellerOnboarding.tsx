@@ -29,6 +29,14 @@ const SECTION_TO_STEP: Record<string, number> = {
   documents: 5,
 };
 
+const SECTION_LABELS: Record<string, string> = {
+  basic: 'Basic Information',
+  business: 'Business Details',
+  compliance: 'Compliance',
+  bank: 'Bank Details',
+  documents: 'Documents',
+};
+
 export default function SellerOnboarding() {
   const { user, refreshUser } = useAuth();
   const location = useLocation();
@@ -307,6 +315,10 @@ export default function SellerOnboarding() {
   if (isFetching) return <div className="flex h-screen items-center justify-center font-bold text-indigo-600 italic">Loading profile...</div>;
 
   const categories = ['Electronics', 'Office Supplies', 'Industrial Tools', 'Furniture', 'Software', 'Logistics', 'Textiles', 'Chemicals', 'Others'];
+  const sectionMessages = Object.entries(user?.sectionRejectionReasons || {}).filter(([section, reason]) => {
+    const status = user?.sectionStatus?.[section as keyof typeof user.sectionStatus];
+    return reason && ['rejected', 'resubmission_required'].includes(status || '');
+  });
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
@@ -318,7 +330,7 @@ export default function SellerOnboarding() {
         <div className="flex items-center gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
            <div className="text-right">
              <p className="text-[10px] font-black text-slate-400 uppercase italic">Registration Status</p>
-             <p className="text-xs font-black text-green-600 uppercase italic">Completed</p>
+             <p className="text-xs font-black text-green-600 uppercase italic capitalize">{user?.registrationStatus || 'completed'}</p>
            </div>
            <div className="w-px h-8 bg-slate-100" />
            <div className="text-right">
@@ -343,6 +355,8 @@ export default function SellerOnboarding() {
             const status = user?.sectionStatus?.[section as keyof typeof user.sectionStatus] || 'pending';
             const linkedStep = SECTION_TO_STEP[section];
             const isActive = currentStep === linkedStep;
+            const hasFeedback = !!user?.sectionRejectionReasons?.[section as keyof typeof user.sectionRejectionReasons];
+            const needsCorrection = ['rejected', 'resubmission_required'].includes(status);
             return (
               <button
                  key={section}
@@ -350,17 +364,56 @@ export default function SellerOnboarding() {
                  onClick={() => goToStep(linkedStep)}
                  className={cn(
                    "p-4 rounded-2xl bg-white border shadow-sm flex flex-col items-center gap-1 transition-all hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2",
-                   isActive ? "border-indigo-300 shadow-md shadow-indigo-100" : "border-slate-100"
+                   isActive ? "border-indigo-300 shadow-md shadow-indigo-100" : "border-slate-100",
+                   needsCorrection && "border-red-200 bg-red-50/60 shadow-red-100"
                  )}
               >
                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight italic">{section}</p>
                  <Badge variant={status === 'approved' ? 'success' : status === 'rejected' ? 'error' : 'warning' as any} className="text-[9px] py-0.5 px-3 capitalize rounded-full font-black italic">
                     {status}
                  </Badge>
+                 {needsCorrection && hasFeedback && (
+                   <span className="text-[9px] font-black uppercase tracking-tight text-red-500">Feedback</span>
+                 )}
               </button>
             );
           })}
       </div>
+
+      {sectionMessages.length > 0 && (
+        <div className="rounded-3xl border border-red-100 bg-red-50/80 p-6 space-y-5 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-red-500 shadow-sm">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-red-700">SECTION FEEDBACK FROM ADMINISTRATOR</p>
+                <p className="text-[11px] font-bold italic text-red-900/70">Review the rejected sections, update the details below, and resubmit for approval.</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {sectionMessages.map(([section, reason]) => (
+              <button
+                key={section}
+                type="button"
+                onClick={() => goToStep(SECTION_TO_STEP[section] || 1)}
+                className="w-full rounded-2xl border border-red-100 bg-white p-5 text-left transition-all hover:border-red-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:ring-offset-red-50"
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-red-500">{SECTION_LABELS[section] || section}</p>
+                  <Badge variant="error" className="rounded-full px-3 py-0.5 text-[8px] font-black uppercase italic">
+                    {user?.sectionStatus?.[section as keyof typeof user.sectionStatus]}
+                  </Badge>
+                </div>
+                <p className="text-sm font-medium italic leading-relaxed text-red-950">"{reason}"</p>
+                <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-red-500">Open this section to correct</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Stepper steps={STEPS} currentStep={currentStep} onStepChange={goToStep} className="pt-8" />
 
