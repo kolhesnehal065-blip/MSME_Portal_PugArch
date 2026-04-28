@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Input, Select } from '../components/ui/Input';
 import { Card, CardContent, Badge } from '../components/ui/Card';
 import { Stepper, Step } from '../components/ui/Stepper';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck, X, ExternalLink } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { validateField, FieldType } from '../lib/validation';
 
@@ -21,8 +21,20 @@ const SIDEBAR_SECTIONS = [
   { id: 'account', label: 'Account Setup' },
 ];
 
+const DEPARTMENT_OPTIONS = ['Procurement', 'Finance', 'Admin', 'Operations', 'Management', 'Others'];
+const PROCUREMENT_CATEGORY_OPTIONS = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
+const PROCUREMENT_METHOD_OPTIONS = ['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction'];
+const DASHBOARD_SECTION_TO_BUYER_SECTION: Record<string, string> = {
+  basic: 'org',
+  business: 'rep',
+  compliance: 'address',
+  bank: 'procurement',
+  documents: 'docs',
+};
+
 export default function BuyerOnboarding() {
   const { user, refreshUser } = useAuth();
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState('org');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -41,6 +53,7 @@ export default function BuyerOnboarding() {
     representativeName: '',
     designation: '',
     department: 'Procurement',
+    customDepartment: '',
     email: '',
     mobile: '',
     alternateMobile: '',
@@ -81,6 +94,15 @@ export default function BuyerOnboarding() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const section = params.get('section');
+    const mappedSection = section ? DASHBOARD_SECTION_TO_BUYER_SECTION[section] : null;
+    if (mappedSection) {
+      setActiveSection(mappedSection);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
     const fetchProfile = async () => {
       try {
         await refreshUser();
@@ -88,9 +110,13 @@ export default function BuyerOnboarding() {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         const data = await res.json();
+        const profileDepartment = data.profile?.department || '';
+        const hasPresetDepartment = DEPARTMENT_OPTIONS.includes(profileDepartment) && profileDepartment !== 'Others';
         setFormData((prev: any) => ({
           ...prev,
           ...(data.profile || {}),
+          department: profileDepartment ? (hasPresetDepartment ? profileDepartment : 'Others') : prev.department,
+          customDepartment: profileDepartment && !hasPresetDepartment ? profileDepartment : (prev.customDepartment || ''),
           email: data.user?.email || prev.email
         }));
       } catch (err) {
@@ -150,6 +176,12 @@ export default function BuyerOnboarding() {
 
     if (type === 'checkbox') {
       setFormData({ ...formData, [name]: (e.target as HTMLInputElement).checked });
+    } else if (name === 'department') {
+      setFormData({
+        ...formData,
+        department: newValue,
+        customDepartment: newValue === 'Others' ? formData.customDepartment : ''
+      });
     } else {
       setFormData({ ...formData, [name]: newValue });
       if (touched[name]) validate(name, newValue);
@@ -159,9 +191,37 @@ export default function BuyerOnboarding() {
   const toggleTag = (field: string, value: string) => {
     const values = [...formData[field]];
     if (values.includes(value)) {
-      setFormData({ ...formData, [field]: values.filter(v => v !== value) });
+      setFormData({
+        ...formData,
+        [field]: values.filter(v => v !== value),
+        ...(field === 'procurementCategories' && value === 'Others' ? { otherCategoryDetails: '' } : {})
+      });
     } else {
       setFormData({ ...formData, [field]: [...values, value] });
+    }
+  };
+
+  const handleProcurementCategorySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { value } = e.target;
+    if (!value) return;
+
+    if (!formData.procurementCategories.includes(value)) {
+      setFormData({
+        ...formData,
+        procurementCategories: [...formData.procurementCategories, value]
+      });
+    }
+  };
+
+  const handleProcurementMethodSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { value } = e.target;
+    if (!value) return;
+
+    if (!formData.preferredMethods.includes(value)) {
+      setFormData({
+        ...formData,
+        preferredMethods: [...formData.preferredMethods, value]
+      });
     }
   };
 
@@ -240,7 +300,12 @@ export default function BuyerOnboarding() {
 
       setIsLoading(true);
       try {
-        const res = await api.post('/api/buyer/register', formData, {
+        const submissionData = {
+          ...formData,
+          department: formData.department === 'Others' ? formData.customDepartment.trim() || 'Others' : formData.department
+        };
+
+        const res = await api.post('/api/buyer/register', submissionData, {
           headers: { 
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -272,8 +337,6 @@ export default function BuyerOnboarding() {
   if (isFetching) return <div className="flex h-screen items-center justify-center font-bold text-indigo-600 italic">Loading form...</div>;
 
   const categories = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
-  const methods = ['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction'];
-
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-20">
       {/* HEADER SECTION */}
@@ -317,14 +380,7 @@ export default function BuyerOnboarding() {
                             <button
                               key={section.id}
                               type="button"
-                              onClick={() => {
-                                // Only allow clicking back to previous sections or if already completed
-                                const targetIdx = SIDEBAR_SECTIONS.findIndex(s => s.id === section.id);
-                                const currentIdx = SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection);
-                                if (targetIdx < currentIdx || isCompleted) {
-                                  setActiveSection(section.id);
-                                }
-                              }}
+                              onClick={() => setActiveSection(section.id)}
                               className={cn(
                                 "w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group",
                                 isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200" :
@@ -407,16 +463,23 @@ export default function BuyerOnboarding() {
                         {activeSection === 'rep' && (
                           <div className="grid md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
                             <Input label="Full Name" name="representativeName" value={formData.representativeName} onChange={handleChange} onBlur={handleBlur} error={touched.representativeName ? errors.representativeName : ''} required className="rounded-2xl h-14" />
-                            <Input label="Designation" name="designation" value={formData.designation} placeholder="e.g. Director" className="rounded-2xl h-14" />
+                            <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Director" className="rounded-2xl h-14" />
                             <Select label="Department" name="department" value={formData.department} onChange={handleChange} className="rounded-2xl h-14">
-                              <option value="Procurement">Procurement</option>
-                              <option value="Finance">Finance</option>
-                              <option value="Admin">Admin</option>
-                              <option value="Operations">Operations</option>
-                              <option value="Management">Management</option>
-                              <option value="Others">Others</option>
+                              {DEPARTMENT_OPTIONS.map((department) => (
+                                <option key={department} value={department}>{department}</option>
+                              ))}
                             </Select>
-                            <Input label="Official Email ID" name="email" value={formData.email} onChange={handleChange} readOnly className="rounded-2xl h-14 bg-slate-50" />
+                            {formData.department === 'Others' && (
+                              <Input
+                                label="Custom Department"
+                                name="customDepartment"
+                                value={formData.customDepartment}
+                                onChange={handleChange}
+                                placeholder="Enter department name"
+                                className="rounded-2xl h-14"
+                              />
+                            )}
+                            <Input label="Official Email ID" name="email" value={formData.email} onChange={handleChange} className="rounded-2xl h-14" />
                             <div className="relative">
                               <Input label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleBlur} error={touched.mobile ? errors.mobile : ''} required className="rounded-2xl h-14" />
                               <button type="button" className="absolute right-2 bottom-2 px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all">Verify</button>
@@ -446,23 +509,49 @@ export default function BuyerOnboarding() {
                           <div className="space-y-10 animate-in fade-in slide-in-from-right-8 duration-500">
                             <div className="space-y-4">
                               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Procurement Categories (Multi-select)</h4>
-                              <div className="flex flex-wrap gap-3">
-                                {['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'].map(cat => (
-                                  <button
-                                    key={cat}
-                                    type="button"
-                                    onClick={() => toggleTag('procurementCategories', cat)}
-                                    className={cn(
-                                      "px-6 py-3 rounded-2xl border-2 text-xs font-black uppercase italic transition-all",
-                                      formData.procurementCategories.includes(cat)
-                                        ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
-                                        : "bg-white text-slate-500 border-slate-100 hover:border-blue-200"
-                                    )}
-                                  >
+                              <Select
+                                label="Category Dropdown"
+                                name="procurementCategoryPicker"
+                                value=""
+                                onChange={handleProcurementCategorySelect}
+                                className="rounded-2xl h-14"
+                              >
+                                <option value="" disabled>Select a procurement category</option>
+                                {PROCUREMENT_CATEGORY_OPTIONS.map((cat) => (
+                                  <option key={cat} value={cat} disabled={formData.procurementCategories.includes(cat)}>
                                     {cat}
-                                  </button>
+                                  </option>
                                 ))}
-                              </div>
+                              </Select>
+                              {formData.procurementCategories.length > 0 && (
+                                <div className="flex flex-wrap gap-3">
+                                  {formData.procurementCategories.map((cat: string) => (
+                                    <span
+                                      key={cat}
+                                      className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-xs font-black uppercase italic text-white shadow-lg shadow-blue-200"
+                                    >
+                                      {cat}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleTag('procurementCategories', cat)}
+                                        className="text-white/80 transition-colors hover:text-white"
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {formData.procurementCategories.includes('Others') && (
+                                <Input
+                                  label="Custom Procurement Category"
+                                  name="otherCategoryDetails"
+                                  value={formData.otherCategoryDetails}
+                                  onChange={handleChange}
+                                  placeholder="Enter your category"
+                                  className="rounded-2xl h-14"
+                                />
+                              )}
                             </div>
 
                             <Select label="Annual Procurement Budget" name="annualBudget" value={formData.annualBudget} onChange={handleChange} className="rounded-2xl h-14">
@@ -474,26 +563,39 @@ export default function BuyerOnboarding() {
 
                             <div className="space-y-4">
                               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Preferred Procurement Methods</h4>
-                              <div className="grid grid-cols-2 gap-4">
-                                {['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction'].map(method => (
-                                  <button
-                                    key={method}
-                                    type="button"
-                                    onClick={() => toggleTag('preferredMethods', method)}
-                                    className={cn(
-                                      "p-5 rounded-2xl border-2 text-left transition-all",
-                                      formData.preferredMethods.includes(method)
-                                        ? "bg-blue-50 border-blue-500 text-blue-700"
-                                        : "bg-white border-slate-100 hover:border-slate-200"
-                                    )}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-sm font-black uppercase italic tracking-tight">{method}</span>
-                                      {formData.preferredMethods.includes(method) && <CheckCircle2 className="h-5 w-5" />}
-                                    </div>
-                                  </button>
+                              <Select
+                                label="Method Dropdown"
+                                name="preferredMethodPicker"
+                                value=""
+                                onChange={handleProcurementMethodSelect}
+                                className="rounded-2xl h-14"
+                              >
+                                <option value="" disabled>Select a procurement method</option>
+                                {PROCUREMENT_METHOD_OPTIONS.map((method) => (
+                                  <option key={method} value={method} disabled={formData.preferredMethods.includes(method)}>
+                                    {method}
+                                  </option>
                                 ))}
-                              </div>
+                              </Select>
+                              {formData.preferredMethods.length > 0 && (
+                                <div className="flex flex-wrap gap-3">
+                                  {formData.preferredMethods.map((method: string) => (
+                                    <span
+                                      key={method}
+                                      className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-black uppercase italic text-blue-700"
+                                    >
+                                      {method}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleTag('preferredMethods', method)}
+                                        className="text-blue-500 transition-colors hover:text-blue-700"
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -507,25 +609,39 @@ export default function BuyerOnboarding() {
                                { label: 'GST Certificate (if applicable)', name: 'documents.gstCert', field: 'gstCert' },
                                { label: 'Address Proof', name: 'documents.addressProof', field: 'addressProof' },
                                { label: 'Authorization Letter (Optional)', name: 'documents.authLetter', field: 'authLetter' },
-                             ].map(doc => (
+                             ].map(doc => {
+                               const documentUrl = formData.documents[doc.field as keyof typeof formData.documents];
+                               return (
                                <div key={doc.label} className="p-6 rounded-3xl border-2 border-dashed border-slate-100 bg-slate-50/50 flex flex-col gap-4 group hover:border-blue-300 transition-all">
                                  <span className="text-[10px] font-black text-slate-400 uppercase italic tracking-widest">{doc.label}</span>
                                  <div className="relative">
                                     <input type="file" onChange={(e) => handleFileUpload(e, doc.name)} id={`upload-${doc.field}`} className="hidden" />
                                     <label htmlFor={`upload-${doc.field}`} className="w-full h-14 flex items-center justify-center bg-white rounded-2xl border border-slate-100 text-blue-600 font-black uppercase text-[10px] italic cursor-pointer hover:bg-blue-50 transition-all shadow-sm">
-                                       {isUploading === doc.name ? 'Uploading...' : formData.documents[doc.field as keyof typeof formData.documents] ? 'Change File' : 'Choose File'}
+                                       {isUploading === doc.name ? 'Uploading...' : documentUrl ? 'Change File' : 'Choose File'}
                                     </label>
                                  </div>
-                                 {formData.documents[doc.field as keyof typeof formData.documents] && (
-                                   <div className="flex items-center space-x-2 text-[9px] font-bold text-green-600 italic">
-                                      <CheckCircle2 className="h-3 w-3" />
-                                      <span>Document Uploaded Correctly</span>
-                                   </div>
+                                 {documentUrl && (
+                                   <>
+                                     <div className="flex items-center space-x-2 text-[9px] font-bold text-green-600 italic">
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        <span>Document Uploaded Correctly</span>
+                                     </div>
+                                     <a
+                                       href={documentUrl}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white text-[10px] font-black uppercase italic text-blue-600 shadow-sm transition-all hover:bg-blue-50"
+                                     >
+                                       <span>View Document</span>
+                                       <ExternalLink className="h-3.5 w-3.5" />
+                                     </a>
+                                   </>
                                  )}
                                  </div>
-                               ))}
-                             </div>
-                           )}
+                               );
+                             })}
+                              </div>
+                            )}
  
                          {/* SECTION: Account Setup */}
                          {activeSection === 'account' && (
