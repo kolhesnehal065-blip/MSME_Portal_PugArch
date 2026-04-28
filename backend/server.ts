@@ -347,7 +347,7 @@ async function startServer() {
       let profile = await SellerProfile.findOneAndUpdate(
         { userId },
         submissionData,
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
       
       res.json({ success: true, profile });
@@ -377,7 +377,7 @@ async function startServer() {
       let profile = await BuyerProfile.findOneAndUpdate(
         { userId },
         submissionData,
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
 
       res.json({ success: true, profile });

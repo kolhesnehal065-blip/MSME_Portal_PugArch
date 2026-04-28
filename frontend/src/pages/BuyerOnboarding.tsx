@@ -479,7 +479,7 @@ export default function BuyerOnboarding() {
                                 className="rounded-2xl h-14"
                               />
                             )}
-                            <Input label="Official Email ID" name="email" value={formData.email} onChange={handleChange} readOnly className="rounded-2xl h-14 bg-slate-50" />
+                            <Input label="Official Email ID" name="email" value={formData.email} onChange={handleChange} className="rounded-2xl h-14" />
                             <div className="relative">
                               <Input label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleBlur} error={touched.mobile ? errors.mobile : ''} required className="rounded-2xl h-14" />
                               <button type="button" className="absolute right-2 bottom-2 px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all">Verify</button>
