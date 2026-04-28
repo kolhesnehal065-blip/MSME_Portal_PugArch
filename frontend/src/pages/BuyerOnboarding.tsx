@@ -33,6 +33,35 @@ const DASHBOARD_SECTION_TO_BUYER_SECTION: Record<string, string> = {
   documents: 'docs',
 };
 
+const getDocumentPreviewUrl = (url: string) => {
+  if (!url) return url;
+
+  const lowerUrl = url.toLowerCase();
+  if (lowerUrl.includes('.png') || lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg') || lowerUrl.includes('.gif') || lowerUrl.includes('.webp') || lowerUrl.includes('.pdf')) {
+    return url;
+  }
+
+  return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`;
+};
+
+const getOfficePreviewUrl = (url: string) =>
+  `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+
+const getDocumentExtension = (url: string) => {
+  const cleanedUrl = url.split('?')[0].toLowerCase();
+  const match = cleanedUrl.match(/\.([a-z0-9]+)$/);
+  return match?.[1] || '';
+};
+
+const getDocumentPreviewMode = (url: string) => {
+  const extension = getDocumentExtension(url);
+
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(extension)) return 'image';
+  if (extension === 'pdf') return 'pdf';
+  if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(extension)) return 'office';
+  return 'google';
+};
+
 export default function BuyerOnboarding() {
   const { user, refreshUser } = useAuth();
   const location = useLocation();
@@ -94,6 +123,7 @@ export default function BuyerOnboarding() {
   const [isUploading, setIsUploading] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [previewDocument, setPreviewDocument] = useState<{ label: string; url: string; mode: 'image' | 'pdf' | 'office' | 'google' } | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -378,6 +408,85 @@ export default function BuyerOnboarding() {
     return isValid;
   };
 
+  const hasValue = (value: unknown) => typeof value === 'string' ? value.trim().length > 0 : Boolean(value);
+
+  const getSectionCompletion = (sectionId: string) => {
+    if (sectionId === 'org') {
+      const hasRequiredOrganizationFields =
+        hasValue(formData.organizationName) &&
+        hasValue(formData.businessType) &&
+        hasValue(formData.industry) &&
+        hasValue(formData.pan);
+
+      const cinValid = !hasValue(formData.cin) || !validateField('cin', formData.cin);
+      const gstValid = !hasValue(formData.gst) || !validateField('gst', formData.gst);
+      const websiteValid = !hasValue(formData.website) || validateWebsite(formData.website);
+
+      return hasRequiredOrganizationFields && cinValid && gstValid && websiteValid;
+    }
+
+    if (sectionId === 'rep') {
+      const departmentValue = formData.department === 'Others' ? formData.customDepartment : formData.department;
+      return (
+        hasValue(formData.representativeName) &&
+        hasValue(formData.designation) &&
+        hasValue(departmentValue) &&
+        !validateField('email', formData.email || '') &&
+        !validateField('mobile', formData.mobile || '')
+      );
+    }
+
+    if (sectionId === 'address') {
+      return (
+        hasValue(formData.state) &&
+        hasValue(formData.city) &&
+        !validateField('pincode', formData.pincode || '') &&
+        hasValue(formData.registeredAddress)
+      );
+    }
+
+    if (sectionId === 'procurement') {
+      const selectedCategories = formData.procurementCategories.filter((category: string) => category !== 'Others');
+      const hasCustomCategories = formData.customProcurementCategories.length > 0;
+      return (
+        (selectedCategories.length > 0 || hasCustomCategories) &&
+        hasValue(formData.annualBudget) &&
+        formData.preferredMethods.length > 0
+      );
+    }
+
+    if (sectionId === 'docs') {
+      return (
+        hasValue(formData.documents?.panCard) &&
+        hasValue(formData.documents?.regCert) &&
+        hasValue(formData.documents?.addressProof)
+      );
+    }
+
+    if (sectionId === 'account') {
+      return (
+        hasValue(formData.password) &&
+        hasValue(formData.confirmPassword) &&
+        formData.password === formData.confirmPassword &&
+        Boolean(formData.declaration) &&
+        Boolean(formData.agreeTerms)
+      );
+    }
+
+    return false;
+  };
+
+  const completedSectionCount = SIDEBAR_SECTIONS.filter(section => getSectionCompletion(section.id)).length;
+  const complianceProgress = Math.round((completedSectionCount / SIDEBAR_SECTIONS.length) * 100);
+
+  const openDocumentPreview = (label: string, url: string) => {
+    setPreviewDocument({
+      label,
+      url,
+      mode: getDocumentPreviewMode(url) as 'image' | 'pdf' | 'office' | 'google'
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -469,14 +578,27 @@ export default function BuyerOnboarding() {
         <form onSubmit={handleSubmit}>
           {/* REGISTRATION */}
           <div className="max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-700">
-             <div className="grid grid-cols-12 gap-8">
-                  {/* SIDEBAR NAVIGATION */}
-                  <div className="col-span-3 space-y-4">
-                    <div className="bg-white rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 border border-slate-100 sticky top-28">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic px-4 mb-6">Onboarding Flow</p>
-                      <div className="space-y-1">
+             <div className="space-y-8">
+                  <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-xl shadow-slate-200/50">
+                    <div className="flex flex-col gap-6">
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Onboarding Flow</p>
+                        <div className="flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-white">
+                          <ShieldCheck className="h-4 w-4 text-blue-400" />
+                          <div className="min-w-32">
+                            <p className="text-[9px] font-black uppercase tracking-widest italic">Compliance Level</p>
+                            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                              <div
+                                className="h-full bg-blue-500 transition-all duration-1000"
+                                style={{ width: `${complianceProgress}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
                         {SIDEBAR_SECTIONS.map((section, idx) => {
-                          const isCompleted = SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection) > idx;
+                          const isCompleted = getSectionCompletion(section.id);
                           const isActive = activeSection === section.id;
                           return (
                             <button
@@ -484,41 +606,33 @@ export default function BuyerOnboarding() {
                               type="button"
                               onClick={() => setActiveSection(section.id)}
                               className={cn(
-                                "w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group",
-                                isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200" :
-                                isCompleted ? "text-green-600 hover:bg-green-50" : "text-slate-400 hover:bg-slate-50"
+                                "flex min-h-20 items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all duration-300 group",
+                                isActive
+                                  ? "border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-200"
+                                  : isCompleted
+                                    ? "border-green-100 bg-green-50 text-green-700 hover:border-green-200"
+                                    : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200 hover:bg-white"
                               )}
                             >
-                              <div className="flex items-center space-x-3">
+                              <div className="space-y-1">
                                 <span className={cn(
-                                  "text-[10px] font-black italic",
-                                  isActive ? "text-blue-100" : "text-slate-300"
+                                  "block text-[10px] font-black italic",
+                                  isActive ? "text-blue-100" : isCompleted ? "text-green-400" : "text-slate-300"
                                 )}>0{idx + 1}</span>
-                                <span className="text-[11px] font-black uppercase italic tracking-wider">{section.label}</span>
+                                <span className="block text-[11px] font-black uppercase italic tracking-wider">
+                                  {section.label}
+                                </span>
                               </div>
-                              {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : isActive ? <ArrowRight className="h-4 w-4 animate-bounce-x" /> : null}
+                              {isCompleted ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : isActive ? <ArrowRight className="h-4 w-4 shrink-0 animate-bounce-x" /> : null}
                             </button>
                           );
                         })}
-                      </div>
-
-                      <div className="mt-10 p-5 bg-slate-900 rounded-3xl text-white">
-                         <div className="flex items-center space-x-3 mb-3">
-                           <ShieldCheck className="h-4 w-4 text-blue-400" />
-                           <span className="text-[9px] font-black uppercase italic tracking-widest">Compliance Level</span>
-                         </div>
-                         <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                           <div 
-                             className="h-full bg-blue-500 transition-all duration-1000" 
-                             style={{ width: `${(SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection) / (SIDEBAR_SECTIONS.length - 1)) * 100}%` }}
-                           />
-                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* FORM CONTENT */}
-                  <div className="col-span-9">
+                  <div>
                     <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2.5rem] overflow-hidden min-h-[600px]">
                       <div className="bg-white px-10 py-8 border-b border-slate-50 flex items-center justify-between">
                          <div className="flex items-center space-x-4">
@@ -750,6 +864,7 @@ export default function BuyerOnboarding() {
                                { label: 'Authorization Letter (Optional)', name: 'documents.authLetter', field: 'authLetter' },
                              ].map(doc => {
                                const documentUrl = formData.documents[doc.field as keyof typeof formData.documents];
+                               const documentPreviewUrl = documentUrl ? getDocumentPreviewUrl(String(documentUrl)) : '';
                                return (
                                <div key={doc.label} className="p-6 rounded-3xl border-2 border-dashed border-slate-100 bg-slate-50/50 flex flex-col gap-4 group hover:border-blue-300 transition-all">
                                  <span className="text-[10px] font-black text-slate-400 uppercase italic tracking-widest">{doc.label}</span>
@@ -765,15 +880,14 @@ export default function BuyerOnboarding() {
                                         <CheckCircle2 className="h-3 w-3" />
                                         <span>Document Uploaded Correctly</span>
                                      </div>
-                                     <a
-                                       href={documentUrl}
-                                       target="_blank"
-                                       rel="noopener noreferrer"
+                                     <button
+                                       type="button"
+                                       onClick={() => openDocumentPreview(doc.label, String(documentUrl))}
                                        className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white text-[10px] font-black uppercase italic text-blue-600 shadow-sm transition-all hover:bg-blue-50"
                                      >
                                        <span>View Document</span>
                                        <ExternalLink className="h-3.5 w-3.5" />
-                                     </a>
+                                     </button>
                                    </>
                                  )}
                                  </div>
@@ -873,6 +987,67 @@ export default function BuyerOnboarding() {
                </div>
              </div>
         </form>
+      {previewDocument && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-black uppercase italic text-slate-900">{previewDocument.label}</h3>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Document Preview</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <a
+                  href={previewDocument.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-[10px] font-black uppercase italic text-slate-600 transition-all hover:bg-slate-50"
+                >
+                  Open Original
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDocument(null)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-all hover:bg-slate-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 bg-slate-100">
+              {previewDocument.mode === 'image' && (
+                <div className="flex h-full items-center justify-center p-4">
+                  <img
+                    src={previewDocument.url}
+                    alt={previewDocument.label}
+                    className="max-h-full max-w-full rounded-2xl bg-white object-contain shadow-lg"
+                  />
+                </div>
+              )}
+              {previewDocument.mode === 'pdf' && (
+                <iframe
+                  src={previewDocument.url}
+                  title={previewDocument.label}
+                  className="h-full w-full"
+                />
+              )}
+              {previewDocument.mode === 'office' && (
+                <iframe
+                  src={getOfficePreviewUrl(previewDocument.url)}
+                  title={previewDocument.label}
+                  className="h-full w-full"
+                />
+              )}
+              {previewDocument.mode === 'google' && (
+                <iframe
+                  src={getDocumentPreviewUrl(previewDocument.url)}
+                  title={previewDocument.label}
+                  className="h-full w-full"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   </div>
   );
