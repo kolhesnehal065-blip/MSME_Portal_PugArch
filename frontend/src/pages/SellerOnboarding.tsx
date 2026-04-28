@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Input, Select } from '../components/ui/Input';
@@ -31,6 +31,7 @@ const SECTION_TO_STEP: Record<string, number> = {
 
 export default function SellerOnboarding() {
   const { user, refreshUser } = useAuth();
+  const location = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -93,6 +94,14 @@ export default function SellerOnboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const section = params.get('section');
+    if (section && SECTION_TO_STEP[section]) {
+      setCurrentStep(SECTION_TO_STEP[section]);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const fetchProfile = async () => {

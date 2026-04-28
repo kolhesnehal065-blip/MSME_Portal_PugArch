@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Input, Select } from '../components/ui/Input';
@@ -24,9 +24,17 @@ const SIDEBAR_SECTIONS = [
 const DEPARTMENT_OPTIONS = ['Procurement', 'Finance', 'Admin', 'Operations', 'Management', 'Others'];
 const PROCUREMENT_CATEGORY_OPTIONS = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
 const PROCUREMENT_METHOD_OPTIONS = ['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction'];
+const DASHBOARD_SECTION_TO_BUYER_SECTION: Record<string, string> = {
+  basic: 'org',
+  business: 'rep',
+  compliance: 'address',
+  bank: 'procurement',
+  documents: 'docs',
+};
 
 export default function BuyerOnboarding() {
   const { user, refreshUser } = useAuth();
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState('org');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -84,6 +92,15 @@ export default function BuyerOnboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const section = params.get('section');
+    const mappedSection = section ? DASHBOARD_SECTION_TO_BUYER_SECTION[section] : null;
+    if (mappedSection) {
+      setActiveSection(mappedSection);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -363,14 +380,7 @@ export default function BuyerOnboarding() {
                             <button
                               key={section.id}
                               type="button"
-                              onClick={() => {
-                                // Only allow clicking back to previous sections or if already completed
-                                const targetIdx = SIDEBAR_SECTIONS.findIndex(s => s.id === section.id);
-                                const currentIdx = SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection);
-                                if (targetIdx < currentIdx || isCompleted) {
-                                  setActiveSection(section.id);
-                                }
-                              }}
+                              onClick={() => setActiveSection(section.id)}
                               className={cn(
                                 "w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group",
                                 isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200" :

@@ -107,12 +107,7 @@ export function Header() {
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 sticky top-0 z-40 ml-64">
-      <h1 className="text-lg font-bold flex items-center gap-2">
-        {getPageTitle()}
-        <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-bold uppercase tracking-wider underline decoration-indigo-300">
-          / {user.role} context
-        </span>
-      </h1>
+      <h1 className="text-lg font-bold">{getPageTitle()}</h1>
       
       <div className="flex items-center gap-6">
         <div className="relative hidden md:block">

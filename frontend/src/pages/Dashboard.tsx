@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui/Card';
@@ -12,6 +12,13 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [adminStats, setAdminStats] = useState<any>(null);
   const navigate = useNavigate();
+  const sectionRouteMap: Record<string, { seller: string; buyer: string }> = {
+    basic: { seller: '/seller/onboarding?section=basic', buyer: '/buyer/onboarding?section=basic' },
+    business: { seller: '/seller/onboarding?section=business', buyer: '/buyer/onboarding?section=business' },
+    compliance: { seller: '/seller/onboarding?section=compliance', buyer: '/buyer/onboarding?section=compliance' },
+    bank: { seller: '/seller/onboarding?section=bank', buyer: '/buyer/onboarding?section=bank' },
+    documents: { seller: '/seller/onboarding?section=documents', buyer: '/buyer/onboarding?section=documents' },
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -211,12 +218,17 @@ export default function Dashboard() {
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {Object.entries(user.sectionStatus).map(([section, status]: [string, any]) => (
-                <div key={section} className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm flex flex-col items-center text-center gap-2">
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() => navigate(sectionRouteMap[section]?.[user.role as 'seller' | 'buyer'] || '/dashboard')}
+                  className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm flex flex-col items-center text-center gap-2 transition-all hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
+                >
                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{section}</p>
                    <Badge variant={status === 'approved' ? 'success' : status === 'rejected' ? 'error' : 'warning'} className="w-full justify-center capitalize">
                       {status}
                    </Badge>
-                </div>
+                </button>
               ))}
             </div>
           </CardContent>
