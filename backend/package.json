@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "tsx index.ts",
     "build": "tsc",
-    "start": "tsx server.ts"
+    "start": "tsx index.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
