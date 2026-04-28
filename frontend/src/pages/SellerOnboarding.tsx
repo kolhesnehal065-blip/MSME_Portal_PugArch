@@ -21,6 +21,14 @@ const STEPS: Step[] = [
   { id: 7, label: 'Submit Approval' },
 ];
 
+const SECTION_TO_STEP: Record<string, number> = {
+  basic: 1,
+  business: 2,
+  compliance: 3,
+  bank: 3,
+  documents: 5,
+};
+
 export default function SellerOnboarding() {
   const { user, refreshUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
@@ -244,6 +252,7 @@ export default function SellerOnboarding() {
     }
   };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
+  const goToStep = (step: number) => setCurrentStep(Math.min(Math.max(step, 1), STEPS.length));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,18 +332,28 @@ export default function SellerOnboarding() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {['basic', 'business', 'compliance', 'bank', 'documents'].map((section) => {
             const status = user?.sectionStatus?.[section as keyof typeof user.sectionStatus] || 'pending';
+            const linkedStep = SECTION_TO_STEP[section];
+            const isActive = currentStep === linkedStep;
             return (
-              <div key={section} className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col items-center gap-1 transition-all hover:shadow-md">
+              <button
+                 key={section}
+                 type="button"
+                 onClick={() => goToStep(linkedStep)}
+                 className={cn(
+                   "p-4 rounded-2xl bg-white border shadow-sm flex flex-col items-center gap-1 transition-all hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2",
+                   isActive ? "border-indigo-300 shadow-md shadow-indigo-100" : "border-slate-100"
+                 )}
+              >
                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight italic">{section}</p>
                  <Badge variant={status === 'approved' ? 'success' : status === 'rejected' ? 'error' : 'warning' as any} className="text-[9px] py-0.5 px-3 capitalize rounded-full font-black italic">
                     {status}
                  </Badge>
-              </div>
+              </button>
             );
           })}
       </div>
 
-      <Stepper steps={STEPS} currentStep={currentStep} className="pt-8" />
+      <Stepper steps={STEPS} currentStep={currentStep} onStepChange={goToStep} className="pt-8" />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card className="border-none shadow-xl shadow-slate-200/50 overflow-hidden rounded-3xl">

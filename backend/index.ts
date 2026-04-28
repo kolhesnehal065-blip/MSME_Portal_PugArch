@@ -50,12 +50,13 @@ const transporter = nodemailer.createTransport({
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 5000;
+  const PORT = Number(process.env.PORT) || 5001;
 
   app.use(cors({
     origin: [
       "http://localhost:3000",
       "http://localhost:5173",
+      "http://localhost:5174",
       process.env.FRONTEND_URL || "https://msme-portal-pug-arch-frontend.vercel.app"
     ],
     credentials: true

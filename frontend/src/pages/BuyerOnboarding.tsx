@@ -7,7 +7,7 @@ import { Input, Select } from '../components/ui/Input';
 import { Card, CardContent, Badge } from '../components/ui/Card';
 import { Stepper, Step } from '../components/ui/Stepper';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { validateField, FieldType } from '../lib/validation';
 
@@ -20,6 +20,9 @@ const SIDEBAR_SECTIONS = [
   { id: 'docs', label: 'Document Upload' },
   { id: 'account', label: 'Account Setup' },
 ];
+
+const DEPARTMENT_OPTIONS = ['Procurement', 'Finance', 'Admin', 'Operations', 'Management', 'Others'];
+const PROCUREMENT_CATEGORY_OPTIONS = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
 
 export default function BuyerOnboarding() {
   const { user, refreshUser } = useAuth();
@@ -41,6 +44,7 @@ export default function BuyerOnboarding() {
     representativeName: '',
     designation: '',
     department: 'Procurement',
+    customDepartment: '',
     email: '',
     mobile: '',
     alternateMobile: '',
@@ -88,9 +92,13 @@ export default function BuyerOnboarding() {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         const data = await res.json();
+        const profileDepartment = data.profile?.department || '';
+        const hasPresetDepartment = DEPARTMENT_OPTIONS.includes(profileDepartment) && profileDepartment !== 'Others';
         setFormData((prev: any) => ({
           ...prev,
           ...(data.profile || {}),
+          department: profileDepartment ? (hasPresetDepartment ? profileDepartment : 'Others') : prev.department,
+          customDepartment: profileDepartment && !hasPresetDepartment ? profileDepartment : (prev.customDepartment || ''),
           email: data.user?.email || prev.email
         }));
       } catch (err) {
@@ -150,6 +158,12 @@ export default function BuyerOnboarding() {
 
     if (type === 'checkbox') {
       setFormData({ ...formData, [name]: (e.target as HTMLInputElement).checked });
+    } else if (name === 'department') {
+      setFormData({
+        ...formData,
+        department: newValue,
+        customDepartment: newValue === 'Others' ? formData.customDepartment : ''
+      });
     } else {
       setFormData({ ...formData, [name]: newValue });
       if (touched[name]) validate(name, newValue);
@@ -159,9 +173,25 @@ export default function BuyerOnboarding() {
   const toggleTag = (field: string, value: string) => {
     const values = [...formData[field]];
     if (values.includes(value)) {
-      setFormData({ ...formData, [field]: values.filter(v => v !== value) });
+      setFormData({
+        ...formData,
+        [field]: values.filter(v => v !== value),
+        ...(field === 'procurementCategories' && value === 'Others' ? { otherCategoryDetails: '' } : {})
+      });
     } else {
       setFormData({ ...formData, [field]: [...values, value] });
+    }
+  };
+
+  const handleProcurementCategorySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { value } = e.target;
+    if (!value) return;
+
+    if (!formData.procurementCategories.includes(value)) {
+      setFormData({
+        ...formData,
+        procurementCategories: [...formData.procurementCategories, value]
+      });
     }
   };
 
@@ -240,7 +270,12 @@ export default function BuyerOnboarding() {
 
       setIsLoading(true);
       try {
-        const res = await api.post('/api/buyer/register', formData, {
+        const submissionData = {
+          ...formData,
+          department: formData.department === 'Others' ? formData.customDepartment.trim() || 'Others' : formData.department
+        };
+
+        const res = await api.post('/api/buyer/register', submissionData, {
           headers: { 
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -407,15 +442,22 @@ export default function BuyerOnboarding() {
                         {activeSection === 'rep' && (
                           <div className="grid md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
                             <Input label="Full Name" name="representativeName" value={formData.representativeName} onChange={handleChange} onBlur={handleBlur} error={touched.representativeName ? errors.representativeName : ''} required className="rounded-2xl h-14" />
-                            <Input label="Designation" name="designation" value={formData.designation} placeholder="e.g. Director" className="rounded-2xl h-14" />
+                            <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Director" className="rounded-2xl h-14" />
                             <Select label="Department" name="department" value={formData.department} onChange={handleChange} className="rounded-2xl h-14">
-                              <option value="Procurement">Procurement</option>
-                              <option value="Finance">Finance</option>
-                              <option value="Admin">Admin</option>
-                              <option value="Operations">Operations</option>
-                              <option value="Management">Management</option>
-                              <option value="Others">Others</option>
+                              {DEPARTMENT_OPTIONS.map((department) => (
+                                <option key={department} value={department}>{department}</option>
+                              ))}
                             </Select>
+                            {formData.department === 'Others' && (
+                              <Input
+                                label="Custom Department"
+                                name="customDepartment"
+                                value={formData.customDepartment}
+                                onChange={handleChange}
+                                placeholder="Enter department name"
+                                className="rounded-2xl h-14"
+                              />
+                            )}
                             <Input label="Official Email ID" name="email" value={formData.email} onChange={handleChange} readOnly className="rounded-2xl h-14 bg-slate-50" />
                             <div className="relative">
                               <Input label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleBlur} error={touched.mobile ? errors.mobile : ''} required className="rounded-2xl h-14" />
@@ -446,23 +488,49 @@ export default function BuyerOnboarding() {
                           <div className="space-y-10 animate-in fade-in slide-in-from-right-8 duration-500">
                             <div className="space-y-4">
                               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Procurement Categories (Multi-select)</h4>
-                              <div className="flex flex-wrap gap-3">
-                                {['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'].map(cat => (
-                                  <button
-                                    key={cat}
-                                    type="button"
-                                    onClick={() => toggleTag('procurementCategories', cat)}
-                                    className={cn(
-                                      "px-6 py-3 rounded-2xl border-2 text-xs font-black uppercase italic transition-all",
-                                      formData.procurementCategories.includes(cat)
-                                        ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
-                                        : "bg-white text-slate-500 border-slate-100 hover:border-blue-200"
-                                    )}
-                                  >
+                              <Select
+                                label="Category Dropdown"
+                                name="procurementCategoryPicker"
+                                value=""
+                                onChange={handleProcurementCategorySelect}
+                                className="rounded-2xl h-14"
+                              >
+                                <option value="" disabled>Select a procurement category</option>
+                                {PROCUREMENT_CATEGORY_OPTIONS.map((cat) => (
+                                  <option key={cat} value={cat} disabled={formData.procurementCategories.includes(cat)}>
                                     {cat}
-                                  </button>
+                                  </option>
                                 ))}
-                              </div>
+                              </Select>
+                              {formData.procurementCategories.length > 0 && (
+                                <div className="flex flex-wrap gap-3">
+                                  {formData.procurementCategories.map((cat: string) => (
+                                    <span
+                                      key={cat}
+                                      className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-xs font-black uppercase italic text-white shadow-lg shadow-blue-200"
+                                    >
+                                      {cat}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleTag('procurementCategories', cat)}
+                                        className="text-white/80 transition-colors hover:text-white"
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {formData.procurementCategories.includes('Others') && (
+                                <Input
+                                  label="Custom Procurement Category"
+                                  name="otherCategoryDetails"
+                                  value={formData.otherCategoryDetails}
+                                  onChange={handleChange}
+                                  placeholder="Enter your category"
+                                  className="rounded-2xl h-14"
+                                />
+                              )}
                             </div>
 
                             <Select label="Annual Procurement Budget" name="annualBudget" value={formData.annualBudget} onChange={handleChange} className="rounded-2xl h-14">
