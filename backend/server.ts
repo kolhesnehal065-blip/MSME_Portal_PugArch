@@ -53,7 +53,11 @@ async function startServer() {
   const PORT = Number(process.env.PORT) || 5000;
 
   app.use(cors({
-    origin: process.env.FRONTEND_URL || "https://your-frontend.vercel.app", // Set your actual Vercel URL in Render Env Vars
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      process.env.FRONTEND_URL || "https://your-frontend.vercel.app"
+    ],
     credentials: true
   }));
   app.use(express.json());
