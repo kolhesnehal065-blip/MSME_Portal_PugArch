@@ -101,6 +101,7 @@ export default function SellerOnboarding() {
   const [isUploading, setIsUploading] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -321,13 +322,13 @@ export default function SellerOnboarding() {
   });
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-20 px-4 md:px-0">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+    <div className="mx-auto max-w-5xl space-y-5 overflow-x-hidden px-3 pb-16 sm:space-y-6 sm:px-4 sm:pb-20 md:px-0">
+      <div className="flex flex-col items-stretch justify-between gap-4 md:flex-row md:items-center">
         <div className="space-y-1 text-center md:text-left">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase italic">Onboarding Module</h1>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900 italic sm:text-3xl">Onboarding Module</h1>
           <p className="text-slate-500 font-medium italic text-sm opacity-70">Complete your business profile for procurement eligibility</p>
         </div>
-        <div className="flex items-center gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-100 w-full md:w-auto justify-center">
+        <div className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm md:w-auto">
            <div className="text-right">
              <p className="text-[10px] font-black text-slate-400 uppercase italic">Registration Status</p>
              <p className="text-xs font-black text-green-600 uppercase italic capitalize">{user?.registrationStatus || 'completed'}</p>
@@ -350,8 +351,8 @@ export default function SellerOnboarding() {
         </div>
       )}
 
-      <div className="overflow-x-auto no-scrollbar -mx-4 px-4 pb-2">
-        <div className="flex md:grid md:grid-cols-5 gap-3 min-w-max md:min-w-0">
+      <div className="w-full overflow-hidden">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
             {['basic', 'business', 'compliance', 'bank', 'documents'].map((section) => {
               const status = user?.sectionStatus?.[section as keyof typeof user.sectionStatus] || 'pending';
               const linkedStep = SECTION_TO_STEP[section];
@@ -364,12 +365,12 @@ export default function SellerOnboarding() {
                   type="button"
                   onClick={() => goToStep(linkedStep)}
                   className={cn(
-                    "p-3 md:p-4 rounded-2xl bg-white border shadow-sm flex flex-col items-center gap-1 transition-all hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 min-w-[100px] md:min-w-0",
+                    "min-w-0 rounded-2xl border bg-white p-3 shadow-sm flex flex-col items-center gap-1 transition-all hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 md:p-4",
                     isActive ? "border-indigo-300 shadow-md shadow-indigo-100" : "border-slate-100",
                     needsCorrection && "border-red-200 bg-red-50/60 shadow-red-100"
                   )}
                 >
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight italic">{section}</p>
+                  <p className="max-w-full break-words text-center text-[9px] font-bold uppercase tracking-tight text-slate-400 italic sm:text-[10px]">{section}</p>
                   <Badge variant={status === 'approved' ? 'success' : status === 'rejected' ? 'error' : 'warning' as any} className="text-[9px] py-0.5 px-3 capitalize rounded-full font-black italic">
                       {status}
                   </Badge>
@@ -417,25 +418,25 @@ export default function SellerOnboarding() {
         </div>
       )}
 
-      <Stepper steps={STEPS} currentStep={currentStep} onStepChange={goToStep} className="pt-8" />
+      <Stepper steps={STEPS} currentStep={currentStep} onStepChange={goToStep} className="pt-3 sm:pt-6 lg:pt-8" />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="border-none shadow-xl shadow-slate-200/50 overflow-hidden rounded-3xl">
-          <div className="bg-slate-50 px-8 py-5 border-b border-white flex items-center justify-between">
-             <div className="flex items-center space-x-3">
-               <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-sm italic">
+        <Card className="overflow-hidden rounded-2xl border-none shadow-xl shadow-slate-200/50 sm:rounded-3xl">
+          <div className="flex items-center justify-between gap-3 border-b border-white bg-slate-50 px-4 py-4 sm:px-6 md:px-8 md:py-5">
+             <div className="flex min-w-0 items-center space-x-3">
+               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white italic">
                  {currentStep}
                </div>
-               <h2 className="font-black uppercase tracking-tight text-slate-900 italic">
+               <h2 className="min-w-0 break-words text-sm font-black uppercase tracking-tight text-slate-900 italic sm:text-base">
                  {STEPS[currentStep-1].label}
                </h2>
              </div>
-             <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-indigo-50 shadow-sm">
+             <div className="hidden rounded-xl border border-indigo-50 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-600 shadow-sm sm:block">
                Completion: {Math.round((currentStep / 7) * 100)}%
              </div>
           </div>
           
-          <CardContent className="p-6 md:p-10">
+          <CardContent className="p-4 sm:p-6 md:p-10">
             {/* STEP 1: Business Profile */}
             {currentStep === 1 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -485,12 +486,20 @@ export default function SellerOnboarding() {
               <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                  <div className="space-y-4">
                   <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest italic">Categories Offered</h3>
-                  <div className="relative group">
-                    <button type="button" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-left flex items-center justify-between font-bold text-sm text-slate-700 hover:border-slate-300 transition-colors">
-                      <span>{formData.productCategories.length > 0 ? `${formData.productCategories.length} Categories Selected` : 'Select Categories...'}</span>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoryPickerOpen(prev => !prev)}
+                      className="flex h-12 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 text-left text-sm font-bold text-slate-700 transition-colors hover:border-slate-300"
+                      aria-expanded={isCategoryPickerOpen}
+                    >
+                      <span className="min-w-0 truncate">{formData.productCategories.length > 0 ? `${formData.productCategories.length} Categories Selected` : 'Select Categories...'}</span>
                       <ChevronDown className="h-4 w-4 text-slate-400" />
                     </button>
-                    <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col max-h-60 overflow-y-auto">
+                    <div className={cn(
+                      "absolute left-0 right-0 top-full z-50 mt-2 flex max-h-60 flex-col overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl transition-all",
+                      isCategoryPickerOpen ? "visible opacity-100" : "invisible opacity-0"
+                    )}>
                       {categories.map(cat => (
                         <label key={cat} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
                           <input 
@@ -508,7 +517,7 @@ export default function SellerOnboarding() {
                   {formData.productCategories.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2">
                       {formData.productCategories.map((cat: string) => (
-                        <span key={cat} className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[10px] font-black uppercase italic flex items-center gap-2 shadow-sm animate-in zoom-in-95 duration-200">
+                        <span key={cat} className="flex max-w-full items-center gap-2 break-words rounded-lg bg-slate-900 px-3 py-1.5 text-[10px] font-black uppercase text-white shadow-sm animate-in zoom-in-95 duration-200 italic">
                           {cat}
                           <button type="button" onClick={() => toggleCategory(cat)} className="hover:text-red-400 transition-colors"><X className="h-3 w-3" /></button>
                         </span>
@@ -523,7 +532,7 @@ export default function SellerOnboarding() {
 
             {/* STEP 5: Documents Upload */}
             {currentStep === 5 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
                  {[
                    { label: 'PAN Card Copy', name: 'documents.panCard', field: 'panCard' },
                    { label: 'Udyam Certificate', name: 'documents.udyamCert', field: 'udyamCert' },
@@ -532,11 +541,11 @@ export default function SellerOnboarding() {
                    { label: 'Aadhaar of Authorized Person', name: 'documents.aadhaar', field: 'aadhaar' },
                    { label: 'Business Reg. Proof', name: 'documents.regProof', field: 'regProof' },
                  ].map(doc => (
-                   <div key={doc.label} className="p-5 rounded-2xl border-2 border-dashed border-slate-100 bg-slate-50 flex flex-col gap-3 group hover:border-indigo-200 transition-all">
-                      <span className="text-[10px] font-black text-slate-400 uppercase italic">{doc.label}</span>
-                      <div className="flex items-center gap-4">
+                   <div key={doc.label} className="group flex min-w-0 flex-col gap-3 rounded-2xl border-2 border-dashed border-slate-100 bg-slate-50 p-4 transition-all hover:border-indigo-200 sm:p-5">
+                      <span className="break-words text-[10px] font-black uppercase text-slate-400 italic">{doc.label}</span>
+                      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                          <input type="file" onChange={(e) => handleFileUpload(e, doc.name)} id={`onb-${doc.field}`} className="hidden" />
-                         <label htmlFor={`onb-${doc.field}`} className="flex-1 h-12 flex items-center justify-center bg-white rounded-xl border border-slate-200 text-indigo-600 font-black uppercase text-[10px] italic cursor-pointer hover:bg-indigo-50 transition-colors">
+                         <label htmlFor={`onb-${doc.field}`} className="flex h-12 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-center text-[10px] font-black uppercase text-indigo-600 transition-colors hover:bg-indigo-50 italic">
                             {isUploading === doc.name ? 'Uploading...' : 'Choose File'}
                          </label>
                          {formData.documents[doc.field as keyof typeof formData.documents] && (
@@ -551,24 +560,24 @@ export default function SellerOnboarding() {
             {/* STEP 6: Final Declaration */}
             {currentStep === 6 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-                 <div className="p-10 bg-slate-900 rounded-3xl text-white space-y-6 shadow-2xl relative overflow-hidden">
+                 <div className="relative space-y-6 overflow-hidden rounded-2xl bg-slate-900 p-5 text-white shadow-2xl sm:rounded-3xl sm:p-8 lg:p-10">
                     <div className="absolute top-0 right-0 p-8 opacity-10">
                        <ShieldCheck className="h-32 w-32" />
                     </div>
-                    <h3 className="text-xl font-black uppercase italic tracking-tight border-b border-white/10 pb-4">Onboarding Declaration</h3>
+                    <h3 className="border-b border-white/10 pb-4 text-lg font-black uppercase tracking-tight italic sm:text-xl">Onboarding Declaration</h3>
                     <p className="text-slate-400 text-sm leading-relaxed font-medium italic">
                        I, the authorized representative of <span className="text-white underline">{formData.businessName || 'the Organization'}</span>, hereby solemnly affirm that the information provided in this onboarding flow is true, complete, and correct to the best of my knowledge and belief. I understand that any false statement or omission may result in rejection of the application and potential legal consequences.
                     </p>
-                    <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/10">
+                    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
                        <input 
                          type="checkbox" 
                          name="declaration" 
                          checked={formData.declaration} 
                          onChange={handleChange}
-                         className="w-6 h-6 rounded accent-indigo-500" 
+                         className="mt-0.5 h-6 w-6 shrink-0 rounded accent-indigo-500" 
                        />
-                       <span className="text-xs font-black uppercase italic text-indigo-400">I Agree and Accept the Declaration</span>
-                    </div>
+                       <span className="text-xs font-black uppercase leading-relaxed text-indigo-400 italic">I Agree and Accept the Declaration</span>
+                    </label>
                  </div>
               </div>
             )}
@@ -583,7 +592,7 @@ export default function SellerOnboarding() {
                  <p className="text-slate-500 font-medium italic max-w-lg mx-auto">
                     Your profile is ready for submission. Once submitted, our compliance team will review your documents and verify your business details.
                  </p>
-                 <div className="p-8 bg-indigo-50 rounded-3xl border border-indigo-100 italic space-y-2">
+                 <div className="space-y-2 rounded-2xl border border-indigo-100 bg-indigo-50 p-5 italic sm:rounded-3xl sm:p-8">
                     <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">Expected Review Time</p>
                     <p className="font-bold text-slate-700">48 - 72 Business Hours</p>
                  </div>

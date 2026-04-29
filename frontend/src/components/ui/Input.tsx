@@ -9,18 +9,18 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
     const isPassword = type === "password";
 
     return (
-      <div className="w-full space-y-1.5">
+      <div className="w-full min-w-0 space-y-1.5">
         {label && (
-          <label htmlFor={id} className="text-xs font-bold uppercase tracking-wider text-slate-500 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+          <label htmlFor={id} className="block break-words text-[11px] font-bold uppercase tracking-wide text-slate-500 leading-snug peer-disabled:cursor-not-allowed peer-disabled:opacity-70 sm:text-xs sm:tracking-wider">
             {label}
           </label>
         )}
-        <div className="relative">
+        <div className="relative min-w-0">
           <input
             id={id}
             type={isPassword ? (showPassword ? "text" : "password") : type}
             className={cn(
-              "flex h-10 w-full rounded-lg border border-slate-200 bg-slate-100/50 px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all",
+              "flex h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-slate-100/50 px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all",
               isPassword && "pr-10",
               error && "border-red-500 focus-visible:ring-red-500 bg-red-50/30",
               isValid && !error && "border-green-500 focus-visible:ring-green-500 bg-green-50/30",
@@ -50,16 +50,16 @@ const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HT
   ({ className, label, error, children, ...props }, ref) => {
     const id = React.useId();
     return (
-      <div className="w-full space-y-1.5">
+      <div className="w-full min-w-0 space-y-1.5">
         {label && (
-          <label htmlFor={id} className="text-xs font-bold uppercase tracking-wider text-slate-500 leading-none">
+          <label htmlFor={id} className="block break-words text-[11px] font-bold uppercase tracking-wide text-slate-500 leading-snug sm:text-xs sm:tracking-wider">
             {label}
           </label>
         )}
         <select
           id={id}
           className={cn(
-            "flex h-10 w-full rounded-lg border border-slate-200 bg-slate-100/50 px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all",
+            "flex h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-slate-100/50 px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all",
             error && "border-red-500 focus-visible:ring-red-500",
             className
           )}
