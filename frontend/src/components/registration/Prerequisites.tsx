@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -16,14 +16,32 @@ const sellerBusinessTypes = [
 ];
 
 const buyerBusinessTypes = [
-  { value: 'Private Limited Company', label: 'Private Limited Company' },
-  { value: 'Public Limited Company', label: 'Public Limited Company' },
-  { value: 'Partnership Firm', label: 'Partnership Firm' },
-  { value: 'LLP', label: 'LLP' },
-  { value: 'Proprietorship', label: 'Proprietorship' },
-  { value: 'Startup', label: 'Startup' },
-  { value: 'NGO / Trust', label: 'NGO / Trust' },
-  { value: 'Educational Institution', label: 'Educational Institution' },
+  { value: 'Primary User (HOD)', label: 'Primary User (HOD)' },
+  { value: 'Verifying Authority (VA)', label: 'Verifying Authority (VA)' },
+  { value: 'Primary User (Co-operative)', label: 'Primary User (Co-operative)' },
+];
+
+const buyerBaseRequiredDocs = [
+  { id: 'aadhaar-number', content: 'Aadhaar number' },
+  { id: 'aadhaar-mobile', content: 'Active Mobile number to which your Aadhaar is linked - for OTP purpose' },
+];
+
+const getBuyerRequiredDocs = (selectedType: string) => [
+  ...buyerBaseRequiredDocs,
+  {
+    id: 'active-email',
+    content: selectedType === 'Primary User (Co-operative)' ? (
+      <>
+        Active Email Id:- Use E-mail ID, Company/ organisation E-mail ID and ID from whitelisted domains to verify the OTP. To view list of whitelisted domains (Accepted by GeM),{' '}
+        <button type="button" className="font-bold text-indigo-600 hover:underline">Click Here</button>
+      </>
+    ) : (
+      <>
+        Government email id - preferably designation based. To view list of whitelisted domains (accepted at GeM),{' '}
+        <button type="button" className="font-bold text-indigo-600 hover:underline">Click Here</button>
+      </>
+    ),
+  },
 ];
 
 const prerequisiteDocs: Record<string, { personal: string[], business: string[], optional: string[] }> = {
@@ -86,8 +104,9 @@ export default function Prerequisites({ onProceed, role }: PrerequisitesProps) {
   };
 
   const isBuyer = role === 'buyer';
+  const buyerRequiredDocs = getBuyerRequiredDocs(selectedType);
   const allRequiredChecked = selectedType && (isBuyer 
-    ? buyerDocs.required.every(item => checkedItems[item])
+    ? buyerRequiredDocs.every(item => checkedItems[item.id])
     : [
       ...docs.personal,
       ...docs.business
@@ -104,7 +123,7 @@ export default function Prerequisites({ onProceed, role }: PrerequisitesProps) {
         
         <CardContent className="p-6 md:p-8 pt-0">
           <div className="mb-8">
-            <label className="text-xs font-bold text-slate-700 mb-2 block">Business / Organisation Type * <Info className="inline h-3 w-3 text-slate-400" /></label>
+            <label className="text-xs font-bold text-slate-700 mb-2 block">{isBuyer ? 'User Type' : 'Business / Organisation Type'} * <Info className="inline h-3 w-3 text-slate-400" /></label>
             <div className="max-w-md">
               <Select
                 value={selectedType}
@@ -114,7 +133,7 @@ export default function Prerequisites({ onProceed, role }: PrerequisitesProps) {
                 }}
                 className="h-12 border-slate-200"
               >
-                <option value="">Select type</option>
+                <option value="">{isBuyer ? 'Select type of User' : 'Select type'}</option>
                 {(role === 'buyer' ? buyerBusinessTypes : sellerBusinessTypes).map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
@@ -129,12 +148,22 @@ export default function Prerequisites({ onProceed, role }: PrerequisitesProps) {
                   <div className="flex items-center gap-2 mb-2">
                      <h3 className="text-sm font-bold text-slate-800">For User registration – you require the following before you can proceed.</h3>
                   </div>
-                  <Section 
-                    title="" 
-                    items={buyerDocs.required} 
+                  <BuyerSection
+                    items={buyerRequiredDocs}
                     onCheck={handleCheck} 
                     checkedItems={checkedItems} 
                   />
+                  <button className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">
+                    {selectedType} User Manual
+                  </button>
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-800">
+                      If you want to register as the buyers/ users involved in procurement process please contact Primary user (HOD) of your organisation
+                    </p>
+                    <p className="text-[10px] text-slate-500">
+                      Note:- Only non buying roles i.e. Primary User (HOD)/ Verifying Authority can get registered from here.
+                    </p>
+                  </div>
                 </>
               ) : (
                 <>
@@ -196,6 +225,37 @@ export default function Prerequisites({ onProceed, role }: PrerequisitesProps) {
             Already registered with PugArch? <Link to="/login" className="text-indigo-600 font-bold hover:underline">CLICK HERE TO LOGIN</Link>
          </p>
       </div>
+    </div>
+  );
+}
+
+function BuyerSection({
+  items,
+  onCheck,
+  checkedItems
+}: {
+  items: { id: string, content: ReactNode }[],
+  onCheck: (item: string) => void,
+  checkedItems: Record<string, boolean>
+}) {
+  return (
+    <div className="space-y-3">
+      {items.map((item) => (
+        <div key={item.id} className="flex items-start gap-3">
+          <div
+            onClick={() => onCheck(item.id)}
+            className={cn(
+              "w-5 h-5 rounded border-2 flex shrink-0 items-center justify-center transition-all cursor-pointer mt-0.5",
+              checkedItems[item.id] ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-200"
+            )}
+          >
+            {checkedItems[item.id] && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+          </div>
+          <span className="text-xs font-medium text-slate-600 leading-tight">
+            {item.content}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
