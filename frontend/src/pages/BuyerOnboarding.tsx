@@ -549,23 +549,23 @@ export default function BuyerOnboarding() {
 
   const categories = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
   return (
-    <div className="buyer-font min-h-screen bg-[#F9FAFB] pb-20">
+    <div className="buyer-font min-h-screen overflow-x-hidden bg-[#F9FAFB] pb-16 sm:pb-20">
       {/* HEADER SECTION */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white">
+        <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-4 lg:h-20 lg:py-0">
+          <div className="flex min-w-0 items-center space-x-3 sm:space-x-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-200">
                <ShieldCheck className="text-white h-6 w-6" />
             </div>
-            <div>
-              <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight italic">Buyer Onboarding</h1>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Compliance & Procurement Module</p>
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-black uppercase tracking-tight text-slate-900 italic sm:text-lg">Buyer Onboarding</h1>
+              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 italic sm:text-[10px] sm:tracking-widest">Compliance & Procurement Module</p>
             </div>
           </div>
 
           <div></div>
 
-          <div className="flex items-center space-x-4">
+          <div className="hidden items-center space-x-4 sm:flex">
              <div className="text-right">
                <p className="text-[9px] font-bold text-slate-400 uppercase italic">Support ID</p>
                <p className="text-xs font-black text-slate-900">GEM-BUY-2024</p>
@@ -574,16 +574,16 @@ export default function BuyerOnboarding() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 mt-10">
+      <div className="mx-auto mt-5 max-w-7xl px-3 sm:mt-8 sm:px-4 lg:mt-10">
         <form onSubmit={handleSubmit}>
           {/* REGISTRATION */}
-          <div className="max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-700">
-             <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 lg:gap-8">
+          <div className="mx-auto max-w-7xl animate-in fade-in zoom-in-95 duration-700">
+             <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-8">
                   {/* SIDEBAR NAVIGATION */}
-                  <div className="lg:col-span-3 space-y-4">
-                    <div className="bg-white rounded-3xl lg:rounded-[2rem] p-4 lg:p-6 shadow-xl shadow-slate-200/50 border border-slate-100 sticky top-24 lg:top-28 overflow-x-auto lg:overflow-visible no-scrollbar">
+                  <div className="min-w-0 space-y-4 lg:col-span-3">
+                    <div className="sticky top-20 rounded-2xl border border-slate-100 bg-white p-3 shadow-xl shadow-slate-200/50 sm:rounded-3xl sm:p-4 lg:top-28 lg:rounded-[2rem] lg:p-6">
                       <p className="hidden lg:block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic px-4 mb-6">Onboarding Flow</p>
-                      <div className="flex lg:flex-col gap-2 min-w-max lg:min-w-0">
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-col">
                         {SIDEBAR_SECTIONS.map((section, idx) => {
                           const isCompleted = getSectionCompletion(section.id);
                           const isActive = activeSection === section.id;
@@ -593,7 +593,7 @@ export default function BuyerOnboarding() {
                               type="button"
                               onClick={() => setActiveSection(section.id)}
                               className={cn(
-                                "flex items-center justify-between p-3 lg:p-4 rounded-xl lg:rounded-2xl transition-all duration-300 group min-w-[140px] lg:min-w-0",
+                                "group flex min-h-16 min-w-0 items-center justify-between gap-2 rounded-xl p-3 text-left transition-all duration-300 lg:rounded-2xl lg:p-4",
                                 isActive
                                   ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
                                   : isCompleted
@@ -601,14 +601,14 @@ export default function BuyerOnboarding() {
                                     : "text-slate-400 hover:bg-slate-50"
                               )}
                             >
-                              <div className="space-y-1">
+                              <div className="min-w-0 space-y-1">
                                 <span className={cn(
                                   "block text-[10px] font-black italic",
                                   isActive ? "text-blue-100" : isCompleted ? "text-green-400" : "text-slate-300"
                                 )}>0{idx + 1}</span>
-                                <span className="text-[10px] lg:text-[11px] font-black uppercase italic tracking-wider whitespace-nowrap">{section.label}</span>
+                                <span className="block text-[9px] font-black uppercase leading-tight tracking-wide italic sm:text-[10px] lg:text-[11px] lg:tracking-wider">{section.label}</span>
                               </div>
-                              <div className="hidden lg:block">
+                              <div className="hidden shrink-0 lg:block">
                                 {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : isActive ? <ArrowRight className="h-4 w-4 animate-bounce-x" /> : null}
                               </div>
                             </button>
@@ -632,11 +632,11 @@ export default function BuyerOnboarding() {
                   </div>
 
                   {/* FORM CONTENT */}
-                  <div className="lg:col-span-9">
-                    <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-3xl lg:rounded-[2.5rem] overflow-hidden min-h-[500px] lg:min-h-[600px]">
-                      <div className="bg-white px-6 lg:px-10 py-6 lg:py-8 border-b border-slate-50 flex items-center justify-between">
-                         <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-blue-50 flex items-center justify-center">
+                  <div className="min-w-0 lg:col-span-9">
+                    <Card className="min-h-[500px] overflow-hidden rounded-2xl border-none shadow-2xl shadow-slate-200/50 sm:rounded-3xl lg:min-h-[600px] lg:rounded-[2.5rem]">
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-50 bg-white px-4 py-5 sm:px-6 lg:px-10 lg:py-8">
+                         <div className="flex min-w-0 items-center space-x-3 sm:space-x-4">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 lg:h-12 lg:w-12 lg:rounded-2xl">
                                {activeSection === 'org' && <CheckCircle2 className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
                                {activeSection === 'rep' && <ShieldCheck className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
                                {activeSection === 'address' && <ArrowRight className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
@@ -644,11 +644,11 @@ export default function BuyerOnboarding() {
                                {activeSection === 'docs' && <Upload className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
                                {activeSection === 'account' && <CheckCircle2 className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
                             </div>
-                            <div>
-                               <h3 className="text-base lg:text-xl font-black text-slate-900 uppercase italic tracking-tight">
+                            <div className="min-w-0">
+                               <h3 className="break-words text-sm font-black uppercase tracking-tight text-slate-900 italic sm:text-base lg:text-xl">
                                  {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}
                                </h3>
-                               <p className="text-[9px] lg:text-[10px] font-bold text-slate-400 uppercase italic tracking-widest mt-0.5">Section Verification In-Progress</p>
+                               <p className="mt-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-400 italic sm:text-[9px] lg:text-[10px] lg:tracking-widest">Section Verification In-Progress</p>
                             </div>
                          </div>
                          <Badge variant="default" className="hidden sm:inline-flex px-4 py-2 rounded-xl border border-slate-100 text-slate-400 text-[10px] font-black italic bg-transparent hover:bg-transparent">
@@ -656,10 +656,10 @@ export default function BuyerOnboarding() {
                          </Badge>
                       </div>
 
-                      <CardContent className="p-6 lg:p-12">
+                      <CardContent className="p-4 sm:p-6 lg:p-12">
                         {/* SECTION: Organisation Details */}
                         {activeSection === 'org' && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                          <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
                             <Input label="Organization / Company Name" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={touched.organizationName ? errors.organizationName : ''} required className="rounded-2xl h-14" />
                             <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} required className="rounded-2xl h-14">
                               <option value="Private Limited Company">Private Limited Company</option>
@@ -683,7 +683,7 @@ export default function BuyerOnboarding() {
 
                         {/* SECTION: Authorized Representative */}
                         {activeSection === 'rep' && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                          <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
                             <Input label="Full Name" name="representativeName" value={formData.representativeName} onChange={handleChange} onBlur={handleBlur} error={touched.representativeName ? errors.representativeName : ''} required className="rounded-2xl h-14" />
                             <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Director" className="rounded-2xl h-14" />
                             <Select label="Department" name="department" value={formData.department} onChange={handleChange} className="rounded-2xl h-14">
@@ -702,7 +702,7 @@ export default function BuyerOnboarding() {
                               />
                             )}
                             <Input label="Official Email ID" name="email" value={formData.email} onChange={handleChange} className="rounded-2xl h-14" />
-                            <div className="relative">
+                            <div className="relative min-w-0">
                               <Input label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleBlur} error={touched.mobile ? errors.mobile : ''} required className="rounded-2xl h-14" />
                               <button type="button" className="absolute right-2 bottom-2 px-3 lg:px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all">Verify</button>
                             </div>
@@ -712,7 +712,7 @@ export default function BuyerOnboarding() {
 
                         {/* SECTION: Address Details */}
                         {activeSection === 'address' && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                          <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
                             <Input label="Country" name="country" value={formData.country} readOnly className="rounded-2xl h-14 bg-slate-50" />
                             <Input label="State" name="state" value={formData.state} onChange={handleChange} onBlur={handleBlur} error={touched.state ? errors.state : ''} required className="rounded-2xl h-14" />
                             <Input label="City" name="city" value={formData.city} onChange={handleChange} onBlur={handleBlur} error={touched.city ? errors.city : ''} required className="rounded-2xl h-14" />
@@ -728,7 +728,7 @@ export default function BuyerOnboarding() {
 
                         {/* SECTION: Procurement Profile */}
                         {activeSection === 'procurement' && (
-                          <div className="space-y-10 animate-in fade-in slide-in-from-right-8 duration-500">
+                          <div className="space-y-8 sm:space-y-10 animate-in fade-in slide-in-from-right-8 duration-500">
                             <div className="space-y-4">
                               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Procurement Categories (Multi-select)</h4>
                               <Select
@@ -750,7 +750,7 @@ export default function BuyerOnboarding() {
                                   {formData.procurementCategories.map((cat: string) => (
                                     <span
                                       key={cat}
-                                      className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-xs font-black uppercase italic text-white shadow-lg shadow-blue-200"
+                                      className="inline-flex max-w-full items-center gap-2 break-words rounded-2xl bg-blue-600 px-3 py-2 text-[10px] font-black uppercase italic text-white shadow-lg shadow-blue-200 sm:px-4 sm:text-xs"
                                     >
                                       {cat}
                                       <button
@@ -765,7 +765,7 @@ export default function BuyerOnboarding() {
                                   {formData.customProcurementCategories.map((cat: string) => (
                                     <span
                                       key={cat}
-                                      className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-black uppercase italic text-blue-700"
+                                      className="inline-flex max-w-full items-center gap-2 break-words rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] font-black uppercase italic text-blue-700 sm:px-4 sm:text-xs"
                                     >
                                       {cat}
                                       <button
@@ -855,7 +855,7 @@ export default function BuyerOnboarding() {
 
                         {/* SECTION: Document Upload */}
                         {activeSection === 'docs' && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 animate-in fade-in slide-in-from-right-8 duration-500">
+                          <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6 animate-in fade-in slide-in-from-right-8 duration-500">
                              {[
                                { label: 'PAN Card (Organization)', name: 'documents.panCard', field: 'panCard' },
                                { label: 'Company Registration Certificate', name: 'documents.regCert', field: 'regCert' },
@@ -864,10 +864,9 @@ export default function BuyerOnboarding() {
                                { label: 'Authorization Letter (Optional)', name: 'documents.authLetter', field: 'authLetter' },
                              ].map(doc => {
                                const documentUrl = formData.documents[doc.field as keyof typeof formData.documents];
-                               const documentPreviewUrl = documentUrl ? getDocumentPreviewUrl(String(documentUrl)) : '';
                                return (
-                               <div key={doc.label} className="p-4 lg:p-6 rounded-2xl lg:rounded-3xl border-2 border-dashed border-slate-100 bg-slate-50/50 flex flex-col gap-4 group hover:border-blue-300 transition-all">
-                                 <span className="text-[10px] font-black text-slate-400 uppercase italic tracking-widest">{doc.label}</span>
+                               <div key={doc.label} className="group flex min-w-0 flex-col gap-4 rounded-2xl border-2 border-dashed border-slate-100 bg-slate-50/50 p-4 transition-all hover:border-blue-300 lg:rounded-3xl lg:p-6">
+                                 <span className="break-words text-[10px] font-black uppercase tracking-wide text-slate-400 italic sm:tracking-widest">{doc.label}</span>
                                  <div className="relative">
                                     <input type="file" onChange={(e) => handleFileUpload(e, doc.name)} id={`upload-${doc.field}`} className="hidden" />
                                     <label htmlFor={`upload-${doc.field}`} className="w-full h-12 lg:h-14 flex items-center justify-center bg-white rounded-xl lg:rounded-2xl border border-slate-100 text-blue-600 font-black uppercase text-[10px] italic cursor-pointer hover:bg-blue-50 transition-all shadow-sm">
@@ -876,14 +875,14 @@ export default function BuyerOnboarding() {
                                  </div>
                                  {documentUrl && (
                                    <>
-                                     <div className="flex items-center space-x-2 text-[9px] font-bold text-green-600 italic">
+                                     <div className="flex min-w-0 items-center gap-2 text-[9px] font-bold text-green-600 italic">
                                         <CheckCircle2 className="h-3 w-3" />
-                                        <span>Document Uploaded Correctly</span>
+                                        <span className="break-words">Document Uploaded Correctly</span>
                                      </div>
                                      <button
                                        type="button"
                                        onClick={() => openDocumentPreview(doc.label, String(documentUrl))}
-                                       className="inline-flex h-10 lg:h-12 items-center justify-center gap-2 rounded-xl lg:rounded-2xl border border-blue-100 bg-white text-[10px] font-black uppercase italic text-blue-600 shadow-sm transition-all hover:bg-blue-50"
+                                       className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white text-[10px] font-black uppercase italic text-blue-600 shadow-sm transition-all hover:bg-blue-50 lg:h-12 lg:rounded-2xl"
                                      >
                                        <span>View Document</span>
                                        <ExternalLink className="h-3.5 w-3.5" />
@@ -899,7 +898,7 @@ export default function BuyerOnboarding() {
                          {/* SECTION: Account Setup */}
                          {activeSection === 'account' && (
                            <div className="space-y-6 lg:space-y-10 animate-in fade-in slide-in-from-right-8 duration-500">
-                             <div className="p-6 lg:p-10 bg-slate-900 rounded-3xl lg:rounded-[2.5rem] text-white space-y-6 lg:space-y-8 relative overflow-hidden shadow-2xl">
+                             <div className="relative space-y-6 overflow-hidden rounded-2xl bg-slate-900 p-5 text-white shadow-2xl sm:rounded-3xl sm:p-6 lg:space-y-8 lg:rounded-[2.5rem] lg:p-10">
                                <div className="absolute top-0 right-0 p-10 opacity-10 hidden lg:block">
                                  <ShieldCheck className="h-40 w-40" />
                                </div>
@@ -913,9 +912,9 @@ export default function BuyerOnboarding() {
                                </div>
 
                                <div className="pt-6 space-y-4">
-                                  <div className="flex items-center space-x-4">
-                                    <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center font-black italic">OTP</div>
-                                    <div>
+                                  <div className="flex items-center gap-3 sm:gap-4">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 font-black italic sm:h-14 sm:w-14">OTP</div>
+                                    <div className="min-w-0">
                                       <p className="text-xs font-black uppercase tracking-widest italic">Mobile Verification</p>
                                       <p className="text-[10px] text-slate-400 italic">OTP will be sent to +91 {formData.mobile || 'XXXXXX'}</p>
                                     </div>
@@ -959,7 +958,7 @@ export default function BuyerOnboarding() {
                         )}
 
                         {/* BUTTONS */}
-                        <div className="mt-8 lg:mt-12 flex flex-col sm:flex-row items-center justify-between border-t border-slate-50 pt-8 lg:pt-10 gap-4 sm:gap-0">
+                        <div className="mt-8 flex flex-col items-stretch justify-between gap-3 border-t border-slate-50 pt-6 sm:flex-row sm:items-center lg:mt-12 lg:pt-10">
                           <Button 
                             type="button" 
                             variant="ghost" 
@@ -969,13 +968,13 @@ export default function BuyerOnboarding() {
                                 setActiveSection(SIDEBAR_SECTIONS[currentIndex - 1].id);
                               }
                             }}
-                            className="w-full sm:w-auto px-6 lg:px-10 h-14 lg:h-16 rounded-2xl font-black uppercase italic text-slate-400 hover:text-slate-900 transition-all"
+                            className="h-12 w-full rounded-2xl px-6 text-[10px] font-black uppercase italic text-slate-400 transition-all hover:text-slate-900 sm:w-auto lg:h-16 lg:px-10"
                           >
                             Previous Section
                           </Button>
                           <Button 
                             type="submit"
-                            className="w-full sm:w-auto px-10 lg:px-16 h-14 lg:h-16 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-blue-200 active:scale-[0.98] transition-all"
+                            className="h-12 w-full rounded-2xl bg-blue-600 px-6 text-[10px] font-black uppercase tracking-wide text-white shadow-xl shadow-blue-200 transition-all active:scale-[0.98] hover:bg-blue-700 sm:w-auto lg:h-16 lg:px-16 lg:tracking-widest"
                             disabled={isLoading}
                           >
                             {isLoading ? 'Processing...' : activeSection === 'account' ? 'Finalize Registration' : 'Save & Continue'}
@@ -988,19 +987,19 @@ export default function BuyerOnboarding() {
              </div>
         </form>
       {previewDocument && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
-          <div className="flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <div>
-                <h3 className="text-lg font-black uppercase italic text-slate-900">{previewDocument.label}</h3>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm sm:p-4">
+          <div className="flex h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:rounded-[2rem]">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-4">
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-black uppercase text-slate-900 italic sm:text-lg">{previewDocument.label}</h3>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Document Preview</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 <a
                   href={previewDocument.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-[10px] font-black uppercase italic text-slate-600 transition-all hover:bg-slate-50"
+                  className="hidden h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-[10px] font-black uppercase italic text-slate-600 transition-all hover:bg-slate-50 sm:inline-flex"
                 >
                   Open Original
                 </a>
