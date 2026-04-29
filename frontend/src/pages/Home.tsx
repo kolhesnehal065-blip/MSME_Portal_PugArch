@@ -10,7 +10,7 @@ export default function Home() {
     <div className="space-y-16 py-12">
       {/* Hero Section */}
       <div className="text-center space-y-6 max-w-3xl mx-auto">
-        <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight text-slate-900">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 px-4 md:px-0">
           Streamline Your Procurement Onboarding with <span className="text-blue-600">PugArch MSME</span>
         </h1>
         <p className="text-xl text-slate-600 leading-relaxed">

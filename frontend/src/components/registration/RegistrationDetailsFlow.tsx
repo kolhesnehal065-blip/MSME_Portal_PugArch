@@ -201,10 +201,10 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
   };
 
   return (
-    <div className="max-w-5xl mx-auto flex gap-8">
-      {/* Left Sidebar Navigation */}
-      <div className="w-64 flex-shrink-0">
-        <div className="sticky top-8 space-y-2">
+    <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-8 p-4 lg:p-0">
+      {/* Sidebar Navigation - Transitioned to horizontal on mobile */}
+      <div className="lg:w-64 flex-shrink-0 overflow-x-auto no-scrollbar">
+        <div className="flex lg:flex-col gap-2 pb-4 lg:pb-0 min-w-max lg:min-w-0 sticky top-4 lg:top-8">
           {steps.map((step) => {
             const Icon = step.icon;
             const isActive = currentSubStep === step.id;
@@ -213,18 +213,19 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
             return (
               <div 
                 key={step.id}
-                className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${
+                className={`flex items-center gap-2 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl transition-all cursor-pointer ${
                   isActive ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 
                   isCompleted ? 'bg-green-50 text-green-700' : 'bg-white text-slate-400'
                 }`}
+                onClick={() => isCompleted && setCurrentSubStep(step.id)}
               >
-                <div className={`p-2 rounded-xl ${
+                <div className={`p-1.5 md:p-2 rounded-lg md:rounded-xl ${
                   isActive ? 'bg-white/20' : 
                   isCompleted ? 'bg-green-100' : 'bg-slate-50'
                 }`}>
-                  {isCompleted ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                  {isCompleted ? <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" /> : <Icon className="h-4 w-4 md:h-5 md:w-5" />}
                 </div>
-                <span className="text-xs font-black uppercase tracking-tight italic">{step.title}</span>
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-tight italic whitespace-nowrap">{step.title}</span>
               </div>
             );
           })}
@@ -233,14 +234,14 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
 
       {/* Main Content Area */}
       <div className="flex-1">
-        <Card className="border-none shadow-2xl rounded-3xl overflow-hidden bg-white">
-          <CardHeader className="bg-slate-50 p-8 border-b border-white">
-            <CardTitle className="text-xl font-black uppercase tracking-tight text-slate-900 italic">
+        <Card className="border-none shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden bg-white">
+          <CardHeader className="bg-slate-50 p-6 md:p-8 border-b border-white">
+            <CardTitle className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900 italic">
               Step {currentSubStep}: {steps.find(s => s.id === currentSubStep)?.title}
             </CardTitle>
           </CardHeader>
           
-          <CardContent className="p-10">
+          <CardContent className="p-6 md:p-10">
             {currentSubStep === 1 && (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                 {role === 'buyer' ? (
@@ -286,24 +287,24 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
 
             {currentSubStep === 2 && (
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-                <div className={`grid gap-4 ${role === 'buyer' ? 'grid-cols-1 max-w-sm mx-auto' : 'grid-cols-2'}`}>
+                <div className={`grid gap-4 ${role === 'buyer' ? 'grid-cols-1 max-w-sm mx-auto' : 'grid-cols-1 md:grid-cols-2'}`}>
                   <button 
                     onClick={() => setFormData({...formData, personalVerificationMethod: 'aadhaar'})}
-                    className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-4 ${
+                    className={`p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all flex flex-col items-center gap-4 ${
                       formData.personalVerificationMethod === 'aadhaar' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 bg-slate-50'
                     }`}
                   >
-                    <Fingerprint className={`h-10 w-10 ${formData.personalVerificationMethod === 'aadhaar' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                    <Fingerprint className={`h-8 w-8 md:h-10 md:w-10 ${formData.personalVerificationMethod === 'aadhaar' ? 'text-indigo-600' : 'text-slate-400'}`} />
                     <span className="font-black uppercase italic text-[10px] tracking-widest">Aadhaar Verification</span>
                   </button>
                   {role !== 'buyer' && (
                     <button 
                       onClick={() => setFormData({...formData, personalVerificationMethod: 'pan'})}
-                      className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-4 ${
+                      className={`p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all flex flex-col items-center gap-4 ${
                         formData.personalVerificationMethod === 'pan' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 bg-slate-50'
                       }`}
                     >
-                      <FileText className={`h-10 w-10 ${formData.personalVerificationMethod === 'pan' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                      <FileText className={`h-8 w-8 md:h-10 md:w-10 ${formData.personalVerificationMethod === 'pan' ? 'text-indigo-600' : 'text-slate-400'}`} />
                       <span className="font-black uppercase italic text-[10px] tracking-widest">PAN Verification</span>
                     </button>
                   )}
@@ -353,7 +354,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                                SIMULATION OTP: {simulatedAadhaarOtp}
                             </div>
                          </div>
-                         <div className="flex gap-2">
+                         <div className="flex flex-col sm:flex-row gap-2">
                            <input 
                              placeholder="6 Digit OTP"
                              maxLength={6}
@@ -365,7 +366,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                              onClick={() => setAadhaarOtp(simulatedAadhaarOtp)}
                              className="h-12 px-4 rounded-xl border border-indigo-200 text-indigo-600 font-bold uppercase text-[10px] italic"
                            >
-                             Auto-fill
+                             Auto-fill Simulation
                            </Button>
                          </div>
                          <Button 
@@ -389,7 +390,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                   </div>
                 ) : (
                   <div className="space-y-5 p-6 bg-slate-50 rounded-3xl">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Input
                         label="PAN Number"
                         placeholder="ABCDE1234F"
@@ -403,7 +404,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         onChange={(e) => setFormData({...formData, personalName: e.target.value})}
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        <Input
                          label="Date of Birth"
                          type="date"
@@ -426,7 +427,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-1.5">
                   <label className="text-xs font-black uppercase text-slate-400 tracking-widest italic ml-1">Official Email ID</label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-1">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input
@@ -439,12 +440,12 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                       />
                     </div>
                     {!isEmailVerified && !otpSent && (
-                      <Button onClick={handleSendOtp} disabled={isSendingOtp} className="h-14 px-8 rounded-2xl bg-indigo-600 font-black uppercase italic text-[10px]">
+                      <Button onClick={handleSendOtp} disabled={isSendingOtp} className="w-full sm:w-auto h-14 px-8 rounded-2xl bg-indigo-600 font-black uppercase italic text-[10px]">
                         {isSendingOtp ? 'Sending...' : 'Send OTP'}
                       </Button>
                     )}
                     {isEmailVerified && (
-                      <div className="h-14 flex items-center gap-2 px-6 bg-green-50 text-green-600 rounded-2xl border border-green-100 font-black italic uppercase text-[10px]">
+                      <div className="h-14 flex items-center justify-center gap-2 px-6 bg-green-50 text-green-600 rounded-2xl border border-green-100 font-black italic uppercase text-[10px]">
                         <ShieldCheck className="h-5 w-5" />
                         Verified
                       </div>
@@ -455,16 +456,16 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                 {otpSent && !isEmailVerified && (
                   <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col items-center gap-6">
                     <h4 className="text-sm font-black uppercase italic tracking-widest text-indigo-600">Enter Verification Code</h4>
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4 w-full">
                         <input
                           type="text"
                           maxLength={6}
                           value={emailOtp}
                           onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
-                          className="w-48 h-14 text-center text-2xl font-black tracking-[0.5em] rounded-2xl border-2 border-indigo-100 focus:border-indigo-500"
+                          className="w-full sm:w-48 h-14 text-center text-2xl font-black tracking-[0.5em] rounded-2xl border-2 border-indigo-100 focus:border-indigo-500"
                         />
-                        <Button onClick={handleVerifyOtp} className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black uppercase italic text-[10px]">
-                           Verify
+                        <Button onClick={handleVerifyOtp} className="w-full sm:flex-1 h-14 px-8 rounded-2xl bg-slate-900 text-white font-black uppercase italic text-[10px]">
+                           Verify Code
                         </Button>
                     </div>
                     <button onClick={handleSendOtp} className="text-xs font-bold text-slate-400 hover:text-indigo-600 italic underline">Didn't receive? Resend Code</button>
@@ -481,7 +482,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                   disabled
                   className="bg-slate-50 font-bold italic h-14 rounded-2xl"
                 />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
                     label="Password"
                     type="password"
@@ -500,50 +501,50 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                   />
                 </div>
 
-                <div className="p-6 bg-slate-50 rounded-3xl">
-                   <h4 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">Password Security Checklist</h4>
-                   <div className="grid grid-cols-2 gap-3">
-                      <ValidationItem label="8-16 Characters" valid={formData.password.length >= 8 && formData.password.length <= 16} />
-                      <ValidationItem label="Uppercase Letter" valid={/[A-Z]/.test(formData.password)} />
-                      <ValidationItem label="Lowercase Letter" valid={/[a-z]/.test(formData.password)} />
-                      <ValidationItem label="Numeric Value" valid={/[0-9]/.test(formData.password)} />
-                      <ValidationItem label="Special Character" valid={/[^A-Za-z0-9]/.test(formData.password)} />
-                      <ValidationItem label="Passwords Match" valid={formData.password !== '' && formData.password === formData.confirmPassword} />
-                   </div>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-12 flex items-center justify-between pt-8 border-t border-slate-50">
-              <Button 
-                variant="ghost" 
-                onClick={handleBack}
-                disabled={isLoading}
-                className="h-12 rounded-xl text-slate-400 hover:text-slate-900 font-bold uppercase italic tracking-widest text-[10px]"
-              >
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Back
-              </Button>
-              
-              {currentSubStep < 4 ? (
-                <Button 
-                  onClick={handleNext}
-                  className="h-14 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-indigo-100 group transition-all"
-                >
-                  Save & Continue
-                  <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              ) : (
-                <Button 
-                  onClick={handleSubmit}
-                  disabled={isLoading || !isPasswordStrong(formData.password) || formData.password !== formData.confirmPassword}
-                  className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase italic tracking-widest shadow-xl shadow-slate-200 transition-all flex items-center gap-2"
-                >
-                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
-                  {isLoading ? 'Creating Account...' : 'Create Account'}
-                </Button>
-              )}
+            <div className="p-6 bg-slate-50 rounded-3xl">
+               <h4 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">Password Security Checklist</h4>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <ValidationItem label="8-16 Characters" valid={formData.password.length >= 8 && formData.password.length <= 16} />
+                  <ValidationItem label="Uppercase Letter" valid={/[A-Z]/.test(formData.password)} />
+                  <ValidationItem label="Lowercase Letter" valid={/[a-z]/.test(formData.password)} />
+                  <ValidationItem label="Numeric Value" valid={/[0-9]/.test(formData.password)} />
+                  <ValidationItem label="Special Character" valid={/[^A-Za-z0-9]/.test(formData.password)} />
+                  <ValidationItem label="Passwords Match" valid={formData.password !== '' && formData.password === formData.confirmPassword} />
+               </div>
             </div>
+          </div>
+        )}
+
+        <div className="mt-8 md:mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-50">
+            <Button 
+              variant="ghost" 
+              onClick={handleBack}
+              disabled={isLoading}
+              className="w-full sm:w-auto h-12 rounded-xl text-slate-400 hover:text-slate-900 font-bold uppercase italic tracking-widest text-[10px]"
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            
+            {currentSubStep < 4 ? (
+              <Button 
+                onClick={handleNext}
+                className="w-full sm:w-auto h-14 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-indigo-100 group transition-all"
+              >
+                Save & Continue
+                <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleSubmit}
+                disabled={isLoading || !isPasswordStrong(formData.password) || formData.password !== formData.confirmPassword}
+                className="w-full sm:w-auto h-14 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase italic tracking-widest shadow-xl shadow-slate-200 transition-all flex items-center justify-center gap-2"
+              >
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
+                {isLoading ? 'Creating Account...' : 'Create Account'}
+              </Button>
+            )}
+          </div>
           </CardContent>
         </Card>
       </div>

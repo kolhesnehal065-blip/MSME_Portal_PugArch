@@ -39,11 +39,11 @@ export default function TermsConditions({ onAccept, onBack, role }: TermsConditi
         <CardContent className={`p-0 flex flex-col ${isFullscreen ? 'h-[calc(100vh-80px)]' : 'h-[600px]'}`}>
           <div className="w-full h-full bg-slate-100 p-4 md:p-8 overflow-auto flex-1">
             {/* Embedded PDF Viewer Placeholder */}
-            <div className="max-w-3xl mx-auto bg-white shadow-lg min-h-full p-10 md:p-16 border border-slate-200">
+            <div className="max-w-3xl mx-auto bg-white shadow-lg min-h-full p-6 md:p-16 border border-slate-200">
               <div className="flex justify-center mb-10">
                 <div className="w-16 h-1 bg-slate-200 rounded-full" />
               </div>
-              <h1 className="text-2xl font-black text-center mb-10 text-slate-900 border-b-4 border-slate-900 pb-4 italic uppercase">Portal Terms of Service</h1>
+              <h1 className="text-xl md:text-2xl font-black text-center mb-6 md:mb-10 text-slate-900 border-b-4 border-slate-900 pb-4 italic uppercase">Portal Terms of Service</h1>
               
               <div className="space-y-8 text-slate-600 font-medium leading-relaxed text-sm md:text-base italic">
                 <section>
@@ -74,7 +74,7 @@ export default function TermsConditions({ onAccept, onBack, role }: TermsConditi
           </div>
 
           <div className="p-6 md:p-8 border-t border-slate-100 bg-white">
-            <div className="flex items-center gap-3 mb-8 p-4 bg-indigo-50 rounded-2xl border border-indigo-100 animate-pulse">
+            <div className="flex items-start gap-3 mb-8 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
               <div 
                 className={`w-6 h-6 rounded flex items-center justify-center border-2 transition-all cursor-pointer ${accepted ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-indigo-200'}`}
                 onClick={() => setAccepted(!accepted)}

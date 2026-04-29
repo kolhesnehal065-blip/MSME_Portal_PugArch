@@ -578,25 +578,12 @@ export default function BuyerOnboarding() {
         <form onSubmit={handleSubmit}>
           {/* REGISTRATION */}
           <div className="max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-700">
-             <div className="space-y-8">
-                  <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-xl shadow-slate-200/50">
-                    <div className="flex flex-col gap-6">
-                      <div className="flex items-center justify-between gap-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Onboarding Flow</p>
-                        <div className="flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-white">
-                          <ShieldCheck className="h-4 w-4 text-blue-400" />
-                          <div className="min-w-32">
-                            <p className="text-[9px] font-black uppercase tracking-widest italic">Compliance Level</p>
-                            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                              <div
-                                className="h-full bg-blue-500 transition-all duration-1000"
-                                style={{ width: `${complianceProgress}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+             <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 lg:gap-8">
+                  {/* SIDEBAR NAVIGATION */}
+                  <div className="lg:col-span-3 space-y-4">
+                    <div className="bg-white rounded-3xl lg:rounded-[2rem] p-4 lg:p-6 shadow-xl shadow-slate-200/50 border border-slate-100 sticky top-24 lg:top-28 overflow-x-auto lg:overflow-visible no-scrollbar">
+                      <p className="hidden lg:block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic px-4 mb-6">Onboarding Flow</p>
+                      <div className="flex lg:flex-col gap-2 min-w-max lg:min-w-0">
                         {SIDEBAR_SECTIONS.map((section, idx) => {
                           const isCompleted = getSectionCompletion(section.id);
                           const isActive = activeSection === section.id;
@@ -606,12 +593,12 @@ export default function BuyerOnboarding() {
                               type="button"
                               onClick={() => setActiveSection(section.id)}
                               className={cn(
-                                "flex min-h-20 items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all duration-300 group",
+                                "flex items-center justify-between p-3 lg:p-4 rounded-xl lg:rounded-2xl transition-all duration-300 group min-w-[140px] lg:min-w-0",
                                 isActive
-                                  ? "border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-200"
+                                  ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
                                   : isCompleted
-                                    ? "border-green-100 bg-green-50 text-green-700 hover:border-green-200"
-                                    : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200 hover:bg-white"
+                                    ? "text-green-600 hover:bg-green-50"
+                                    : "text-slate-400 hover:bg-slate-50"
                               )}
                             >
                               <div className="space-y-1">
@@ -619,47 +606,60 @@ export default function BuyerOnboarding() {
                                   "block text-[10px] font-black italic",
                                   isActive ? "text-blue-100" : isCompleted ? "text-green-400" : "text-slate-300"
                                 )}>0{idx + 1}</span>
-                                <span className="block text-[11px] font-black uppercase italic tracking-wider">
-                                  {section.label}
-                                </span>
+                                <span className="text-[10px] lg:text-[11px] font-black uppercase italic tracking-wider whitespace-nowrap">{section.label}</span>
                               </div>
-                              {isCompleted ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : isActive ? <ArrowRight className="h-4 w-4 shrink-0 animate-bounce-x" /> : null}
+                              <div className="hidden lg:block">
+                                {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : isActive ? <ArrowRight className="h-4 w-4 animate-bounce-x" /> : null}
+                              </div>
                             </button>
                           );
                         })}
+                      </div>
+
+                      <div className="hidden lg:block mt-10 p-5 bg-slate-900 rounded-3xl text-white">
+                         <div className="flex items-center space-x-3 mb-3">
+                           <ShieldCheck className="h-4 w-4 text-blue-400" />
+                           <span className="text-[9px] font-black uppercase italic tracking-widest">Compliance Level</span>
+                         </div>
+                         <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                           <div 
+                             className="h-full bg-blue-500 transition-all duration-1000" 
+                             style={{ width: `${complianceProgress}%` }}
+                           />
+                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* FORM CONTENT */}
-                  <div>
-                    <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2.5rem] overflow-hidden min-h-[600px]">
-                      <div className="bg-white px-10 py-8 border-b border-slate-50 flex items-center justify-between">
+                  <div className="lg:col-span-9">
+                    <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-3xl lg:rounded-[2.5rem] overflow-hidden min-h-[500px] lg:min-h-[600px]">
+                      <div className="bg-white px-6 lg:px-10 py-6 lg:py-8 border-b border-slate-50 flex items-center justify-between">
                          <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
-                               {activeSection === 'org' && <CheckCircle2 className="text-blue-600 h-6 w-6" />}
-                               {activeSection === 'rep' && <ShieldCheck className="text-blue-600 h-6 w-6" />}
-                               {activeSection === 'address' && <ArrowRight className="text-blue-600 h-6 w-6" />}
-                               {activeSection === 'procurement' && <Save className="text-blue-600 h-6 w-6" />}
-                               {activeSection === 'docs' && <Upload className="text-blue-600 h-6 w-6" />}
-                               {activeSection === 'account' && <CheckCircle2 className="text-blue-600 h-6 w-6" />}
+                            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-blue-50 flex items-center justify-center">
+                               {activeSection === 'org' && <CheckCircle2 className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
+                               {activeSection === 'rep' && <ShieldCheck className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
+                               {activeSection === 'address' && <ArrowRight className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
+                               {activeSection === 'procurement' && <Save className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
+                               {activeSection === 'docs' && <Upload className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
+                               {activeSection === 'account' && <CheckCircle2 className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
                             </div>
                             <div>
-                               <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">
+                               <h3 className="text-base lg:text-xl font-black text-slate-900 uppercase italic tracking-tight">
                                  {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}
                                </h3>
-                               <p className="text-[10px] font-bold text-slate-400 uppercase italic tracking-widest mt-0.5">Section Verification In-Progress</p>
+                               <p className="text-[9px] lg:text-[10px] font-bold text-slate-400 uppercase italic tracking-widest mt-0.5">Section Verification In-Progress</p>
                             </div>
                          </div>
-                         <Badge variant="default" className="px-4 py-2 rounded-xl border border-slate-100 text-slate-400 text-[10px] font-black italic bg-transparent hover:bg-transparent">
+                         <Badge variant="default" className="hidden sm:inline-flex px-4 py-2 rounded-xl border border-slate-100 text-slate-400 text-[10px] font-black italic bg-transparent hover:bg-transparent">
                            Draft ID: #PK-991
                          </Badge>
                       </div>
 
-                      <CardContent className="p-12">
+                      <CardContent className="p-6 lg:p-12">
                         {/* SECTION: Organisation Details */}
                         {activeSection === 'org' && (
-                          <div className="grid md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
                             <Input label="Organization / Company Name" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={touched.organizationName ? errors.organizationName : ''} required className="rounded-2xl h-14" />
                             <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} required className="rounded-2xl h-14">
                               <option value="Private Limited Company">Private Limited Company</option>
@@ -683,7 +683,7 @@ export default function BuyerOnboarding() {
 
                         {/* SECTION: Authorized Representative */}
                         {activeSection === 'rep' && (
-                          <div className="grid md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
                             <Input label="Full Name" name="representativeName" value={formData.representativeName} onChange={handleChange} onBlur={handleBlur} error={touched.representativeName ? errors.representativeName : ''} required className="rounded-2xl h-14" />
                             <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Director" className="rounded-2xl h-14" />
                             <Select label="Department" name="department" value={formData.department} onChange={handleChange} className="rounded-2xl h-14">
@@ -704,7 +704,7 @@ export default function BuyerOnboarding() {
                             <Input label="Official Email ID" name="email" value={formData.email} onChange={handleChange} className="rounded-2xl h-14" />
                             <div className="relative">
                               <Input label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleBlur} error={touched.mobile ? errors.mobile : ''} required className="rounded-2xl h-14" />
-                              <button type="button" className="absolute right-2 bottom-2 px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all">Verify</button>
+                              <button type="button" className="absolute right-2 bottom-2 px-3 lg:px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all">Verify</button>
                             </div>
                             <Input label="Alternate Number (Optional)" name="alternateMobile" value={formData.alternateMobile} onChange={handleChange} className="rounded-2xl h-14" />
                           </div>
@@ -712,7 +712,7 @@ export default function BuyerOnboarding() {
 
                         {/* SECTION: Address Details */}
                         {activeSection === 'address' && (
-                          <div className="grid md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
                             <Input label="Country" name="country" value={formData.country} readOnly className="rounded-2xl h-14 bg-slate-50" />
                             <Input label="State" name="state" value={formData.state} onChange={handleChange} onBlur={handleBlur} error={touched.state ? errors.state : ''} required className="rounded-2xl h-14" />
                             <Input label="City" name="city" value={formData.city} onChange={handleChange} onBlur={handleBlur} error={touched.city ? errors.city : ''} required className="rounded-2xl h-14" />
@@ -781,8 +781,8 @@ export default function BuyerOnboarding() {
                               )}
                               {formData.procurementCategories.includes('Others') && (
                                 <div className="space-y-3">
-                                  <div className="flex items-end gap-3">
-                                    <div className="flex-1">
+                                  <div className="flex flex-col sm:flex-row items-end gap-3">
+                                    <div className="w-full">
                                       <Input
                                         label="Custom Procurement Category"
                                         name="customProcurementCategoryInput"
@@ -795,7 +795,7 @@ export default function BuyerOnboarding() {
                                     <button
                                       type="button"
                                       onClick={addCustomProcurementCategory}
-                                      className="inline-flex h-14 items-center justify-center rounded-2xl bg-blue-600 px-4 text-white shadow-lg shadow-blue-200 transition-all hover:bg-blue-700"
+                                      className="w-full sm:w-14 inline-flex h-14 items-center justify-center rounded-2xl bg-blue-600 px-4 text-white shadow-lg shadow-blue-200 transition-all hover:bg-blue-700"
                                     >
                                       <Plus className="h-4 w-4" />
                                     </button>
@@ -855,7 +855,7 @@ export default function BuyerOnboarding() {
 
                         {/* SECTION: Document Upload */}
                         {activeSection === 'docs' && (
-                          <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-8 duration-500">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 animate-in fade-in slide-in-from-right-8 duration-500">
                              {[
                                { label: 'PAN Card (Organization)', name: 'documents.panCard', field: 'panCard' },
                                { label: 'Company Registration Certificate', name: 'documents.regCert', field: 'regCert' },
@@ -866,11 +866,11 @@ export default function BuyerOnboarding() {
                                const documentUrl = formData.documents[doc.field as keyof typeof formData.documents];
                                const documentPreviewUrl = documentUrl ? getDocumentPreviewUrl(String(documentUrl)) : '';
                                return (
-                               <div key={doc.label} className="p-6 rounded-3xl border-2 border-dashed border-slate-100 bg-slate-50/50 flex flex-col gap-4 group hover:border-blue-300 transition-all">
+                               <div key={doc.label} className="p-4 lg:p-6 rounded-2xl lg:rounded-3xl border-2 border-dashed border-slate-100 bg-slate-50/50 flex flex-col gap-4 group hover:border-blue-300 transition-all">
                                  <span className="text-[10px] font-black text-slate-400 uppercase italic tracking-widest">{doc.label}</span>
                                  <div className="relative">
                                     <input type="file" onChange={(e) => handleFileUpload(e, doc.name)} id={`upload-${doc.field}`} className="hidden" />
-                                    <label htmlFor={`upload-${doc.field}`} className="w-full h-14 flex items-center justify-center bg-white rounded-2xl border border-slate-100 text-blue-600 font-black uppercase text-[10px] italic cursor-pointer hover:bg-blue-50 transition-all shadow-sm">
+                                    <label htmlFor={`upload-${doc.field}`} className="w-full h-12 lg:h-14 flex items-center justify-center bg-white rounded-xl lg:rounded-2xl border border-slate-100 text-blue-600 font-black uppercase text-[10px] italic cursor-pointer hover:bg-blue-50 transition-all shadow-sm">
                                        {isUploading === doc.name ? 'Uploading...' : documentUrl ? 'Change File' : 'Choose File'}
                                     </label>
                                  </div>
@@ -883,7 +883,7 @@ export default function BuyerOnboarding() {
                                      <button
                                        type="button"
                                        onClick={() => openDocumentPreview(doc.label, String(documentUrl))}
-                                       className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white text-[10px] font-black uppercase italic text-blue-600 shadow-sm transition-all hover:bg-blue-50"
+                                       className="inline-flex h-10 lg:h-12 items-center justify-center gap-2 rounded-xl lg:rounded-2xl border border-blue-100 bg-white text-[10px] font-black uppercase italic text-blue-600 shadow-sm transition-all hover:bg-blue-50"
                                      >
                                        <span>View Document</span>
                                        <ExternalLink className="h-3.5 w-3.5" />
@@ -898,15 +898,15 @@ export default function BuyerOnboarding() {
  
                          {/* SECTION: Account Setup */}
                          {activeSection === 'account' && (
-                           <div className="space-y-10 animate-in fade-in slide-in-from-right-8 duration-500">
-                             <div className="p-10 bg-slate-900 rounded-[2.5rem] text-white space-y-8 relative overflow-hidden shadow-2xl">
-                               <div className="absolute top-0 right-0 p-10 opacity-10">
+                           <div className="space-y-6 lg:space-y-10 animate-in fade-in slide-in-from-right-8 duration-500">
+                             <div className="p-6 lg:p-10 bg-slate-900 rounded-3xl lg:rounded-[2.5rem] text-white space-y-6 lg:space-y-8 relative overflow-hidden shadow-2xl">
+                               <div className="absolute top-0 right-0 p-10 opacity-10 hidden lg:block">
                                  <ShieldCheck className="h-40 w-40" />
                                </div>
-                               <h4 className="text-xl font-black uppercase italic tracking-tight border-b border-white/10 pb-6">Security Credentials</h4>
-                               <div className="grid gap-8">
+                               <h4 className="text-lg lg:text-xl font-black uppercase italic tracking-tight border-b border-white/10 pb-6">Security Credentials</h4>
+                               <div className="grid gap-6 lg:gap-8">
                                   <Input label="Email ID (Username)" name="email" value={formData.email} readOnly className="bg-slate-800 border-slate-700 text-slate-400 rounded-2xl h-14" />
-                                  <div className="grid md:grid-cols-2 gap-8">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
                                     <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} onBlur={handleBlur} error={touched.password ? errors.password : ''} className="bg-slate-800 border-slate-700 text-white rounded-2xl h-14" />
                                     <Input label="Confirm Password" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} error={touched.confirmPassword ? (formData.password !== formData.confirmPassword ? 'Passwords do not match' : '') : ''} className="bg-slate-800 border-slate-700 text-white rounded-2xl h-14" />
                                   </div>
@@ -926,7 +926,7 @@ export default function BuyerOnboarding() {
 
                              <div className="space-y-4">
                                <label className={cn(
-                                  "flex items-start gap-4 p-8 rounded-[2rem] border-2 transition-all cursor-pointer group",
+                                  "flex items-start gap-3 md:gap-4 p-6 lg:p-8 rounded-2xl lg:rounded-[2rem] border-2 transition-all cursor-pointer group",
                                   formData.declaration ? "bg-green-50 border-green-500/20" : "bg-white border-slate-100"
                                )}>
                                   <input 
@@ -935,13 +935,13 @@ export default function BuyerOnboarding() {
                                     onChange={(e) => setFormData({ ...formData, declaration: e.target.checked })}
                                     className="mt-1 w-6 h-6 rounded accent-blue-500" 
                                   />
-                                  <span className="text-xs font-bold text-slate-600 italic leading-relaxed">
+                                  <span className="text-[10px] md:text-xs font-bold text-slate-600 italic leading-relaxed">
                                      I confirm that the information provided is accurate and I am authorized to register this organization on the PugArch Unified Digital Procurement Portal.
                                   </span>
                                </label>
 
                                <label className={cn(
-                                  "flex items-start gap-4 p-8 rounded-[2rem] border-2 transition-all cursor-pointer group",
+                                  "flex items-start gap-3 md:gap-4 p-6 lg:p-8 rounded-2xl lg:rounded-[2rem] border-2 transition-all cursor-pointer group",
                                   formData.agreeTerms ? "bg-green-50 border-green-500/20" : "bg-white border-slate-100"
                                )}>
                                   <input 
@@ -950,7 +950,7 @@ export default function BuyerOnboarding() {
                                     onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })}
                                     className="mt-1 w-6 h-6 rounded accent-blue-500" 
                                   />
-                                  <span className="text-xs font-bold text-slate-600 italic leading-relaxed">
+                                  <span className="text-[10px] md:text-xs font-bold text-slate-600 italic leading-relaxed">
                                      I agree to the platform Terms & Conditions.
                                   </span>
                                </label>
@@ -959,7 +959,7 @@ export default function BuyerOnboarding() {
                         )}
 
                         {/* BUTTONS */}
-                        <div className="mt-12 flex items-center justify-between border-t border-slate-50 pt-10">
+                        <div className="mt-8 lg:mt-12 flex flex-col sm:flex-row items-center justify-between border-t border-slate-50 pt-8 lg:pt-10 gap-4 sm:gap-0">
                           <Button 
                             type="button" 
                             variant="ghost" 
@@ -969,13 +969,13 @@ export default function BuyerOnboarding() {
                                 setActiveSection(SIDEBAR_SECTIONS[currentIndex - 1].id);
                               }
                             }}
-                            className="px-10 h-16 rounded-2xl font-black uppercase italic text-slate-400 hover:text-slate-900 transition-all"
+                            className="w-full sm:w-auto px-6 lg:px-10 h-14 lg:h-16 rounded-2xl font-black uppercase italic text-slate-400 hover:text-slate-900 transition-all"
                           >
                             Previous Section
                           </Button>
                           <Button 
                             type="submit"
-                            className="px-16 h-16 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-blue-200 active:scale-[0.98] transition-all"
+                            className="w-full sm:w-auto px-10 lg:px-16 h-14 lg:h-16 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-blue-200 active:scale-[0.98] transition-all"
                             disabled={isLoading}
                           >
                             {isLoading ? 'Processing...' : activeSection === 'account' ? 'Finalize Registration' : 'Save & Continue'}

@@ -321,13 +321,13 @@ export default function SellerOnboarding() {
   });
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-20">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
+    <div className="max-w-5xl mx-auto space-y-6 pb-20 px-4 md:px-0">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="space-y-1 text-center md:text-left">
           <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase italic">Onboarding Module</h1>
           <p className="text-slate-500 font-medium italic text-sm opacity-70">Complete your business profile for procurement eligibility</p>
         </div>
-        <div className="flex items-center gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
+        <div className="flex items-center gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-100 w-full md:w-auto justify-center">
            <div className="text-right">
              <p className="text-[10px] font-black text-slate-400 uppercase italic">Registration Status</p>
              <p className="text-xs font-black text-green-600 uppercase italic capitalize">{user?.registrationStatus || 'completed'}</p>
@@ -350,34 +350,36 @@ export default function SellerOnboarding() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {['basic', 'business', 'compliance', 'bank', 'documents'].map((section) => {
-            const status = user?.sectionStatus?.[section as keyof typeof user.sectionStatus] || 'pending';
-            const linkedStep = SECTION_TO_STEP[section];
-            const isActive = currentStep === linkedStep;
-            const hasFeedback = !!user?.sectionRejectionReasons?.[section as keyof typeof user.sectionRejectionReasons];
-            const needsCorrection = ['rejected', 'resubmission_required'].includes(status);
-            return (
-              <button
-                 key={section}
-                 type="button"
-                 onClick={() => goToStep(linkedStep)}
-                 className={cn(
-                   "p-4 rounded-2xl bg-white border shadow-sm flex flex-col items-center gap-1 transition-all hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2",
-                   isActive ? "border-indigo-300 shadow-md shadow-indigo-100" : "border-slate-100",
-                   needsCorrection && "border-red-200 bg-red-50/60 shadow-red-100"
-                 )}
-              >
-                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight italic">{section}</p>
-                 <Badge variant={status === 'approved' ? 'success' : status === 'rejected' ? 'error' : 'warning' as any} className="text-[9px] py-0.5 px-3 capitalize rounded-full font-black italic">
-                    {status}
-                 </Badge>
-                 {needsCorrection && hasFeedback && (
-                   <span className="text-[9px] font-black uppercase tracking-tight text-red-500">Feedback</span>
-                 )}
-              </button>
-            );
-          })}
+      <div className="overflow-x-auto no-scrollbar -mx-4 px-4 pb-2">
+        <div className="flex md:grid md:grid-cols-5 gap-3 min-w-max md:min-w-0">
+            {['basic', 'business', 'compliance', 'bank', 'documents'].map((section) => {
+              const status = user?.sectionStatus?.[section as keyof typeof user.sectionStatus] || 'pending';
+              const linkedStep = SECTION_TO_STEP[section];
+              const isActive = currentStep === linkedStep;
+              const hasFeedback = !!user?.sectionRejectionReasons?.[section as keyof typeof user.sectionRejectionReasons];
+              const needsCorrection = ['rejected', 'resubmission_required'].includes(status);
+              return (
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() => goToStep(linkedStep)}
+                  className={cn(
+                    "p-3 md:p-4 rounded-2xl bg-white border shadow-sm flex flex-col items-center gap-1 transition-all hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 min-w-[100px] md:min-w-0",
+                    isActive ? "border-indigo-300 shadow-md shadow-indigo-100" : "border-slate-100",
+                    needsCorrection && "border-red-200 bg-red-50/60 shadow-red-100"
+                  )}
+                >
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight italic">{section}</p>
+                  <Badge variant={status === 'approved' ? 'success' : status === 'rejected' ? 'error' : 'warning' as any} className="text-[9px] py-0.5 px-3 capitalize rounded-full font-black italic">
+                      {status}
+                  </Badge>
+                  {needsCorrection && hasFeedback && (
+                    <span className="text-[9px] font-black uppercase tracking-tight text-red-500">Feedback</span>
+                  )}
+                </button>
+              );
+            })}
+        </div>
       </div>
 
       {sectionMessages.length > 0 && (
@@ -393,13 +395,13 @@ export default function SellerOnboarding() {
               </div>
             </div>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
             {sectionMessages.map(([section, reason]) => (
               <button
                 key={section}
                 type="button"
                 onClick={() => goToStep(SECTION_TO_STEP[section] || 1)}
-                className="w-full rounded-2xl border border-red-100 bg-white p-5 text-left transition-all hover:border-red-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:ring-offset-red-50"
+                className="w-full rounded-2xl border border-red-100 bg-white p-4 md:p-5 text-left transition-all hover:border-red-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:ring-offset-red-50"
               >
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-red-500">{SECTION_LABELS[section] || section}</p>
@@ -433,10 +435,10 @@ export default function SellerOnboarding() {
              </div>
           </div>
           
-          <CardContent className="p-10">
+          <CardContent className="p-6 md:p-10">
             {/* STEP 1: Business Profile */}
             {currentStep === 1 && (
-              <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                 <Input label="Applicant's Full Name" name="applicantName" value={formData.applicantName} onChange={handleChange} onBlur={handleBlur} error={touched.applicantName ? errors.applicantName : ''} isValid={!!formData.applicantName && !errors.applicantName} required className="rounded-xl h-12" />
                 <Input label="Organization / Business Name" name="businessName" value={formData.businessName} onChange={handleChange} required className="rounded-xl h-12" />
                 <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} required className="rounded-xl h-12">
@@ -454,7 +456,7 @@ export default function SellerOnboarding() {
 
             {/* STEP 2: Contact Details */}
             {currentStep === 2 && (
-              <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                 <Input label="Official Email ID" name="email" value={formData.email} onChange={handleChange} readOnly className="bg-slate-50 italic rounded-xl h-12" />
                 <Input label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} required className="rounded-xl h-12" />
                 <Input label="State" name="state" value={formData.state} onChange={handleChange} required className="rounded-xl h-12" />
@@ -469,7 +471,7 @@ export default function SellerOnboarding() {
             {/* STEP 3: Tax & Compliance */}
             {currentStep === 3 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="grid md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <Input label="GSTIN" name="gst" value={formData.gst} onChange={handleChange} placeholder="Optional for exemptions" className="rounded-xl h-12" />
                   <Input label="Udyam Number" name="udyam" value={formData.udyam} onChange={handleChange} placeholder="UDYAM-XX-..." className="rounded-xl h-12" />
                   <Input label="Bank Account Number" name="bankAccount" value={formData.bankAccount} onChange={handleChange} className="rounded-xl h-12" />
@@ -521,7 +523,7 @@ export default function SellerOnboarding() {
 
             {/* STEP 5: Documents Upload */}
             {currentStep === 5 && (
-              <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
                  {[
                    { label: 'PAN Card Copy', name: 'documents.panCard', field: 'panCard' },
                    { label: 'Udyam Certificate', name: 'documents.udyamCert', field: 'udyamCert' },
@@ -590,13 +592,13 @@ export default function SellerOnboarding() {
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-between pt-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6">
           <Button 
             type="button" 
             variant="ghost" 
             onClick={prevStep} 
             disabled={currentStep === 1 || isLoading}
-            className={cn("h-14 px-8 rounded-2xl text-slate-400 hover:text-slate-900 font-black uppercase italic tracking-widest text-[10px]", currentStep === 1 && "opacity-0")}
+            className={cn("w-full sm:w-auto h-12 md:h-14 px-8 rounded-2xl text-slate-400 hover:text-slate-900 font-black uppercase italic tracking-widest text-[10px]", currentStep === 1 && "opacity-0")}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Previous
@@ -605,10 +607,10 @@ export default function SellerOnboarding() {
           <Button 
             type="submit" 
             disabled={isLoading}
-            className="h-14 px-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-indigo-100 flex items-center gap-2 group transition-all"
+            className="w-full sm:w-auto h-14 md:h-16 px-10 md:px-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 group transition-all"
           >
             {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : currentStep === 7 ? <Save className="h-5 w-5" /> : null}
-            <span>{isLoading ? 'Submitting...' : currentStep === 7 ? 'Submit for Approval' : `Continue to ${STEPS[currentStep].label}`}</span>
+            <span className="text-xs md:text-sm">{isLoading ? 'Submitting...' : currentStep === 7 ? 'Submit Approval' : `Continue`}</span>
             {currentStep < 7 && !isLoading && <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />}
           </Button>
         </div>

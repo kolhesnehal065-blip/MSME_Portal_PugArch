@@ -109,17 +109,17 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
   };
 
   return (
-    <div className="flex justify-center items-center py-12 px-4">
-      <Card className="w-full max-w-md border-none shadow-2xl shadow-indigo-100 rounded-3xl overflow-hidden">
-        <CardHeader className="text-center bg-indigo-50/50 pb-8 pt-10">
-          <div className="mx-auto w-16 h-16 bg-white shadow-xl rounded-2xl flex items-center justify-center mb-6 animate-in zoom-in-50 duration-500">
+    <div className="flex min-h-[calc(100vh-80px)] items-center justify-center py-6 px-4">
+      <Card className="w-full max-w-md border-none shadow-2xl shadow-indigo-100 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <CardHeader className="text-center bg-indigo-50/50 pb-6 pt-7">
+          <div className="mx-auto w-14 h-14 bg-white shadow-xl rounded-2xl flex items-center justify-center mb-4 animate-in zoom-in-50 duration-500">
             {type === 'seller' ? <Store className="h-8 w-8 text-indigo-600" /> : <Building2 className="h-8 w-8 text-indigo-600" />}
           </div>
-          <CardTitle className="text-3xl font-black italic tracking-tight text-slate-900 uppercase">Create {getTitle()}</CardTitle>
+          <CardTitle className="text-2xl md:text-3xl font-black italic tracking-tight text-slate-900 uppercase">Create {getTitle()}</CardTitle>
           <p className="text-sm font-medium text-slate-500 mt-2 italic">Start your journey with PugArch MSME Marketplace</p>
         </CardHeader>
-        <CardContent className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <CardContent className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label={getNameLabel()}
               placeholder="e.g. John Doe"
@@ -131,7 +131,7 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
             
             <div className="space-y-1.5">
               <label className="text-xs font-black uppercase text-slate-400 tracking-widest italic ml-1">Official Email</label>
-              <div className="relative flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
@@ -150,7 +150,7 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
                     onClick={handleSendOtp} 
                     disabled={isSendingOtp}
                     variant="outline"
-                    className="h-11 rounded-xl px-4 font-black uppercase text-[10px] italic border-indigo-100 text-indigo-600 hover:bg-indigo-50"
+                    className="w-full sm:w-auto h-11 rounded-xl px-4 font-black uppercase text-[10px] italic border-indigo-100 text-indigo-600 hover:bg-indigo-50"
                   >
                     {isSendingOtp ? 'Sending...' : 'Verify'}
                   </Button>
@@ -168,7 +168,7 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
               <div className="space-y-4 animate-in slide-in-from-top-4 duration-500">
                 <div className="space-y-1.5">
                   <label className="text-xs font-black uppercase text-indigo-600 tracking-widest italic ml-1">Enter 6-Digit OTP</label>
-                  <div className="relative flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-1">
                       <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-400" />
                       <input
@@ -184,7 +184,7 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
                       type="button" 
                       onClick={handleVerifyOtp} 
                       disabled={isVerifyingOtp}
-                      className="h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] px-6 italic"
+                      className="w-full sm:w-auto h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] px-6 italic"
                     >
                       {isVerifyingOtp ? 'Checking...' : 'Apply Code'}
                     </Button>
@@ -213,7 +213,7 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
               {isLoading ? 'Creating Account...' : 'Finish Registration'}
             </Button>
             
-            <div className="text-center mt-6">
+            <div className="text-center mt-4">
               <p className="text-sm font-medium text-slate-500 italic">
                 Already have an account?{' '}
                 <Link to="/login" className="text-indigo-600 font-black uppercase text-[10px] hover:underline underline-offset-4 tracking-widest">Sign in</Link>
@@ -221,7 +221,7 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
             </div>
             
             {type !== 'admin' && (
-              <div className="pt-6 mt-2 border-t border-slate-100 text-center">
+              <div className="pt-4 mt-1 border-t border-slate-100 text-center">
                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
                   Registering as the wrong role? {' '}
                   <Link to={type === 'seller' ? '/buyer/register' : '/seller/register'} className="text-indigo-600 underline decoration-indigo-200 underline-offset-4">

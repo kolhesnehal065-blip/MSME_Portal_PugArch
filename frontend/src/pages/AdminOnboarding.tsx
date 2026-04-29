@@ -259,27 +259,28 @@ export default function AdminOnboarding() {
                  No {activeTab} registrations in record.
               </div>
             ) : (
+            <div className="overflow-x-auto no-scrollbar">
               <Table>
                 <TableHeader className="bg-slate-50/80 border-y border-slate-100">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4">Full Name</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4">Entity Name</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4">Budget / Category</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4">Submitted At</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4">Status</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4 text-right">Action</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4">Full Name</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4">Entity Name</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4">Budget / Category</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4">Submitted At</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4">Status</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4 text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {currentData.map((item) => (
                     <TableRow key={item._id} className="group hover:bg-slate-50/50 transition-colors border-b border-slate-50">
-                      <TableCell className="px-6 py-8">
+                      <TableCell className="px-3 md:px-6 py-8">
                          <div className="font-bold text-slate-800 text-sm tracking-tight">{item.name}</div>
                       </TableCell>
-                      <TableCell className="px-6 py-8">
+                      <TableCell className="px-3 md:px-6 py-8">
                         <div className="font-bold text-slate-600 text-sm italic underline decoration-indigo-200 underline-offset-4">{item.profile?.businessName || item.profile?.organizationName || 'N/A'}</div>
                       </TableCell>
-                      <TableCell className="px-6 py-8">
+                      <TableCell className="px-3 md:px-6 py-8">
                         <div className="space-y-1">
                           <div className="text-[10px] font-black text-indigo-600 uppercase italic">
                             {item.role === 'buyer' ? (item.profile?.annualBudget || 'N/A') : (Array.isArray(item.profile?.productCategories) ? item.profile.productCategories[0] : 'N/A')}
@@ -289,10 +290,10 @@ export default function AdminOnboarding() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="px-6 py-8">
+                      <TableCell className="px-3 md:px-6 py-8">
                         <div className="text-xs font-bold text-slate-500 font-mono italic">{new Date(item.createdAt || Date.now()).toISOString().split('T')[0]}</div>
                       </TableCell>
-                      <TableCell className="px-6 py-8">
+                      <TableCell className="px-3 md:px-6 py-8">
                         <div className="space-y-2">
                           {getStatusBadge(item.onboardingStatus)}
                           <div className="flex space-x-0.5">
@@ -303,14 +304,14 @@ export default function AdminOnboarding() {
                                   "h-1.5 w-4 rounded-full",
                                   item.sectionStatus?.[section] === 'approved' ? "bg-green-500" : 
                                   item.sectionStatus?.[section] === 'rejected' ? "bg-red-500" : "bg-slate-200"
-                                )} 
+                                ) || ""} 
                                 title={`${section}: ${item.sectionStatus?.[section] || 'pending'}`}
                               />
                             ))}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="px-6 py-8 text-right">
+                      <TableCell className="px-3 md:px-6 py-8 text-right">
                          <button 
                             onClick={(e) => {
                               e.stopPropagation();
@@ -326,6 +327,7 @@ export default function AdminOnboarding() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
             )}
           </CardContent>
         </Card>
@@ -338,7 +340,7 @@ export default function AdminOnboarding() {
             {/* Header */}
             <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white z-10 sticky top-0">
                <div>
-                 <h2 className="text-2xl font-black text-slate-950 uppercase italic tracking-tight">Application Review</h2>
+                 <h2 className="text-xl md:text-2xl font-black text-slate-950 uppercase italic tracking-tight">Application Review</h2>
                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Detailed Participant Verification Module</p>
                </div>
                <button 
@@ -354,7 +356,7 @@ export default function AdminOnboarding() {
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-12">
-              <div className="grid lg:grid-cols-3 gap-12">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
                 {/* Left Column: Identity Baseline */}
                 <div className="space-y-8">
                    <div className="space-y-4">
@@ -613,7 +615,7 @@ export default function AdminOnboarding() {
                            </button>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                          {selectedItem.profile?.documents ? (
                            Object.entries(selectedItem.profile.documents).map(([key, url]: [string, any]) => (
                              url ? (

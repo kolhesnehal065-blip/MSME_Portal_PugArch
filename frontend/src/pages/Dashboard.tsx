@@ -97,7 +97,7 @@ export default function Dashboard() {
     return (
       <div className="space-y-8">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">System Overview</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">System Overview</h1>
           <Link to="/admin/onboarding">
             <Button className="space-x-2">
               <ShieldCheck className="h-4 w-4" />
@@ -148,7 +148,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Welcome, {user?.name}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Welcome, {user?.name}</h1>
           <p className="text-slate-500 mt-1">Role: <span className="capitalize font-semibold text-slate-700">{user?.role}</span></p>
         </div>
         <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg border border-slate-200">
@@ -157,7 +157,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
         {/* Onboarding Progress */}
         <Card className="h-full">
           <CardHeader>
@@ -227,7 +227,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
               {Object.entries(user.sectionStatus).map(([section, status]: [string, any]) => (
                 <button
                   key={section}
@@ -271,7 +271,7 @@ export default function Dashboard() {
             <CardTitle>Business Overview</CardTitle>
           </CardHeader>
           <CardContent>
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Company Name</p>
                   <p className="text-sm font-medium text-slate-900 mt-1">{profile.businessName || profile.organizationName}</p>

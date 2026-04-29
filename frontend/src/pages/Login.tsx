@@ -47,20 +47,20 @@ export default function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center py-12 px-4">
+    <div className="flex min-h-[calc(100vh-80px)] items-center justify-center py-6 px-4">
       <Card className="w-full max-w-md border-none shadow-2xl shadow-indigo-100 rounded-3xl overflow-hidden animate-in fade-in zoom-in duration-500">
-        <CardHeader className="text-center bg-slate-900 pb-10 pt-12 text-white relative">
+        <CardHeader className="text-center bg-slate-900 pb-7 pt-8 text-white relative">
           <div className="absolute top-0 right-0 p-4 opacity-10">
              <ShieldCheck className="h-24 w-24" />
           </div>
-          <div className="mx-auto w-16 h-16 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mb-6">
+          <div className="mx-auto w-14 h-14 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mb-4">
             <Lock className="h-8 w-8 text-indigo-400" />
           </div>
           <CardTitle className="text-3xl font-black italic tracking-tight uppercase">Stakeholder Access</CardTitle>
           <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic">PugArch Procurement Network</p>
         </CardHeader>
-        <CardContent className="p-8 bg-white">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <CardContent className="p-6 bg-white">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
                <label className="text-xs font-black uppercase text-slate-400 tracking-widest italic ml-1">Official Email</label>
                <div className="relative">
@@ -99,14 +99,14 @@ export default function Login() {
               {isLoading ? 'Authenticating...' : 'Sign In Now'}
             </Button>
 
-            <div className="text-center mt-8">
+            <div className="text-center mt-5">
               <p className="text-sm font-medium text-slate-500 italic">
                 New to the platform?{' '}
                 <Link to="/seller/register" className="text-indigo-600 font-black uppercase text-[10px] hover:underline underline-offset-4 tracking-widest">Create Profile</Link>
               </p>
             </div>
 
-            <div className="pt-8 border-t border-slate-100 mt-6 text-center">
+            <div className="pt-5 border-t border-slate-100 mt-4 text-center">
               <p className="text-[10px] text-slate-400 uppercase tracking-[0.3em] font-black italic mb-3">Developer Preview Credentials</p>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[10px] space-y-1">
                  <p className="text-slate-600 font-bold">Buyer: <span className="text-indigo-600">suresh@buildcon.com</span> / password123</p>

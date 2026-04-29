@@ -11,13 +11,19 @@ import {
   ShieldCheck, 
   ShoppingCart,
   Menu,
+  X,
   ChevronRight,
   Bell,
   Search
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,12 +45,27 @@ export default function Sidebar() {
   if (!user) return null;
 
   return (
-    <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0 h-full fixed left-0 top-0 z-50">
-      <div className="p-6 border-b border-slate-800">
-        <Link to="/" className="flex items-center gap-3">
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside className={cn(
+        "w-64 bg-slate-900 text-white flex flex-col shrink-0 h-full fixed left-0 top-0 z-50 transition-transform duration-300 ease-in-out lg:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+      <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-3" onClick={onClose}>
           <div className="w-8 h-8 bg-indigo-500 rounded flex items-center justify-center font-bold text-lg italic shadow-lg shadow-indigo-500/20">P</div>
           <span className="font-bold tracking-tight text-xl">PugArch</span>
         </Link>
+        <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:text-white" aria-label="Close sidebar">
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -53,6 +74,7 @@ export default function Sidebar() {
           <Link
             key={item.label}
             to={item.path}
+            onClick={onClose}
             className={cn(
               "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
               location.pathname === item.path
@@ -88,10 +110,15 @@ export default function Sidebar() {
         </Button>
       </div>
     </aside>
-  );
+      </>
+    );
 }
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -139,8 +166,16 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 sticky top-0 z-40 ml-64">
-      <h1 className="text-lg font-bold">{getPageTitle()}</h1>
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-40 lg:ml-64 transition-all duration-300">
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={onMenuClick}
+          className="p-2 -ml-2 text-slate-500 hover:bg-slate-50 rounded-lg lg:hidden"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <h1 className="text-sm md:text-lg font-bold truncate max-w-[150px] md:max-w-none">{getPageTitle()}</h1>
+      </div>
       
       <div className="flex items-center gap-6">
         <div className="relative hidden md:block">
@@ -166,7 +201,7 @@ export function Header() {
             )}
           </button>
           {isNotificationsOpen && (
-            <div className="absolute right-0 top-12 w-96 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/70 overflow-hidden z-50">
+            <div className="absolute right-0 top-12 w-80 md:w-96 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/70 overflow-hidden z-50">
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-slate-900">Notifications</p>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { Toaster } from 'sonner';
@@ -29,12 +29,20 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
 
 function AppRoutes() {
   const { user } = useAuth();
+  const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const fixedAuthRoutes = ['/', '/login', '/seller/register', '/buyer/register', '/admin/register'];
+  const isFixedAuthRoute = !user && fixedAuthRoutes.includes(location.pathname);
+
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
-      <Sidebar />
-      <div className={cn("flex-1 flex flex-col min-w-0", user && "pl-64")}>
-        <Header />
-        <main className="flex-1 p-8 overflow-y-auto">
+    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <div className={cn("flex-1 flex flex-col min-w-0 transition-all duration-300", user && "lg:pl-64")}>
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className={cn(
+          "flex-1",
+          isFixedAuthRoute ? "h-screen overflow-hidden p-0" : "p-4 md:p-8 overflow-y-auto"
+        )}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
