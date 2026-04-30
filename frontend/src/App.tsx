@@ -20,7 +20,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
   const { user, loading } = useAuth();
   const location = useLocation();
   
-  if (loading) return <div className="flex h-screen items-center justify-center font-bold text-indigo-600 italic">PugArch MSME Marketplace...</div>;
+  if (loading) return <div className="flex min-h-dvh items-center justify-center px-4 text-center font-bold italic text-indigo-600">PugArch MSME Marketplace...</div>;
   if (!user) return <Navigate to="/" state={{ from: location }} replace />;
   if (user && allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" />;
   
@@ -35,13 +35,13 @@ function AppRoutes() {
   const isFixedAuthRoute = !user && fixedAuthRoutes.includes(location.pathname);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
+    <div className="flex min-h-dvh bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className={cn("flex-1 flex flex-col min-w-0 transition-all duration-300", user && "lg:pl-64")}>
         <Header onMenuClick={() => setIsSidebarOpen(true)} />
         <main className={cn(
           "flex-1",
-          isFixedAuthRoute ? "h-screen overflow-hidden p-0" : "p-4 md:p-8 overflow-y-auto"
+          isFixedAuthRoute ? "min-h-dvh overflow-y-auto p-0" : "overflow-y-auto p-3 sm:p-4 md:p-8"
         )}>
           <Routes>
             <Route path="/" element={<Home />} />

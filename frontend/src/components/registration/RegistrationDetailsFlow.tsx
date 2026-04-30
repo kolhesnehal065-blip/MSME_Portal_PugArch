@@ -288,9 +288,9 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
   const isBuyerEmailReady = Boolean(formData.email && formData.verifyEmail && formData.email === formData.verifyEmail);
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-8 p-4 lg:p-0">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-0 sm:px-1 lg:flex-row lg:gap-8 lg:p-0">
       {/* Sidebar Navigation - Transitioned to horizontal on mobile */}
-      <div className="lg:w-64 flex-shrink-0 overflow-x-auto no-scrollbar">
+      <div className="no-scrollbar flex-shrink-0 overflow-x-auto lg:w-64">
         <div className="flex lg:flex-col gap-2 pb-4 lg:pb-0 min-w-max lg:min-w-0 sticky top-4 lg:top-8">
           {steps.map((step) => {
             const Icon = step.icon;
@@ -321,14 +321,14 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
 
       {/* Main Content Area */}
       <div className="flex-1">
-        <Card className="border-none shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden bg-white">
-          <CardHeader className="bg-slate-50 p-6 md:p-8 border-b border-white">
+        <Card className="overflow-hidden rounded-2xl border-none bg-white shadow-xl shadow-slate-200/70 md:rounded-3xl md:shadow-2xl">
+          <CardHeader className="border-b border-white bg-slate-50 p-4 sm:p-6 md:p-8">
             <CardTitle className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900 italic">
               Step {currentSubStep}: {steps.find(s => s.id === currentSubStep)?.title}
             </CardTitle>
           </CardHeader>
           
-          <CardContent className="p-6 md:p-10">
+          <CardContent className="p-4 sm:p-6 md:p-10">
             {currentSubStep === 1 && (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                 {isPrimaryBuyer ? (
@@ -551,7 +551,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                     )}
 
                     {aadhaarOtpSent && !isAadhaarVerified && (
-                      <div className="p-6 bg-white rounded-2xl border border-indigo-100 space-y-4 shadow-sm">
+                      <div className="space-y-4 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm sm:p-6">
                          <div className="flex items-center justify-between">
                             <h4 className="text-[10px] font-black text-indigo-600 uppercase italic">Enter OTP sent to your Aadhaar-linked mobile</h4>
                             <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-black animate-pulse">
@@ -650,7 +650,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                     </div>
 
                 {formData.personalVerificationMethod === 'aadhaar' ? (
-                  <div className="space-y-5 p-6 bg-slate-50 rounded-3xl animate-in fade-in duration-300">
+                  <div className="animate-in space-y-5 rounded-2xl bg-slate-50 p-4 fade-in duration-300 sm:p-6 md:rounded-3xl">
                     <div className="grid md:grid-cols-2 gap-4">
                       <Input
                         label="Aadhaar Number / Virtual ID"
@@ -686,7 +686,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                     )}
 
                     {aadhaarOtpSent && !isAadhaarVerified && (
-                      <div className="p-6 bg-white rounded-2xl border border-indigo-100 space-y-4 shadow-sm">
+                      <div className="space-y-4 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm sm:p-6">
                          <div className="flex items-center justify-between">
                             <h4 className="text-[10px] font-black text-indigo-600 uppercase italic">Enter OTP sent to your Aadhaar-linked mobile</h4>
                             <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-black animate-pulse">
@@ -728,7 +728,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-5 p-6 bg-slate-50 rounded-3xl">
+                  <div className="space-y-5 rounded-2xl bg-slate-50 p-4 sm:p-6 md:rounded-3xl">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Input
                         label="PAN Number"
@@ -849,7 +849,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                 )}
 
                 {otpSent && !isEmailVerified && (
-                  <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col items-center gap-6">
+                  <div className="flex flex-col items-center gap-5 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:gap-6 sm:p-8 md:rounded-3xl">
                     <h4 className="text-sm font-black uppercase italic tracking-widest text-indigo-600">Enter Verification Code</h4>
                     <div className="flex flex-col sm:flex-row gap-4 w-full">
                         <input
@@ -857,7 +857,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                           maxLength={6}
                           value={emailOtp}
                           onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
-                          className="w-full sm:w-48 h-14 text-center text-2xl font-black tracking-[0.5em] rounded-2xl border-2 border-indigo-100 focus:border-indigo-500"
+                          className="h-14 w-full rounded-2xl border-2 border-indigo-100 text-center text-xl font-black tracking-[0.25em] focus:border-indigo-500 sm:w-48 sm:text-2xl sm:tracking-[0.5em]"
                         />
                         <Button onClick={handleVerifyOtp} className="w-full sm:flex-1 h-14 px-8 rounded-2xl bg-slate-900 text-white font-black uppercase italic text-[10px]">
                            Verify Code
@@ -957,7 +957,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                       />
                     </div>
 
-                    <div className="p-6 bg-slate-50 rounded-3xl">
+                    <div className="rounded-2xl bg-slate-50 p-4 sm:p-6 md:rounded-3xl">
                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">Password Security Checklist</h4>
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <ValidationItem label="8-16 Characters" valid={formData.password.length >= 8 && formData.password.length <= 16} />
@@ -973,7 +973,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
               </div>
         )}
 
-        <div className="mt-8 md:mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-50">
+        <div className="mt-8 flex flex-col items-stretch justify-between gap-3 border-t border-slate-50 pt-6 sm:flex-row sm:items-center sm:gap-4 md:mt-12 md:pt-8">
             <Button 
               variant="ghost" 
               onClick={handleBack}

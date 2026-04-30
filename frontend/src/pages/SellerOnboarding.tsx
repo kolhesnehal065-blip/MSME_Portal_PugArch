@@ -313,7 +313,7 @@ export default function SellerOnboarding() {
     }
   };
 
-  if (isFetching) return <div className="flex h-screen items-center justify-center font-bold text-indigo-600 italic">Loading profile...</div>;
+  if (isFetching) return <div className="flex min-h-dvh items-center justify-center px-4 text-center font-bold italic text-indigo-600">Loading profile...</div>;
 
   const categories = ['Electronics', 'Office Supplies', 'Industrial Tools', 'Furniture', 'Software', 'Logistics', 'Textiles', 'Chemicals', 'Others'];
   const sectionMessages = Object.entries(user?.sectionRejectionReasons || {}).filter(([section, reason]) => {

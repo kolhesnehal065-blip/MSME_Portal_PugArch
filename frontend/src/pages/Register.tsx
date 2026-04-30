@@ -109,16 +109,16 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-80px)] items-center justify-center py-6 px-4">
-      <Card className="w-full max-w-md border-none shadow-2xl shadow-indigo-100 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <CardHeader className="text-center bg-indigo-50/50 pb-6 pt-7">
+    <div className="flex min-h-dvh items-center justify-center px-3 py-6 sm:px-4">
+      <Card className="animate-in w-full max-w-md overflow-hidden rounded-2xl border-none shadow-xl shadow-indigo-100 fade-in slide-in-from-bottom-4 duration-500 sm:rounded-3xl sm:shadow-2xl">
+        <CardHeader className="bg-indigo-50/50 pb-6 pt-7 text-center">
           <div className="mx-auto w-14 h-14 bg-white shadow-xl rounded-2xl flex items-center justify-center mb-4 animate-in zoom-in-50 duration-500">
             {type === 'seller' ? <Store className="h-8 w-8 text-indigo-600" /> : <Building2 className="h-8 w-8 text-indigo-600" />}
           </div>
           <CardTitle className="text-2xl md:text-3xl font-black italic tracking-tight text-slate-900 uppercase">Create {getTitle()}</CardTitle>
           <p className="text-sm font-medium text-slate-500 mt-2 italic">Start your journey with PugArch MSME Marketplace</p>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label={getNameLabel()}
@@ -177,7 +177,7 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
                         placeholder="000000"
                         value={otp}
                         onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                        className="w-full h-11 pl-10 pr-4 rounded-xl border-2 border-indigo-100 text-center text-lg font-black tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:tracking-normal placeholder:font-medium placeholder:text-slate-300"
+                        className="h-11 w-full rounded-xl border-2 border-indigo-100 pl-10 pr-4 text-center text-lg font-black tracking-[0.25em] transition-all placeholder:font-medium placeholder:tracking-normal placeholder:text-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:tracking-[0.5em]"
                       />
                     </div>
                     <Button 

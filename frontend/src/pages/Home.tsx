@@ -7,26 +7,26 @@ export default function Home() {
   const { user } = useAuth();
 
   return (
-    <div className="space-y-16 py-12">
+    <div className="space-y-10 px-3 py-8 sm:space-y-14 sm:px-4 sm:py-12">
       {/* Hero Section */}
-      <div className="text-center space-y-6 max-w-3xl mx-auto">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 px-4 md:px-0">
+      <div className="mx-auto max-w-3xl space-y-5 text-center sm:space-y-6">
+        <h1 className="px-1 text-3xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
           Streamline Your Procurement Onboarding with <span className="text-blue-600">PugArch MSME</span>
         </h1>
-        <p className="text-xl text-slate-600 leading-relaxed">
+        <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-600 sm:text-xl">
           The unified portal for buyers and sellers to connect, register, and manage procurement lifecycle with simplicity and transparency.
         </p>
-        <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+        <div className="flex flex-col justify-center gap-3 pt-2 sm:flex-row sm:gap-4 sm:pt-4">
           {!user ? (
             <>
               <Link to="/seller/register">
-                <Button size="lg" className="w-full sm:w-auto h-16 text-lg px-8 space-x-2">
+                <Button size="lg" className="h-14 w-full gap-2 px-6 text-base sm:h-16 sm:w-auto sm:px-8 sm:text-lg">
                   <Store className="h-6 w-6" />
                   <span>Join as Seller</span>
                 </Button>
               </Link>
               <Link to="/buyer/register">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto h-16 text-lg px-8 space-x-2 border-2">
+                <Button variant="outline" size="lg" className="h-14 w-full gap-2 border-2 px-6 text-base sm:h-16 sm:w-auto sm:px-8 sm:text-lg">
                   <Building2 className="h-6 w-6" />
                   <span>Join as Buyer</span>
                 </Button>
@@ -34,7 +34,7 @@ export default function Home() {
             </>
           ) : (
             <Link to="/dashboard">
-              <Button size="lg" className="w-full sm:w-auto h-16 text-lg px-8 space-x-2">
+              <Button size="lg" className="h-14 w-full gap-2 px-6 text-base sm:h-16 sm:w-auto sm:px-8 sm:text-lg">
                 <LayoutDashboard className="h-6 w-6" />
                 <span>Go to Dashboard</span>
               </Button>
@@ -54,22 +54,22 @@ export default function Home() {
       </div>
 
       {/* Features */}
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-3 md:gap-8">
+        <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-8 sm:space-y-4">
           <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
             <ShieldCheck className="h-6 w-6 text-blue-600" />
           </div>
           <h3 className="text-xl font-bold">Secure Verification</h3>
           <p className="text-slate-600">Enterprise-grade document verification and KYB checks for all participants.</p>
         </div>
-        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-8 sm:space-y-4">
           <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
             <CheckCircle2 className="h-6 w-6 text-green-600" />
           </div>
           <h3 className="text-xl font-bold">Fast Approval</h3>
           <p className="text-slate-600">Dedicated admin workflow ensures onboarding is processed within 48 hours.</p>
         </div>
-        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-8 sm:space-y-4">
           <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
             <ArrowRight className="h-6 w-6 text-purple-600" />
           </div>
@@ -78,7 +78,7 @@ export default function Home() {
         </div>
       </div>
       
-      <div className="pt-12 border-t border-slate-100 flex justify-center">
+      <div className="flex justify-center border-t border-slate-100 pt-8 sm:pt-12">
         <Link to="/admin/register" className="text-sm font-medium text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-widest italic">
           Admin Control Center
         </Link>

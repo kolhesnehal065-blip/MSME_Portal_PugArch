@@ -47,19 +47,19 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-80px)] items-center justify-center py-6 px-4">
-      <Card className="w-full max-w-md border-none shadow-2xl shadow-indigo-100 rounded-3xl overflow-hidden animate-in fade-in zoom-in duration-500">
-        <CardHeader className="text-center bg-slate-900 pb-7 pt-8 text-white relative">
+    <div className="flex min-h-dvh items-center justify-center px-3 py-6 sm:px-4">
+      <Card className="animate-in w-full max-w-md overflow-hidden rounded-2xl border-none shadow-xl shadow-indigo-100 fade-in zoom-in duration-500 sm:rounded-3xl sm:shadow-2xl">
+        <CardHeader className="relative bg-slate-900 pb-6 pt-7 text-center text-white sm:pb-7 sm:pt-8">
           <div className="absolute top-0 right-0 p-4 opacity-10">
              <ShieldCheck className="h-24 w-24" />
           </div>
           <div className="mx-auto w-14 h-14 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mb-4">
             <Lock className="h-8 w-8 text-indigo-400" />
           </div>
-          <CardTitle className="text-3xl font-black italic tracking-tight uppercase">Stakeholder Access</CardTitle>
+          <CardTitle className="text-2xl font-black uppercase italic tracking-tight sm:text-3xl">Stakeholder Access</CardTitle>
           <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic">PugArch Procurement Network</p>
         </CardHeader>
-        <CardContent className="p-6 bg-white">
+        <CardContent className="bg-white p-4 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
                <label className="text-xs font-black uppercase text-slate-400 tracking-widest italic ml-1">Official Email</label>

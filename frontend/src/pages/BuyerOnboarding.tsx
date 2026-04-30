@@ -545,7 +545,7 @@ export default function BuyerOnboarding() {
     }
   };
 
-  if (isFetching) return <div className="buyer-font flex h-screen items-center justify-center font-bold text-indigo-600 italic">Loading form...</div>;
+  if (isFetching) return <div className="buyer-font flex min-h-dvh items-center justify-center px-4 text-center font-bold italic text-indigo-600">Loading form...</div>;
 
   const categories = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
   return (

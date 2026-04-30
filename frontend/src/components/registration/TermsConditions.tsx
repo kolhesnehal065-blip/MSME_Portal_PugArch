@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import {
+  Download,
+  FileText,
+  Maximize2,
+  Menu,
+  MoreVertical,
+  Printer,
+  RotateCcw,
+  Search,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react';
 import { Button } from '../ui/Button';
-import { FileText, Maximize2, ShieldCheck, ArrowLeft, ArrowRight } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface TermsConditionsProps {
   onAccept: () => void;
@@ -9,102 +20,184 @@ interface TermsConditionsProps {
   role: 'buyer' | 'seller';
 }
 
-export default function TermsConditions({ onAccept, onBack, role }: TermsConditionsProps) {
+const pages = [1, 2, 3, 4];
+
+export default function TermsConditions({ onAccept, role }: TermsConditionsProps) {
   const [accepted, setAccepted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   return (
-    <div className={`max-w-4xl mx-auto transition-all duration-500 ${isFullscreen ? 'fixed inset-0 z-50 p-0 max-w-none' : ''}`}>
-      <Card className={`border-none shadow-2xl rounded-3xl overflow-hidden bg-white ${isFullscreen ? 'h-full rounded-none' : ''}`}>
-        <CardHeader className="bg-slate-900 text-white p-6 md:p-8 flex flex-row items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-500/20 rounded-xl backdrop-blur-md">
-              <ShieldCheck className="h-5 w-5 text-indigo-400" />
-            </div>
-            <div>
-              <CardTitle className="text-xl font-black uppercase tracking-tight italic">Terms & Conditions</CardTitle>
-              {!isFullscreen && <p className="text-slate-400 text-[10px] font-bold italic tracking-widest uppercase">Version 2.4 | May 2024</p>}
-            </div>
+    <div
+      className={cn(
+        'mx-auto w-full max-w-[1500px] transition-all duration-300',
+        isFullscreen && 'fixed inset-0 z-50 max-w-none overflow-y-auto bg-white p-3 sm:p-4 md:p-8'
+      )}
+    >
+      <section
+        className={cn(
+          'rounded-md border border-slate-200 bg-white p-3 shadow-sm sm:p-4 md:p-9',
+          isFullscreen && 'flex h-full flex-col'
+        )}
+      >
+        <h2 className="mb-4 text-sm font-bold leading-snug text-slate-800 sm:text-base md:mb-7 md:text-xl">
+          Please Read And Agree To The Terms & Conditions Of Government E-Marketplace (GeM) Before Sign Up.
+        </h2>
+
+        <div className={cn('overflow-hidden rounded border border-slate-300 bg-[#262626]', isFullscreen && 'min-h-0 flex-1')}>
+          <PdfToolbar role={role} />
+
+          <div className={cn('grid bg-[#242424] md:grid-cols-[280px_minmax(0,1fr)] lg:grid-cols-[355px_minmax(0,1fr)]', isFullscreen ? 'h-[calc(100dvh-240px)] min-h-[360px]' : 'h-[60dvh] min-h-[420px] md:h-[546px]')}>
+            <aside className="hidden overflow-y-auto border-r border-slate-700 bg-[#262626] px-8 py-6 md:block">
+              <div className="space-y-8">
+                {pages.map((page) => (
+                  <button key={page} className="mx-auto block w-full text-center text-white">
+                    <div
+                      className={cn(
+                        'mx-auto aspect-[3/4] w-36 bg-white p-2 shadow-md ring-2',
+                        page === 1 ? 'ring-blue-400' : 'ring-transparent'
+                      )}
+                    >
+                      <MiniPage faded={page !== 1} />
+                    </div>
+                    <span className="mt-3 block text-sm">{page}</span>
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            <main className="overflow-y-auto bg-white px-4 py-0 sm:px-5 md:px-16">
+              <article className="mx-auto min-h-full max-w-[760px] bg-white py-6 font-serif text-[15px] leading-relaxed text-black sm:text-[17px] md:py-8 md:text-[20px]">
+                <p className="text-center font-bold leading-snug">
+                  Track / Domain Specific STC of Particular Service including its SLA
+                  <br />
+                  (Service Level Agreement) and BID/Reverse Auction Specific Additional
+                  <br />
+                  Terms and Conditions (ATC) as applicable.
+                </p>
+
+                <p className="mt-3 text-justify">
+                  Government e-Marketplace (GeM) is the National Public Procurement Portal; an end-to-end online
+                  Marketplace for Central and State Government Ministries / Departments, Central & State Public Sector
+                  Undertakings and autonomous institutions for procurement of common use goods & services.
+                </p>
+
+                <p className="mt-4 text-justify">
+                  This portal is adapted for PugArch MSME Marketplace registration and onboarding. The terms below
+                  govern participation for {role === 'seller' ? 'sellers, service providers' : 'buyers, procurement users'} and
+                  authorized representatives using the platform.
+                </p>
+
+                <section className="mt-5">
+                  <h3 className="font-bold">2. General Terms and Definitions:</h3>
+                  <p className="mt-4 pl-4 text-justify sm:pl-8">
+                    a. <strong>&ldquo;APPLICABLE LAWS&rdquo;</strong> shall mean any statute, law, ordinance, notification,
+                    rule, regulation, judgment, order, decree, bye-law, approval, directive, guideline, policy or other
+                    governmental restriction as may be in effect.
+                  </p>
+                  <p className="mt-4 pl-4 text-justify sm:pl-8">
+                    b. <strong>&ldquo;USER&rdquo;</strong> shall mean the individual or organization registering on behalf of a
+                    competent buyer or seller entity and accepting responsibility for the accuracy of all information
+                    submitted during sign up.
+                  </p>
+                </section>
+
+                <section className="mt-5">
+                  <h3 className="font-bold">3. Registration and Verification:</h3>
+                  <p className="mt-4 text-justify">
+                    Users agree that identity, email, mobile number, Aadhaar, PAN, business registration and other
+                    submitted details may be verified through appropriate authorities or approved verification services.
+                    Any misrepresentation may lead to rejection, suspension or further action as applicable.
+                  </p>
+                </section>
+              </article>
+            </main>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="text-slate-400 hover:text-white hover:bg-white/10"
-          >
-            <Maximize2 className="h-5 w-5" />
-          </Button>
-        </CardHeader>
-        
-        <CardContent className={`p-0 flex flex-col ${isFullscreen ? 'h-[calc(100vh-80px)]' : 'h-[600px]'}`}>
-          <div className="w-full h-full bg-slate-100 p-4 md:p-8 overflow-auto flex-1">
-            {/* Embedded PDF Viewer Placeholder */}
-            <div className="max-w-3xl mx-auto bg-white shadow-lg min-h-full p-6 md:p-16 border border-slate-200">
-              <div className="flex justify-center mb-10">
-                <div className="w-16 h-1 bg-slate-200 rounded-full" />
-              </div>
-              <h1 className="text-xl md:text-2xl font-black text-center mb-6 md:mb-10 text-slate-900 border-b-4 border-slate-900 pb-4 italic uppercase">Portal Terms of Service</h1>
-              
-              <div className="space-y-8 text-slate-600 font-medium leading-relaxed text-sm md:text-base italic">
-                <section>
-                  <h3 className="text-lg font-black text-slate-900 mb-4 uppercase tracking-tighter italic">1. Scope of Agreement</h3>
-                  <p>This Terms & Conditions (T&C) governs the use of the PugArch MSME Marketplace Procurement Portal for the purposes of {role === 'seller' ? 'Seller and Service Provider' : 'Buyer and Procurement Entity'} registration, onboarding, and subsequent participation in procurement activities.</p>
-                </section>
-                
-                <section>
-                  <h3 className="text-lg font-black text-slate-900 mb-4 uppercase tracking-tighter italic">2. {role === 'seller' ? 'Seller' : 'Buyer'} Eligibility</h3>
-                  <p>{role === 'seller' ? 'Sellers' : 'Buyers'} must be legally registered entities in their respective jurisdictions. Registration as a Proprietorship, Partnership, Pvt Ltd, or LLP requires valid documentary proof including but not limited to PAN, GST, and MSME/Udyam certificates.</p>
-                </section>
+        </div>
 
-                <section>
-                   <h3 className="text-lg font-black text-slate-900 mb-4 uppercase tracking-tighter italic">3. Data Privacy & Verification</h3>
-                   <p>By proceeding, the user consents to the verification of Aadhaar and PAN details through official Government of India (GoI) APIs or authorized third-party bridges. Data is handled under strict encryption standards.</p>
-                </section>
+        <div className="mt-5 flex flex-col gap-4 md:mt-6 md:flex-row md:items-center md:justify-between">
+          <label className="flex cursor-pointer items-start gap-3 text-sm font-bold leading-relaxed text-slate-800 md:text-lg">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(event) => setAccepted(event.target.checked)}
+              className="mt-1 h-6 w-6 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span>* I have read and agree to the Terms & Conditions of Government e-Marketplace (GeM)</span>
+          </label>
 
-                <div className="p-8 bg-slate-50 border-l-4 border-indigo-500 rounded-r-2xl italic">
-                   <p className="font-bold text-slate-800">Note: Misrepresentation of facts or submission of forged documents will lead to immediate blacklisting and legal action under the appropriate statutes.</p>
-                </div>
-
-                <section>
-                  <h3 className="text-lg font-black text-slate-900 mb-4 uppercase tracking-tighter italic">4. Code of Conduct</h3>
-                  <p>Users are expected to maintain professional integrity. Use of automated scripts, unauthorized access attempts, or malicious uploads are strictly prohibited and will result in permanent suspension of credentials.</p>
-                </section>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 md:p-8 border-t border-slate-100 bg-white">
-            <div className="flex items-start gap-3 mb-8 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-              <div 
-                className={`w-6 h-6 rounded flex items-center justify-center border-2 transition-all cursor-pointer ${accepted ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-indigo-200'}`}
-                onClick={() => setAccepted(!accepted)}
-              >
-                {accepted && <ShieldCheck className="h-4 w-4 text-white" />}
-              </div>
-              <p className="text-sm font-black text-slate-900 italic cursor-pointer" onClick={() => setAccepted(!accepted)}>
-                I have read and agree to the Terms & Conditions of the GeM-style Registration Portal.
-              </p>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              {!isFullscreen && (
-                <Button variant="ghost" onClick={onBack} className="w-full md:w-auto h-12 rounded-xl text-slate-500 font-bold uppercase italic tracking-widest text-[10px]">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Pre-requisites
-                </Button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center md:justify-end">
+            <button
+              type="button"
+              onClick={() => setIsFullscreen((value) => !value)}
+              className="h-12 rounded-lg px-5 text-sm font-bold uppercase tracking-wide text-blue-600 hover:bg-blue-50 hover:underline"
+            >
+              {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen View'}
+            </button>
+            <Button
+              onClick={onAccept}
+              disabled={!accepted}
+              className={cn(
+                'h-14 w-full rounded px-10 text-sm font-bold uppercase tracking-wide shadow-none sm:w-auto sm:min-w-[185px]',
+                accepted
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-slate-200 text-slate-400 hover:bg-slate-200'
               )}
-              <Button 
-                onClick={onAccept}
-                disabled={!accepted}
-                className="w-full md:w-auto h-14 px-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-indigo-100 disabled:opacity-50 disabled:grayscale transition-all group"
-              >
-                Accept and Proceed
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </div>
+            >
+              Proceed
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PdfToolbar({ role }: { role: 'buyer' | 'seller' }) {
+  return (
+    <div className="flex min-h-14 items-center gap-2 bg-[#373737] px-3 py-2 text-white sm:h-[68px] sm:gap-3 sm:px-5 sm:py-0">
+      <Menu className="h-6 w-6 shrink-0 text-slate-200" />
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <FileText className="hidden h-5 w-5 shrink-0 text-slate-300 sm:block" />
+        <span className="truncate text-sm font-semibold md:text-base">
+          Microsoft Word - GTC GeM 4.0 ({role === 'buyer' ? 'Buyer' : 'Seller'} Registration)
+        </span>
+      </div>
+      <div className="hidden items-center gap-2 text-sm md:flex">
+        <span className="bg-[#111] px-2 py-1">1</span>
+        <span>/ 54</span>
+      </div>
+      <div className="hidden items-center gap-4 border-l border-slate-500 pl-4 lg:flex">
+        <ZoomOut className="h-4 w-4" />
+        <span className="bg-[#111] px-2 py-1 text-sm font-bold">100%</span>
+        <ZoomIn className="h-4 w-4" />
+      </div>
+      <div className="ml-auto flex items-center gap-3 text-slate-200 sm:gap-4">
+        <Search className="hidden h-5 w-5 sm:block" />
+        <RotateCcw className="hidden h-5 w-5 sm:block" />
+        <Download className="h-5 w-5" />
+        <Printer className="hidden h-5 w-5 sm:block" />
+        <Maximize2 className="h-5 w-5" />
+        <MoreVertical className="h-5 w-5" />
+      </div>
+    </div>
+  );
+}
+
+function MiniPage({ faded }: { faded: boolean }) {
+  return (
+    <div className={cn('h-full space-y-1.5 p-2', faded && 'opacity-40')}>
+      <div className="mx-auto mb-2 h-1 w-1/2 bg-slate-300" />
+      {Array.from({ length: 16 }).map((_, index) => (
+        <div
+          key={index}
+          className={cn('h-1 bg-slate-400', index % 5 === 0 ? 'w-3/4' : index % 3 === 0 ? 'w-10/12' : 'w-full')}
+        />
+      ))}
+      <div className="mt-3 space-y-1">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="h-1 w-full bg-slate-300" />
+        ))}
+      </div>
     </div>
   );
 }
