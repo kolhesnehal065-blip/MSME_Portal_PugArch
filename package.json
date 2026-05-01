@@ -8,9 +8,10 @@
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=frontend\" \"npm run dev --workspace=backend\"",
     "install:all": "npm install",
-    "build": "npm run build --workspace=frontend"
+    "build": "cd frontend && npx vite build"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "vite": "^6.2.0"
   }
 }
