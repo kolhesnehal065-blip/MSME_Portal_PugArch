@@ -1,8 +1,8 @@
 import React, { ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { Select } from '../ui/Input';
+import { Card, CardContent } from '../ui/card';
+import { Button } from '../ui/button';
+import { Select } from '../ui/input';
 import { CheckCircle2, Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

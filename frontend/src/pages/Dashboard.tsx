@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Button } from '../components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui/Card';
+import { Button } from '../components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui/card';
 import { AlertTriangle, CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function Dashboard() {

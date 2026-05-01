@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { api } from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Button } from '../components/ui/Button';
-import { Input, Select } from '../components/ui/Input';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
+import { Button } from '../components/ui/button';
+import { Input, Select } from '../components/ui/input';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { toast } from 'sonner';
 import { Store, Building2, ShieldCheck, Mail, Key } from 'lucide-react';
 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { api } from '../../lib/api';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { Input, Select } from '../ui/Input';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input, Select } from '../ui/input';
 import { toast } from 'sonner';
 import { 
   Building2, 

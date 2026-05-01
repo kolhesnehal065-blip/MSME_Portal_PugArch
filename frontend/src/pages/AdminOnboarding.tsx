@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { Button } from '../components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '../components/ui/Card';
-import { Tabs } from '../components/ui/Tabs';
-import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '../components/ui/card';
+import { Tabs } from '../components/ui/tabs';
+import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { Search, Eye, CheckCircle, XCircle, Users, ShoppingBag, X, FileText, Check, ShieldCheck, MapPin, Building2, Briefcase, AlertTriangle } from 'lucide-react';
 import { cn } from '../lib/utils';
