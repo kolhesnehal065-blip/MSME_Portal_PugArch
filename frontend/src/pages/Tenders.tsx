@@ -203,7 +203,7 @@ export default function Tenders() {
                       {tender.bidsCount || 0}
                     </td>
                     <td className="px-6 py-5 text-sm font-medium text-slate-500">
-                      {tender.deadline ? new Date(tender.deadline).toLocaleDateString() : '21d'}
+                      {tender.closesAt ? new Date(tender.closesAt).toLocaleDateString() : '21d'}
                     </td>
                     <td className="px-6 py-5 text-center">
                       <span className="text-[10px] font-bold bg-slate-100 text-slate-400 px-2.5 py-1 rounded-md uppercase">

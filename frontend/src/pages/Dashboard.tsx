@@ -196,13 +196,13 @@ export default function Dashboard() {
         <Card className="h-full bg-slate-50 border-dashed border-2 flex items-center justify-center p-8">
           <div className="text-center space-y-4">
              <div className="mx-auto bg-white p-4 rounded-full shadow-sm w-max">
-                {getStatusIcon(user?.status || 'pending')}
+                {getStatusIcon(user?.onboardingStatus || 'pending')}
              </div>
-             <h3 className="text-xl font-bold capitalize">{user?.status || 'pending'}</h3>
+             <h3 className="text-xl font-bold capitalize">{user?.onboardingStatus || 'pending'}</h3>
              <p className="text-sm text-slate-500 max-w-xs mx-auto">
-               {user?.status === 'pending' && "Your account is currently under review by our admin team. You will be notified once approved."}
-               {user?.status === 'approved' && "Congratulations! Your account is approved. You can now access full procurement features."}
-               {user?.status === 'rejected' && "Unfortunately, your application was not approved at this time. Please contact support for more information."}
+               {user?.onboardingStatus === 'pending' && "Your account is currently under review by our admin team. You will be notified once approved."}
+               {user?.onboardingStatus === 'approved' && "Congratulations! Your account is approved. You can now access full procurement features."}
+               {user?.onboardingStatus === 'rejected' && "Unfortunately, your application was not approved at this time. Please contact support for more information."}
              </p>
           </div>
         </Card>
@@ -218,7 +218,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {user?.status !== 'approved' && user?.sectionStatus && (
+      {user?.onboardingStatus !== 'approved' && user?.sectionStatus && (
         <Card className="border-indigo-100 bg-indigo-50/10 mb-6">
           <CardHeader>
             <CardTitle className="text-indigo-950 flex items-center gap-2">

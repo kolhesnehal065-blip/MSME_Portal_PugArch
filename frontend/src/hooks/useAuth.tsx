@@ -7,7 +7,8 @@ interface User {
   email: string;
   role: 'seller' | 'buyer' | 'admin';
   registrationStatus?: 'incomplete' | 'completed';
-  status: 'pending' | 'pending_validation' | 'under_compliance_review' | 'resubmission_required' | 'approved_for_procurement' | 'approved' | 'rejected';
+  onboardingStatus: 'pending' | 'pending_validation' | 'under_compliance_review' | 'resubmission_required' | 'approved_for_procurement' | 'approved' | 'rejected';
+  status?: string;
   adminFeedback?: string;
   sectionStatus?: {
     basic: string;

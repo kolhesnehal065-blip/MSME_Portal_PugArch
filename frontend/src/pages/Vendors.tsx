@@ -161,11 +161,11 @@ const Vendors = () => {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex gap-4">
                   <div className="h-12 w-12 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 font-bold text-lg border border-slate-100">
-                    {vendor.profile.businessName.charAt(0)}
+                    {vendor.profile?.businessName?.charAt(0) || vendor.name?.charAt(0) || 'V'}
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="font-bold text-slate-900">{vendor.profile.businessName}</h3>
+                      <h3 className="font-bold text-slate-900">{vendor.profile?.businessName || vendor.name}</h3>
                       <span className="flex items-center gap-1 text-[11px] text-teal-600 font-semibold">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Verified
@@ -173,14 +173,14 @@ const Vendors = () => {
                     </div>
                     <p className="flex items-center gap-1 text-[13px] text-slate-500">
                       <MapPin className="h-3.5 w-3.5" />
-                      {vendor.profile.city}, {vendor.profile.state}
+                      {vendor.profile?.city || 'India'}, {vendor.profile?.state || 'Verified'}
                     </p>
                   </div>
                 </div>
               </div>
 
               <p className="text-[13px] text-slate-600 mb-6 leading-relaxed line-clamp-2">
-                Specialized in {vendor.profile.productCategories?.join(', ') || 'multiple categories'}. Providing high-quality services to enterprise buyers since 2018.
+                Specialized in {vendor.profile?.productCategories?.join(', ') || 'multiple categories'}. Providing high-quality services to enterprise buyers since 2018.
               </p>
 
               <div className="flex flex-wrap gap-2 mb-6">

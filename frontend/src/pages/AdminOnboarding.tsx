@@ -101,7 +101,7 @@ export default function AdminOnboarding() {
           else if (statuses.some(s => s === 'rejected')) newStatus = 'rejected';
           else if (statuses.some(s => s === 'resubmission_required')) newStatus = 'resubmission_required';
           
-          setSelectedItem({ ...selectedItem, sectionStatus: updatedSectionStatus, status: newStatus });
+          setSelectedItem({ ...selectedItem, onboardingStatus: newStatus, sectionStatus: updatedSectionStatus });
         }
         fetchData();
       } else {
@@ -152,8 +152,8 @@ export default function AdminOnboarding() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (onboardingStatus: string) => {
+    switch (onboardingStatus) {
       case 'approved_for_procurement': 
         return <Badge variant="success" className="rounded-full px-4 border-2 border-green-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest">Approved for Procurement</Badge>;
       case 'rejected': 
@@ -167,7 +167,7 @@ export default function AdminOnboarding() {
       case 'pending_validation':
         return <Badge variant="warning" className="rounded-full px-4 border-2 border-slate-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest text-slate-700 bg-slate-50">Pending Validation</Badge>;
       default: 
-        return <Badge variant="warning" className="rounded-full px-4 border-2 border-slate-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest text-slate-700 bg-slate-50">{status || 'Pending'}</Badge>;
+        return <Badge variant="warning" className="rounded-full px-4 border-2 border-slate-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest text-slate-700 bg-slate-50">{onboardingStatus || 'Pending'}</Badge>;
     }
   };
 
@@ -419,7 +419,7 @@ export default function AdminOnboarding() {
                            </div>
                         </div>
                         <div className="pt-6 border-t border-slate-200">
-                          {getStatusBadge(selectedItem.status)}
+                          {getStatusBadge(selectedItem.onboardingStatus)}
                         </div>
                       </div>
                    </div>
@@ -456,7 +456,7 @@ export default function AdminOnboarding() {
                       <Button 
                         variant="outline"
                         onClick={() => handleUpdateStatus(selectedItem._id, 'rejected')}
-                        disabled={selectedItem.status === 'rejected'}
+                        disabled={selectedItem.onboardingStatus === 'rejected'}
                         className="w-full py-8 rounded-2xl border-2 border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 font-black uppercase tracking-widest italic space-x-3 shadow-sm transition-all"
                       >
                          <XCircle className="h-5 w-5" />
