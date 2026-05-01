@@ -548,443 +548,232 @@ export default function BuyerOnboarding() {
   if (isFetching) return <div className="buyer-font flex min-h-dvh items-center justify-center px-4 text-center font-bold italic text-indigo-600">Loading form...</div>;
 
   return (
-    <div className="buyer-font min-h-screen overflow-x-hidden bg-[#F9FAFB] pb-16 sm:pb-20">
-      {/* HEADER SECTION */}
-      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-4 lg:h-20 lg:py-0">
-          <div className="flex min-w-0 items-center space-x-3 sm:space-x-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-200">
-               <ShieldCheck className="text-white h-6 w-6" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="truncate text-base font-black uppercase tracking-tight text-slate-900 italic sm:text-lg">Buyer Onboarding</h1>
-              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 italic sm:text-[10px] sm:tracking-widest">Compliance & Procurement Module</p>
-            </div>
+    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="mb-10">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Buyer Registration</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Onboarding</h1>
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-slate-500 font-medium">
+              Step {SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection) + 1} of {SIDEBAR_SECTIONS.length} — {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}
+            </p>
           </div>
-
-          <div className="hidden items-center space-x-4 sm:flex">
-             <div className="text-right">
-               <p className="text-[9px] font-bold text-slate-400 uppercase italic">Support ID</p>
-               <p className="text-xs font-black text-slate-900">GEM-BUY-2024</p>
-             </div>
+          <div className="mt-4 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-teal-600 transition-all duration-500" 
+              style={{ width: `${((SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection) + 1) / SIDEBAR_SECTIONS.length) * 100}%` }}
+            />
           </div>
         </div>
-      </div>
 
-      <div className="mx-auto mt-5 max-w-7xl px-3 sm:mt-8 sm:px-4 lg:mt-10">
-        <form onSubmit={handleSubmit}>
-          <div className="mx-auto max-w-7xl animate-in fade-in zoom-in-95 duration-700">
-             <div className="flex flex-col gap-6 lg:gap-10">
-                  {/* HORIZONTAL NAVIGATION */}
-                  <div className="w-full">
-                    <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-xl shadow-slate-200/50 sm:rounded-3xl sm:p-5 lg:rounded-[2.5rem] lg:p-8">
-                      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-4">Onboarding Progress</p>
-                          <div className="flex flex-wrap gap-2 sm:gap-3">
-                            {SIDEBAR_SECTIONS.map((section, idx) => {
-                              const isCompleted = getSectionCompletion(section.id);
-                              const isActive = activeSection === section.id;
-                              return (
-                                <button
-                                  key={section.id}
-                                  type="button"
-                                  onClick={() => setActiveSection(section.id)}
-                                  className={cn(
-                                    "group flex min-w-0 items-center gap-3 rounded-xl px-4 py-3 transition-all duration-300 sm:px-6 sm:py-4",
-                                    isActive
-                                      ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-                                      : isCompleted
-                                        ? "bg-green-50 text-green-600 hover:bg-green-100"
-                                        : "bg-slate-50 text-slate-400 hover:bg-slate-100"
-                                  )}
-                                >
-                                  <span className={cn(
-                                    "text-[10px] font-black italic",
-                                    isActive ? "text-blue-100" : isCompleted ? "text-green-400" : "text-slate-300"
-                                  )}>0{idx + 1}</span>
-                                  <span className="truncate text-[9px] font-black uppercase tracking-wide italic sm:text-[10px] lg:text-[11px]">{section.label}</span>
-                                  {isCompleted && !isActive && <CheckCircle2 className="h-3 w-3 shrink-0" />}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
+        {/* Stepper Navigation */}
+        <div className="flex flex-wrap items-center gap-2 mb-10 overflow-x-auto pb-2 no-scrollbar">
+          {SIDEBAR_SECTIONS.map((section, idx) => {
+            const isActive = activeSection === section.id;
+            const isCompleted = getSectionCompletion(section.id);
+            return (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border",
+                  isActive 
+                    ? "bg-teal-50 text-teal-700 border-teal-200 shadow-sm" 
+                    : isCompleted 
+                      ? "bg-white text-slate-900 border-slate-200 shadow-sm"
+                      : "bg-transparent text-slate-400 border-transparent hover:text-slate-600"
+                )}
+              >
+                <span className={cn(
+                  "w-5 h-5 rounded-full flex items-center justify-center text-[10px]",
+                  isActive ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-500"
+                )}>
+                  {idx + 1}
+                </span>
+                {section.label}
+              </button>
+            );
+          })}
+        </div>
 
-                        <div className="shrink-0 lg:w-64 lg:border-l lg:border-slate-100 lg:pl-8">
-                           <div className="flex items-center justify-between mb-2">
-                             <div className="flex items-center space-x-2">
-                               <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
-                               <span className="text-[9px] font-black uppercase italic tracking-widest text-slate-500">Compliance</span>
-                             </div>
-                             <span className="text-[10px] font-black text-blue-600 italic">{complianceProgress}%</span>
-                           </div>
-                           <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                             <div 
-                               className="h-full bg-blue-500 transition-all duration-1000" 
-                               style={{ width: `${complianceProgress}%` }}
-                             />
-                           </div>
-                        </div>
-                      </div>
+        {/* Form Card */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
+          <div className="p-6 md:p-10">
+            <div className="mb-10">
+              <h2 className="text-2xl font-bold text-slate-900 mb-1">
+                {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}
+              </h2>
+              <p className="text-sm text-slate-500">
+                {activeSection === 'org' ? 'Tell us about your organization.' : 
+                 activeSection === 'rep' ? 'Contact details of the authorized person.' :
+                 activeSection === 'address' ? 'Registered and corporate office locations.' :
+                 activeSection === 'procurement' ? 'Define your procurement requirements.' :
+                 activeSection === 'docs' ? 'Upload verification documents.' :
+                 'Secure your account with a password.'}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="min-h-[400px]">
+                {/* Section Content */}
+                {activeSection === 'org' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Input label="LEGAL NAME" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={touched.organizationName ? errors.organizationName : ''} required className="h-12" />
+                    <Input label="TRADE NAME (optional)" name="tradeName" value={formData.tradeName || ''} onChange={handleChange} placeholder="Business name if different" className="h-12" />
+                    <Select label="ENTITY TYPE" name="businessType" value={formData.businessType} onChange={handleChange} required className="h-12">
+                      <option value="Private Limited Company">Private Limited Company</option>
+                      <option value="Public Limited Company">Public Limited Company</option>
+                      <option value="Partnership Firm">Partnership Firm</option>
+                      <option value="LLP">LLP</option>
+                      <option value="Proprietorship">Proprietorship</option>
+                      <option value="Startup">Startup</option>
+                    </Select>
+                    <Input label="YEAR OF INCORPORATION" name="incorporationYear" value={formData.incorporationYear || ''} onChange={handleChange} placeholder="YYYY" className="h-12" />
+                    <Input label="PAN of Organization" name="pan" value={formData.pan} onChange={handleChange} onBlur={handleBlur} error={touched.pan ? errors.pan : ''} placeholder="ABCDE1234F" className="h-12" />
+                    <Input label="GSTIN (Optional)" name="gst" value={formData.gst} onChange={handleChange} onBlur={handleBlur} error={touched.gst ? errors.gst : ''} placeholder="22ABCDE1234F1Z5" className="h-12" />
+                  </div>
+                )}
+
+                {activeSection === 'rep' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Input label="FULL NAME" name="representativeName" value={formData.representativeName} onChange={handleChange} onBlur={handleBlur} error={touched.representativeName ? errors.representativeName : ''} required className="h-12" />
+                    <Input label="DESIGNATION" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Director" className="h-12" />
+                    <Select label="DEPARTMENT" name="department" value={formData.department} onChange={handleChange} className="h-12">
+                      {DEPARTMENT_OPTIONS.map((department) => (
+                        <option key={department} value={department}>{department}</option>
+                      ))}
+                    </Select>
+                    <Input label="OFFICIAL EMAIL ID" name="email" value={formData.email} onChange={handleChange} className="h-12" />
+                    <Input label="MOBILE NUMBER" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleBlur} error={touched.mobile ? errors.mobile : ''} required className="h-12" />
+                    <Input label="ALTERNATE NUMBER" name="alternateMobile" value={formData.alternateMobile} onChange={handleChange} className="h-12" />
+                  </div>
+                )}
+
+                {activeSection === 'address' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Input label="STATE" name="state" value={formData.state} onChange={handleChange} onBlur={handleBlur} error={touched.state ? errors.state : ''} required className="h-12" />
+                    <Input label="CITY" name="city" value={formData.city} onChange={handleChange} onBlur={handleBlur} error={touched.city ? errors.city : ''} required className="h-12" />
+                    <Input label="PIN CODE" name="pincode" value={formData.pincode} onChange={handleChange} onBlur={handleBlur} error={touched.pincode ? errors.pincode : ''} required className="h-12" />
+                    <div className="md:col-span-2">
+                      <Input label="REGISTERED OFFICE ADDRESS" name="registeredAddress" value={formData.registeredAddress} onChange={handleChange} onBlur={handleBlur} error={touched.registeredAddress ? errors.registeredAddress : ''} required className="h-12" />
                     </div>
                   </div>
+                )}
 
-                  {/* FORM CONTENT */}
-                  <div className="min-w-0">
-                    <Card className="min-h-[500px] overflow-hidden rounded-2xl border-none shadow-2xl shadow-slate-200/50 sm:rounded-3xl lg:min-h-[600px] lg:rounded-[2.5rem]">
-                      <div className="flex items-center justify-between gap-3 border-b border-slate-50 bg-white px-4 py-5 sm:px-6 lg:px-10 lg:py-8">
-                         <div className="flex min-w-0 items-center space-x-3 sm:space-x-4">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 lg:h-12 lg:w-12 lg:rounded-2xl">
-                               {activeSection === 'org' && <CheckCircle2 className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
-                               {activeSection === 'rep' && <ShieldCheck className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
-                               {activeSection === 'address' && <ArrowRight className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
-                               {activeSection === 'procurement' && <Save className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
-                               {activeSection === 'docs' && <Upload className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
-                               {activeSection === 'account' && <CheckCircle2 className="text-blue-600 h-5 w-5 lg:h-6 lg:w-6" />}
-                            </div>
-                            <div className="min-w-0">
-                               <h3 className="break-words text-sm font-black uppercase tracking-tight text-slate-900 italic sm:text-base lg:text-xl">
-                                 {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}
-                               </h3>
-                               <p className="mt-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-400 italic sm:text-[9px] lg:text-[10px] lg:tracking-widest">Section Verification In-Progress</p>
-                            </div>
-                         </div>
-                         <Badge variant="default" className="hidden sm:inline-flex px-4 py-2 rounded-xl border border-slate-100 text-slate-400 text-[10px] font-black italic bg-transparent hover:bg-transparent">
-                           Draft ID: #PK-991
-                         </Badge>
-                      </div>
-
-                      <CardContent className="p-4 sm:p-6 lg:p-12">
-                        {/* SECTION: Organisation Details */}
-                        {activeSection === 'org' && (
-                          <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
-                            <Input label="Organization / Company Name" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={touched.organizationName ? errors.organizationName : ''} required className="rounded-2xl h-14" />
-                            <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} required className="rounded-2xl h-14">
-                              <option value="Private Limited Company">Private Limited Company</option>
-                              <option value="Public Limited Company">Public Limited Company</option>
-                              <option value="Partnership Firm">Partnership Firm</option>
-                              <option value="LLP">LLP</option>
-                              <option value="Proprietorship">Proprietorship</option>
-                              <option value="Startup">Startup</option>
-                              <option value="NGO / Trust">NGO / Trust</option>
-                              <option value="Educational Institution">Educational Institution</option>
-                            </Select>
-                            <Input label="Industry / Sector" name="industry" value={formData.industry} onChange={handleChange} placeholder="e.g. Construction, IT, Manufacturing" className="rounded-2xl h-14" />
-                            <Input label="CIN / Registration Number" name="cin" value={formData.cin} onChange={handleChange} onBlur={handleBlur} error={touched.cin ? errors.cin : ''} placeholder="Optional if applicable" className="rounded-2xl h-14" />
-                            <Input label="PAN of Organization" name="pan" value={formData.pan} onChange={handleChange} onBlur={handleBlur} error={touched.pan ? errors.pan : ''} placeholder="ABCDE1234F" className="rounded-2xl h-14" />
-                            <Input label="GSTIN (Optional)" name="gst" value={formData.gst} onChange={handleChange} onBlur={handleBlur} error={touched.gst ? errors.gst : ''} placeholder="22ABCDE1234F1Z5" className="rounded-2xl h-14" />
-                            <div className="md:col-span-2">
-                              <Input label="Website URL (Optional)" name="website" value={formData.website} onChange={handleChange} onBlur={handleBlur} error={touched.website ? errors.website : ''} placeholder="https://example.com" className="rounded-2xl h-14" />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* SECTION: Authorized Representative */}
-                        {activeSection === 'rep' && (
-                          <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
-                            <Input label="Full Name" name="representativeName" value={formData.representativeName} onChange={handleChange} onBlur={handleBlur} error={touched.representativeName ? errors.representativeName : ''} required className="rounded-2xl h-14" />
-                            <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Director" className="rounded-2xl h-14" />
-                            <Select label="Department" name="department" value={formData.department} onChange={handleChange} className="rounded-2xl h-14">
-                              {DEPARTMENT_OPTIONS.map((department) => (
-                                <option key={department} value={department}>{department}</option>
-                              ))}
-                            </Select>
-                            {formData.department === 'Others' && (
-                              <Input
-                                label="Custom Department"
-                                name="customDepartment"
-                                value={formData.customDepartment}
-                                onChange={handleChange}
-                                placeholder="Enter department name"
-                                className="rounded-2xl h-14"
-                              />
-                            )}
-                            <Input label="Official Email ID" name="email" value={formData.email} onChange={handleChange} className="rounded-2xl h-14" />
-                            <div className="relative min-w-0">
-                              <Input label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleBlur} error={touched.mobile ? errors.mobile : ''} required className="rounded-2xl h-14" />
-                              <button type="button" className="absolute right-2 bottom-2 px-3 lg:px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all">Verify</button>
-                            </div>
-                            <Input label="Alternate Number (Optional)" name="alternateMobile" value={formData.alternateMobile} onChange={handleChange} className="rounded-2xl h-14" />
-                          </div>
-                        )}
-
-                        {/* SECTION: Address Details */}
-                        {activeSection === 'address' && (
-                          <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:gap-8 animate-in fade-in slide-in-from-right-8 duration-500">
-                            <Input label="Country" name="country" value={formData.country} readOnly className="rounded-2xl h-14 bg-slate-50" />
-                            <Input label="State" name="state" value={formData.state} onChange={handleChange} onBlur={handleBlur} error={touched.state ? errors.state : ''} required className="rounded-2xl h-14" />
-                            <Input label="City" name="city" value={formData.city} onChange={handleChange} onBlur={handleBlur} error={touched.city ? errors.city : ''} required className="rounded-2xl h-14" />
-                            <Input label="PIN Code" name="pincode" value={formData.pincode} onChange={handleChange} onBlur={handleBlur} error={touched.pincode ? errors.pincode : ''} required className="rounded-2xl h-14" />
-                            <div className="md:col-span-2">
-                              <Input label="Registered Office Address" name="registeredAddress" value={formData.registeredAddress} onChange={handleChange} onBlur={handleBlur} error={touched.registeredAddress ? errors.registeredAddress : ''} required className="rounded-2xl h-14" />
-                            </div>
-                            <div className="md:col-span-2">
-                              <Input label="Corporate Office Address (Optional)" name="corporateAddress" value={formData.corporateAddress} onChange={handleChange} placeholder="Leave blank if same as registered" className="rounded-2xl h-14" />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* SECTION: Procurement Profile */}
-                        {activeSection === 'procurement' && (
-                          <div className="space-y-8 sm:space-y-10 animate-in fade-in slide-in-from-right-8 duration-500">
-                            <div className="space-y-4">
-                              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Procurement Categories (Multi-select)</h4>
-                              <Select
-                                label="Category Dropdown"
-                                name="procurementCategoryPicker"
-                                value=""
-                                onChange={handleProcurementCategorySelect}
-                                className="rounded-2xl h-14"
-                              >
-                                <option value="" disabled>Select a procurement category</option>
-                                {PROCUREMENT_CATEGORY_OPTIONS.map((cat) => (
-                                  <option key={cat} value={cat} disabled={formData.procurementCategories.includes(cat)}>
-                                    {cat}
-                                  </option>
-                                ))}
-                              </Select>
-                              {formData.procurementCategories.length > 0 && (
-                                <div className="flex flex-wrap gap-3">
-                                  {formData.procurementCategories.map((cat: string) => (
-                                    <span
-                                      key={cat}
-                                      className="inline-flex max-w-full items-center gap-2 break-words rounded-2xl bg-blue-600 px-3 py-2 text-[10px] font-black uppercase italic text-white shadow-lg shadow-blue-200 sm:px-4 sm:text-xs"
-                                    >
-                                      {cat}
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleTag('procurementCategories', cat)}
-                                        className="text-white/80 transition-colors hover:text-white"
-                                      >
-                                        <X className="h-3.5 w-3.5" />
-                                      </button>
-                                    </span>
-                                  ))}
-                                  {formData.customProcurementCategories.map((cat: string) => (
-                                    <span
-                                      key={cat}
-                                      className="inline-flex max-w-full items-center gap-2 break-words rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] font-black uppercase italic text-blue-700 sm:px-4 sm:text-xs"
-                                    >
-                                      {cat}
-                                      <button
-                                        type="button"
-                                        onClick={() => removeCustomProcurementCategory(cat)}
-                                        className="text-blue-500 transition-colors hover:text-blue-700"
-                                      >
-                                        <X className="h-3.5 w-3.5" />
-                                      </button>
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                              {formData.procurementCategories.includes('Others') && (
-                                <div className="space-y-3">
-                                  <div className="flex flex-col sm:flex-row items-end gap-3">
-                                    <div className="w-full">
-                                      <Input
-                                        label="Custom Procurement Category"
-                                        name="customProcurementCategoryInput"
-                                        value={formData.customProcurementCategoryInput}
-                                        onChange={handleChange}
-                                        placeholder="Enter your category"
-                                        className="rounded-2xl h-14"
-                                      />
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={addCustomProcurementCategory}
-                                      className="w-full sm:w-14 inline-flex h-14 items-center justify-center rounded-2xl bg-blue-600 px-4 text-white shadow-lg shadow-blue-200 transition-all hover:bg-blue-700"
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 italic">
-                                    Add one or more custom categories.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-
-                            <Select label="Annual Procurement Budget" name="annualBudget" value={formData.annualBudget} onChange={handleChange} className="rounded-2xl h-14">
-                              <option value="< ₹10 Lakh">&lt; ₹10 Lakh</option>
-                              <option value="₹10 Lakh – ₹1 Crore">₹10 Lakh – ₹1 Crore</option>
-                              <option value="₹1 Crore – ₹10 Crore">₹1 Crore – ₹10 Crore</option>
-                              <option value="₹10 Crore+">₹10 Crore+</option>
-                            </Select>
-
-                            <div className="space-y-4">
-                              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Preferred Procurement Methods</h4>
-                              <Select
-                                label="Method Dropdown"
-                                name="preferredMethodPicker"
-                                value=""
-                                onChange={handleProcurementMethodSelect}
-                                className="rounded-2xl h-14"
-                              >
-                                <option value="" disabled>Select a procurement method</option>
-                                {PROCUREMENT_METHOD_OPTIONS.map((method) => (
-                                  <option key={method} value={method} disabled={formData.preferredMethods.includes(method)}>
-                                    {method}
-                                  </option>
-                                ))}
-                              </Select>
-                              {formData.preferredMethods.length > 0 && (
-                                <div className="flex flex-wrap gap-3">
-                                  {formData.preferredMethods.map((method: string) => (
-                                    <span
-                                      key={method}
-                                      className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-black uppercase italic text-blue-700"
-                                    >
-                                      {method}
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleTag('preferredMethods', method)}
-                                        className="text-blue-500 transition-colors hover:text-blue-700"
-                                      >
-                                        <X className="h-3.5 w-3.5" />
-                                      </button>
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* SECTION: Document Upload */}
-                        {activeSection === 'docs' && (
-                          <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                             {[
-                               { label: 'PAN Card (Organization)', name: 'documents.panCard', field: 'panCard' },
-                               { label: 'Company Registration Certificate', name: 'documents.regCert', field: 'regCert' },
-                               { label: 'GST Certificate (if applicable)', name: 'documents.gstCert', field: 'gstCert' },
-                               { label: 'Address Proof', name: 'documents.addressProof', field: 'addressProof' },
-                               { label: 'Authorization Letter (Optional)', name: 'documents.authLetter', field: 'authLetter' },
-                             ].map(doc => {
-                               const documentUrl = formData.documents[doc.field as keyof typeof formData.documents];
-                               return (
-                               <div key={doc.label} className="group flex min-w-0 flex-col gap-4 rounded-2xl border-2 border-dashed border-slate-100 bg-slate-50/50 p-4 transition-all hover:border-blue-300 lg:rounded-3xl lg:p-6">
-                                 <span className="break-words text-[10px] font-black uppercase tracking-wide text-slate-400 italic sm:tracking-widest">{doc.label}</span>
-                                 <div className="relative">
-                                    <input type="file" onChange={(e) => handleFileUpload(e, doc.name)} id={`upload-${doc.field}`} className="hidden" />
-                                    <label htmlFor={`upload-${doc.field}`} className="w-full h-12 lg:h-14 flex items-center justify-center bg-white rounded-xl lg:rounded-2xl border border-slate-100 text-blue-600 font-black uppercase text-[10px] italic cursor-pointer hover:bg-blue-50 transition-all shadow-sm">
-                                       {isUploading === doc.name ? 'Uploading...' : documentUrl ? 'Change File' : 'Choose File'}
-                                    </label>
-                                 </div>
-                                 {documentUrl && (
-                                   <>
-                                     <div className="flex min-w-0 items-center gap-2 text-[9px] font-bold text-green-600 italic">
-                                        <CheckCircle2 className="h-3 w-3" />
-                                        <span className="break-words">Document Uploaded Correctly</span>
-                                     </div>
-                                     <button
-                                       type="button"
-                                       onClick={() => openDocumentPreview(doc.label, String(documentUrl))}
-                                       className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white text-[10px] font-black uppercase italic text-blue-600 shadow-sm transition-all hover:bg-blue-50 lg:h-12 lg:rounded-2xl"
-                                     >
-                                       <span>View Document</span>
-                                       <ExternalLink className="h-3.5 w-3.5" />
-                                     </button>
-                                   </>
-                                 )}
-                                 </div>
-                               );
-                             })}
-                              </div>
-                            )}
- 
-                         {/* SECTION: Account Setup */}
-                         {activeSection === 'account' && (
-                           <div className="space-y-6 lg:space-y-10 animate-in fade-in slide-in-from-right-8 duration-500">
-                             <div className="relative space-y-6 overflow-hidden rounded-2xl bg-slate-900 p-5 text-white shadow-2xl sm:rounded-3xl sm:p-6 lg:space-y-8 lg:rounded-[2.5rem] lg:p-10">
-                               <div className="absolute top-0 right-0 p-10 opacity-10 hidden lg:block">
-                                 <ShieldCheck className="h-40 w-40" />
-                               </div>
-                               <h4 className="text-lg lg:text-xl font-black uppercase italic tracking-tight border-b border-white/10 pb-6">Security Credentials</h4>
-                               <div className="grid gap-6 lg:gap-8">
-                                  <Input label="Email ID (Username)" name="email" value={formData.email} readOnly className="bg-slate-800 border-slate-700 text-slate-400 rounded-2xl h-14" />
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-                                    <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} onBlur={handleBlur} error={touched.password ? errors.password : ''} className="bg-slate-800 border-slate-700 text-white rounded-2xl h-14" />
-                                    <Input label="Confirm Password" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} error={touched.confirmPassword ? (formData.password !== formData.confirmPassword ? 'Passwords do not match' : '') : ''} className="bg-slate-800 border-slate-700 text-white rounded-2xl h-14" />
-                                  </div>
-                               </div>
-
-                               <div className="pt-6 space-y-4">
-                                  <div className="flex items-center gap-3 sm:gap-4">
-                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 font-black italic sm:h-14 sm:w-14">OTP</div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-black uppercase tracking-widest italic">Mobile Verification</p>
-                                      <p className="text-[10px] text-slate-400 italic">OTP will be sent to +91 {formData.mobile || 'XXXXXX'}</p>
-                                    </div>
-                                  </div>
-                                  <Button type="button" className="w-full h-14 rounded-2xl bg-slate-800 hover:bg-blue-600 text-white font-black uppercase italic tracking-widest transition-all">Send Verification Code</Button>
-                               </div>
-                             </div>
-
-                             <div className="space-y-4">
-                               <label className={cn(
-                                  "flex items-start gap-3 md:gap-4 p-6 lg:p-8 rounded-2xl lg:rounded-[2rem] border-2 transition-all cursor-pointer group",
-                                  formData.declaration ? "bg-green-50 border-green-500/20" : "bg-white border-slate-100"
-                               )}>
-                                  <input 
-                                    type="checkbox" 
-                                    checked={formData.declaration} 
-                                    onChange={(e) => setFormData({ ...formData, declaration: e.target.checked })}
-                                    className="mt-1 w-6 h-6 rounded accent-blue-500" 
-                                  />
-                                  <span className="text-[10px] md:text-xs font-bold text-slate-600 italic leading-relaxed">
-                                     I confirm that the information provided is accurate and I am authorized to register this organization on the PugArch Unified Digital Procurement Portal.
-                                  </span>
-                               </label>
-
-                               <label className={cn(
-                                  "flex items-start gap-3 md:gap-4 p-6 lg:p-8 rounded-2xl lg:rounded-[2rem] border-2 transition-all cursor-pointer group",
-                                  formData.agreeTerms ? "bg-green-50 border-green-500/20" : "bg-white border-slate-100"
-                               )}>
-                                  <input 
-                                    type="checkbox" 
-                                    checked={formData.agreeTerms} 
-                                    onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })}
-                                    className="mt-1 w-6 h-6 rounded accent-blue-500" 
-                                  />
-                                  <span className="text-[10px] md:text-xs font-bold text-slate-600 italic leading-relaxed">
-                                     I agree to the platform Terms & Conditions.
-                                  </span>
-                               </label>
-                             </div>
-                          </div>
-                        )}
-
-                        {/* BUTTONS */}
-                        <div className="mt-8 flex flex-col items-stretch justify-between gap-3 border-t border-slate-50 pt-6 sm:flex-row sm:items-center lg:mt-12 lg:pt-10">
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            onClick={() => {
-                              const currentIndex = SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection);
-                              if (currentIndex > 0) {
-                                setActiveSection(SIDEBAR_SECTIONS[currentIndex - 1].id);
-                              }
-                            }}
-                            className="h-12 w-full rounded-2xl px-6 text-[10px] font-black uppercase italic text-slate-400 transition-all hover:text-slate-900 sm:w-auto lg:h-16 lg:px-10"
-                          >
-                            Previous Section
-                          </Button>
-                          <Button 
-                            type="submit"
-                            className="h-12 w-full rounded-2xl bg-blue-600 px-6 text-[10px] font-black uppercase tracking-wide text-white shadow-xl shadow-blue-200 transition-all active:scale-[0.98] hover:bg-blue-700 sm:w-auto lg:h-16 lg:px-16 lg:tracking-widest"
-                            disabled={isLoading}
-                          >
-                            {isLoading ? 'Processing...' : activeSection === 'account' ? 'Finalize Registration' : 'Save & Continue'}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                {activeSection === 'procurement' && (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <Select
+                        label="PROCUREMENT CATEGORY"
+                        name="procurementCategoryPicker"
+                        value=""
+                        onChange={handleProcurementCategorySelect}
+                        className="h-12"
+                      >
+                        <option value="" disabled>Select a category</option>
+                        {PROCUREMENT_CATEGORY_OPTIONS.map((cat) => (
+                          <option key={cat} value={cat} disabled={formData.procurementCategories.includes(cat)}>
+                            {cat}
+                          </option>
+                        ))}
+                      </Select>
+                      <Select label="ANNUAL PROCUREMENT BUDGET" name="annualBudget" value={formData.annualBudget} onChange={handleChange} className="h-12">
+                        <option value="< ₹10 Lakh">&lt; ₹10 Lakh</option>
+                        <option value="₹10 Lakh - ₹50 Lakh">₹10 Lakh - ₹50 Lakh</option>
+                        <option value="₹50 Lakh - ₹1 Crore">₹50 Lakh - ₹1 Crore</option>
+                        <option value="> ₹1 Crore">&gt; ₹1 Crore</option>
+                      </Select>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.procurementCategories.map((cat: string) => (
+                        <span key={cat} className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200">
+                          {cat}
+                          <button type="button" onClick={() => toggleTag('procurementCategories', cat)} className="text-slate-400 hover:text-slate-600">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
                   </div>
-               </div>
-             </div>
-        </form>
+                )}
+
+                {activeSection === 'docs' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {[
+                      { label: 'PAN CARD (ORGANIZATION)', field: 'panCard' },
+                      { label: 'REGISTRATION CERTIFICATE', field: 'regCert' },
+                      { label: 'GST CERTIFICATE', field: 'gstCert' },
+                      { label: 'ADDRESS PROOF', field: 'addressProof' }
+                    ].map(doc => (
+                      <div key={doc.field} className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 flex flex-col gap-4">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{doc.label}</span>
+                        <div className="flex items-center justify-between gap-4">
+                          <input type="file" onChange={(e) => handleFileUpload(e, `documents.${doc.field}`)} id={`upload-${doc.field}`} className="hidden" />
+                          <label htmlFor={`upload-${doc.field}`} className="cursor-pointer text-xs font-bold text-teal-600 hover:text-teal-700 underline">
+                            {isUploading === `documents.${doc.field}` ? 'Uploading...' : formData.documents[doc.field] ? 'Change File' : 'Upload File'}
+                          </label>
+                          {formData.documents[doc.field] && (
+                            <button type="button" onClick={() => openDocumentPreview(doc.label, formData.documents[doc.field])} className="text-xs font-bold text-slate-500 hover:text-slate-700">
+                              View
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeSection === 'account' && (
+                  <div className="max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Input label="PASSWORD" name="password" type="password" value={formData.password} onChange={handleChange} onBlur={handleBlur} error={touched.password ? errors.password : ''} className="h-12" />
+                    <Input label="CONFIRM PASSWORD" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} error={touched.confirmPassword ? (formData.password !== formData.confirmPassword ? 'Passwords do not match' : '') : ''} className="h-12" />
+                    <div className="space-y-4">
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <input type="checkbox" checked={formData.declaration} onChange={(e) => setFormData({ ...formData, declaration: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                        <span className="text-xs text-slate-600 font-medium">I confirm that the information provided is accurate.</span>
+                      </label>
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <input type="checkbox" checked={formData.agreeTerms} onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                        <span className="text-xs text-slate-600 font-medium">I agree to the platform Terms & Conditions.</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-10 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    const currentIndex = SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection);
+                    if (currentIndex > 0) setActiveSection(SIDEBAR_SECTIONS[currentIndex - 1].id);
+                  }}
+                  className="text-sm font-bold text-slate-400 hover:text-slate-600 flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Previous Section
+                </button>
+                <div className="flex items-center gap-4">
+                  <Button type="button" variant="ghost" className="text-slate-600 font-bold border border-slate-200 px-6 rounded-lg h-10 text-sm">
+                    Save Draft
+                  </Button>
+                  <Button type="submit" disabled={isLoading} className="bg-teal-700 hover:bg-teal-800 text-white font-bold px-8 rounded-lg h-10 text-sm flex items-center gap-2">
+                    {isLoading ? 'Processing...' : activeSection === 'account' ? 'Finish Registration' : 'Continue'}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {/* Bottom Footer Notice */}
+        <div className="flex items-center justify-center gap-2 py-8 text-slate-400">
+          <ShieldCheck className="h-4 w-4" />
+          <p className="text-[10px] font-medium tracking-wide">Your information is encrypted and reviewed by our compliance team within 24-48 business hours.</p>
+        </div>
       </div>
 
       {previewDocument && (
