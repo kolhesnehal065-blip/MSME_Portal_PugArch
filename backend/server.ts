@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({
@@ -21,6 +22,7 @@ import { User } from './src/models/User.js';
 import { SellerProfile } from './src/models/SellerProfile.js';
 import { BuyerProfile } from './src/models/BuyerProfile.js';
 import { Otp } from './src/models/Otp.js';
+// (Tender model moved directly below)
 import { authenticate, authorizeAdmin } from './src/middleware/auth.js';
 import type { AuthRequest } from './src/middleware/auth.js';
 import nodemailer from 'nodemailer';
@@ -57,6 +59,30 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// Global Exception Logging
+process.on('uncaughtException', (err) => {
+  const logMsg = `[${new Date().toISOString()}] UNCAUGHT EXCEPTION: ${err.stack}\n`;
+  try {
+    fs.appendFileSync('backend-debug.log', logMsg);
+  } catch (e) {}
+  console.error(logMsg);
+});
+
+// Tender Model Definition
+const tenderSchema = new mongoose.Schema({
+  buyerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  tenderId: { type: String, required: true, unique: true },
+  title: { type: String, required: true },
+  category: { type: String, required: true },
+  budget: { type: Number, required: true },
+  description: { type: String, required: true },
+  status: { type: String, enum: ['draft', 'active', 'closed'], default: 'draft' },
+  closesAt: { type: Date },
+  bidsCount: { type: Number, default: 0 }
+}, { timestamps: true });
+
+const Tender = mongoose.models.Tender || mongoose.model('Tender', tenderSchema);
+
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 5001;
@@ -81,6 +107,46 @@ async function startServer() {
 
   // Test Route for verifying connection
   app.get("/api/test", (req, res) => res.json({ message: "API working" }));
+
+  // --- Tender APIs ---
+  app.get('/api/tenders', authenticate, async (req: AuthRequest, res) => {
+    try {
+      console.log('GET /api/tenders requested by:', req.user?.id);
+      const tenders = await Tender.find({ buyerId: req.user?.id }).sort({ createdAt: -1 });
+      res.json(tenders);
+    } catch (err: any) {
+      console.error('Error fetching tenders:', err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/tenders', authenticate, async (req: AuthRequest, res) => {
+    try {
+      console.log('POST /api/tenders request received:', req.body);
+      if (req.user?.role !== 'buyer') {
+        console.log('Unauthorized: Role is not buyer', req.user?.role);
+        return res.status(403).json({ message: 'Only buyers can create tenders' });
+      }
+      
+      const count = await Tender.countDocuments();
+      const tenderId = `T-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      console.log('Generated tenderId:', tenderId);
+      
+      const tender = new Tender({
+        ...req.body,
+        buyerId: req.user.id,
+        tenderId,
+        closesAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000) // Default 15 days
+      });
+      
+      await tender.save();
+      console.log('Tender saved successfully:', tender.tenderId);
+      res.status(201).json(tender);
+    } catch (err: any) {
+      console.error('Tender creation error:', err);
+      res.status(500).json({ message: err.message });
+    }
+  });
 
   // Connect to MongoDB
   mongoose.connect(MONGODB_URI, {
@@ -486,6 +552,27 @@ async function startServer() {
 
       await User.findByIdAndUpdate(userId, updateData);
       res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Buyer: Get all approved vendors
+  app.get('/api/vendors', authenticate, async (req, res) => {
+    try {
+      const vendors = await User.aggregate([
+        { $match: { role: 'seller', onboardingStatus: 'approved_for_procurement' } },
+        {
+          $lookup: {
+            from: 'sellerprofiles',
+            localField: '_id',
+            foreignField: 'userId',
+            as: 'profile'
+          }
+        },
+        { $unwind: '$profile' }
+      ]);
+      res.json(vendors);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

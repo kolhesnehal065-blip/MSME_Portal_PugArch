@@ -547,7 +547,6 @@ export default function BuyerOnboarding() {
 
   if (isFetching) return <div className="buyer-font flex min-h-dvh items-center justify-center px-4 text-center font-bold italic text-indigo-600">Loading form...</div>;
 
-  const categories = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
   return (
     <div className="buyer-font min-h-screen overflow-x-hidden bg-[#F9FAFB] pb-16 sm:pb-20">
       {/* HEADER SECTION */}
@@ -563,8 +562,6 @@ export default function BuyerOnboarding() {
             </div>
           </div>
 
-          <div></div>
-
           <div className="hidden items-center space-x-4 sm:flex">
              <div className="text-right">
                <p className="text-[9px] font-bold text-slate-400 uppercase italic">Support ID</p>
@@ -576,63 +573,65 @@ export default function BuyerOnboarding() {
 
       <div className="mx-auto mt-5 max-w-7xl px-3 sm:mt-8 sm:px-4 lg:mt-10">
         <form onSubmit={handleSubmit}>
-          {/* REGISTRATION */}
           <div className="mx-auto max-w-7xl animate-in fade-in zoom-in-95 duration-700">
-             <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-8">
-                  {/* SIDEBAR NAVIGATION */}
-                  <div className="min-w-0 space-y-4 lg:col-span-3">
-                    <div className="sticky top-20 rounded-2xl border border-slate-100 bg-white p-3 shadow-xl shadow-slate-200/50 sm:rounded-3xl sm:p-4 lg:top-28 lg:rounded-[2rem] lg:p-6">
-                      <p className="hidden lg:block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic px-4 mb-6">Onboarding Flow</p>
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-col">
-                        {SIDEBAR_SECTIONS.map((section, idx) => {
-                          const isCompleted = getSectionCompletion(section.id);
-                          const isActive = activeSection === section.id;
-                          return (
-                            <button
-                              key={section.id}
-                              type="button"
-                              onClick={() => setActiveSection(section.id)}
-                              className={cn(
-                                "group flex min-h-16 min-w-0 items-center justify-between gap-2 rounded-xl p-3 text-left transition-all duration-300 lg:rounded-2xl lg:p-4",
-                                isActive
-                                  ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-                                  : isCompleted
-                                    ? "text-green-600 hover:bg-green-50"
-                                    : "text-slate-400 hover:bg-slate-50"
-                              )}
-                            >
-                              <div className="min-w-0 space-y-1">
-                                <span className={cn(
-                                  "block text-[10px] font-black italic",
-                                  isActive ? "text-blue-100" : isCompleted ? "text-green-400" : "text-slate-300"
-                                )}>0{idx + 1}</span>
-                                <span className="block text-[9px] font-black uppercase leading-tight tracking-wide italic sm:text-[10px] lg:text-[11px] lg:tracking-wider">{section.label}</span>
-                              </div>
-                              <div className="hidden shrink-0 lg:block">
-                                {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : isActive ? <ArrowRight className="h-4 w-4 animate-bounce-x" /> : null}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+             <div className="flex flex-col gap-6 lg:gap-10">
+                  {/* HORIZONTAL NAVIGATION */}
+                  <div className="w-full">
+                    <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-xl shadow-slate-200/50 sm:rounded-3xl sm:p-5 lg:rounded-[2.5rem] lg:p-8">
+                      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-4">Onboarding Progress</p>
+                          <div className="flex flex-wrap gap-2 sm:gap-3">
+                            {SIDEBAR_SECTIONS.map((section, idx) => {
+                              const isCompleted = getSectionCompletion(section.id);
+                              const isActive = activeSection === section.id;
+                              return (
+                                <button
+                                  key={section.id}
+                                  type="button"
+                                  onClick={() => setActiveSection(section.id)}
+                                  className={cn(
+                                    "group flex min-w-0 items-center gap-3 rounded-xl px-4 py-3 transition-all duration-300 sm:px-6 sm:py-4",
+                                    isActive
+                                      ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                                      : isCompleted
+                                        ? "bg-green-50 text-green-600 hover:bg-green-100"
+                                        : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+                                  )}
+                                >
+                                  <span className={cn(
+                                    "text-[10px] font-black italic",
+                                    isActive ? "text-blue-100" : isCompleted ? "text-green-400" : "text-slate-300"
+                                  )}>0{idx + 1}</span>
+                                  <span className="truncate text-[9px] font-black uppercase tracking-wide italic sm:text-[10px] lg:text-[11px]">{section.label}</span>
+                                  {isCompleted && !isActive && <CheckCircle2 className="h-3 w-3 shrink-0" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
 
-                      <div className="hidden lg:block mt-10 p-5 bg-slate-900 rounded-3xl text-white">
-                         <div className="flex items-center space-x-3 mb-3">
-                           <ShieldCheck className="h-4 w-4 text-blue-400" />
-                           <span className="text-[9px] font-black uppercase italic tracking-widest">Compliance Level</span>
-                         </div>
-                         <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                           <div 
-                             className="h-full bg-blue-500 transition-all duration-1000" 
-                             style={{ width: `${complianceProgress}%` }}
-                           />
-                         </div>
+                        <div className="shrink-0 lg:w-64 lg:border-l lg:border-slate-100 lg:pl-8">
+                           <div className="flex items-center justify-between mb-2">
+                             <div className="flex items-center space-x-2">
+                               <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
+                               <span className="text-[9px] font-black uppercase italic tracking-widest text-slate-500">Compliance</span>
+                             </div>
+                             <span className="text-[10px] font-black text-blue-600 italic">{complianceProgress}%</span>
+                           </div>
+                           <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                             <div 
+                               className="h-full bg-blue-500 transition-all duration-1000" 
+                               style={{ width: `${complianceProgress}%` }}
+                             />
+                           </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* FORM CONTENT */}
-                  <div className="min-w-0 lg:col-span-9">
+                  <div className="min-w-0">
                     <Card className="min-h-[500px] overflow-hidden rounded-2xl border-none shadow-2xl shadow-slate-200/50 sm:rounded-3xl lg:min-h-[600px] lg:rounded-[2.5rem]">
                       <div className="flex items-center justify-between gap-3 border-b border-slate-50 bg-white px-4 py-5 sm:px-6 lg:px-10 lg:py-8">
                          <div className="flex min-w-0 items-center space-x-3 sm:space-x-4">
@@ -986,6 +985,8 @@ export default function BuyerOnboarding() {
                </div>
              </div>
         </form>
+      </div>
+
       {previewDocument && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm sm:p-4">
           <div className="flex h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:rounded-[2rem]">
@@ -1048,6 +1049,5 @@ export default function BuyerOnboarding() {
         </div>
       )}
     </div>
-  </div>
   );
 }

@@ -47,70 +47,93 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-3 py-6 sm:px-4">
-      <Card className="animate-in w-full max-w-md overflow-hidden rounded-2xl border-none shadow-xl shadow-indigo-100 fade-in zoom-in duration-500 sm:rounded-3xl sm:shadow-2xl">
-        <CardHeader className="relative bg-slate-900 pb-6 pt-7 text-center text-white sm:pb-7 sm:pt-8">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-             <ShieldCheck className="h-24 w-24" />
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-slate-50 px-3 py-6 sm:px-4">
+      {/* BACKGROUND DECORATIONS */}
+      <div className="absolute top-[-10%] left-[-10%] h-[40%] w-[40%] rounded-full bg-indigo-200/40 blur-[120px] animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] h-[40%] w-[40%] rounded-full bg-violet-200/40 blur-[120px] animate-pulse" />
+      
+      <Card className="animate-in relative z-10 w-full max-w-[400px] overflow-hidden rounded-[2.5rem] border border-white/40 bg-white/70 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] fade-in zoom-in duration-700">
+        <CardHeader className="relative bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 pb-6 pt-6 text-center text-white">
+          <div className="absolute top-0 right-0 p-6 opacity-5">
+             <ShieldCheck className="h-32 w-32" />
           </div>
-          <div className="mx-auto w-14 h-14 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mb-4">
-            <Lock className="h-8 w-8 text-indigo-400" />
+          <div className="relative mx-auto w-12 h-12 bg-white/10 backdrop-blur-xl border border-white/20 rounded-[1.25rem] flex items-center justify-center mb-4 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
+            <Lock className="h-5 w-5 text-indigo-300" />
           </div>
-          <CardTitle className="text-2xl font-black uppercase italic tracking-tight sm:text-3xl">Stakeholder Access</CardTitle>
-          <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic">PugArch Procurement Network</p>
+          <CardTitle className="text-2xl font-black uppercase tracking-tight sm:text-3xl lg:text-4xl text-white">
+            <span className="block text-indigo-400 text-xs tracking-[0.3em] mb-1 text-center">Secure Portal</span>
+            Stakeholder Access
+          </CardTitle>
+          <p className="text-[10px] font-bold text-slate-400 mt-3 uppercase tracking-[0.2em] italic opacity-80 text-center">PugArch Procurement Network</p>
         </CardHeader>
-        <CardContent className="bg-white p-4 sm:p-6">
+
+        <CardContent className="p-4 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-               <label className="text-xs font-black uppercase text-slate-400 tracking-widest italic ml-1">Official Email</label>
-               <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <div className="space-y-2">
+               <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] italic ml-1">Official Email</label>
+               <div className="group relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                   <input
                     type="email"
                     placeholder="name@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium italic"
+                    className="w-full h-12 pl-12 pr-4 rounded-2xl border border-slate-200 bg-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold"
                   />
                </div>
             </div>
 
-            <div className="space-y-1.5">
-               <label className="text-xs font-black uppercase text-slate-400 tracking-widest italic ml-1">Secure Password</label>
-               <div className="relative">
-                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <div className="space-y-2">
+               <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] italic ml-1">Secure Password</label>
+               <div className="group relative">
+                  <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                   <input
                     type="password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium italic"
+                    className="w-full h-12 pl-12 pr-4 rounded-2xl border border-slate-200 bg-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold"
                   />
                </div>
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-[0.2em] italic shadow-xl shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50" 
-              disabled={isLoading}
-            >
-              {isLoading ? 'Authenticating...' : 'Sign In Now'}
-            </Button>
+            <div className="pt-2">
+              <Button 
+                type="submit" 
+                className="w-full h-12 rounded-[1.25rem] bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-black uppercase tracking-[0.2em] italic shadow-[0_20px_40px_-10px_rgba(79,70,229,0.3)] transition-all hover:translate-y-[-2px] active:scale-[0.98] disabled:opacity-50" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                    Authenticating...
+                  </span>
+                ) : 'Sign In Now'}
+              </Button>
+            </div>
 
-            <div className="text-center mt-5">
-              <p className="text-sm font-medium text-slate-500 italic">
+            <div className="text-center py-2">
+              <p className="text-xs font-bold text-slate-500">
                 New to the platform?{' '}
-                <Link to="/seller/register" className="text-indigo-600 font-black uppercase text-[10px] hover:underline underline-offset-4 tracking-widest">Create Profile</Link>
+                <Link to="/seller/register" className="text-indigo-600 font-black uppercase hover:text-indigo-700 transition-colors underline decoration-indigo-200 underline-offset-4 decoration-2">Create Profile</Link>
               </p>
             </div>
 
-            <div className="pt-5 border-t border-slate-100 mt-4 text-center">
-              <p className="text-[10px] text-slate-400 uppercase tracking-[0.3em] font-black italic mb-3">Developer Preview Credentials</p>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[10px] space-y-1">
-                 <p className="text-slate-600 font-bold">Buyer: <span className="text-indigo-600">suresh@buildcon.com</span> / password123</p>
-                 <p className="text-slate-600 font-bold">Seller: <span className="text-indigo-600">rajesh@texcorp.com</span> / password123</p>
+            <div className="pt-4 border-t border-slate-100/50 mt-1">
+              <div className="flex flex-col items-center gap-3">
+                <span className="px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[8px] text-slate-400 uppercase tracking-[0.3em] font-black italic">Developer Preview</span>
+                <div className="grid grid-cols-2 gap-2 w-full">
+                   <div className="p-2 bg-white/50 border border-slate-100 rounded-xl text-[9px] flex flex-col items-center group hover:border-indigo-200 transition-colors">
+                      <span className="text-slate-500 font-bold uppercase tracking-wider mb-0.5">Buyer</span>
+                      <span className="text-indigo-600 font-black truncate w-full text-center">suresh@buildcon.com</span>
+                   </div>
+                   <div className="p-2 bg-white/50 border border-slate-100 rounded-xl text-[9px] flex flex-col items-center group hover:border-indigo-200 transition-colors">
+                      <span className="text-slate-500 font-bold uppercase tracking-wider mb-0.5">Seller</span>
+                      <span className="text-indigo-600 font-black truncate w-full text-center">rajesh@texcorp.com</span>
+                   </div>
+                </div>
               </div>
             </div>
           </form>

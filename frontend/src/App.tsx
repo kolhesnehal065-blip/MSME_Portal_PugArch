@@ -14,6 +14,9 @@ import BuyerOnboarding from './pages/BuyerOnboarding';
 import AdminOnboarding from './pages/AdminOnboarding';
 import SellerRegistrationFlow from './pages/SellerRegistrationFlow';
 import BuyerRegistrationFlow from './pages/BuyerRegistrationFlow';
+import BuyerProfile from './pages/BuyerProfile';
+import Tenders from './pages/Tenders';
+import Vendors from './pages/Vendors';
 import Sidebar, { Header } from './components/layout/Navbar';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
@@ -67,6 +70,24 @@ function AppRoutes() {
                 <BuyerOnboarding />
               </ProtectedRoute>
             } />
+
+            <Route path="/buyer/profile" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <BuyerProfile />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/tenders" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <Tenders />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/vendors" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <Vendors />
+              </ProtectedRoute>
+            } />
             
             <Route path="/admin/onboarding" element={
               <ProtectedRoute allowedRoles={['admin']}>
@@ -74,8 +95,6 @@ function AppRoutes() {
               </ProtectedRoute>
             } />
             
-
-
             <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} replace />} />
           </Routes>
         </main>

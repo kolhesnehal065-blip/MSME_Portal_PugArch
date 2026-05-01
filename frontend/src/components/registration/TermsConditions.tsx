@@ -109,6 +109,35 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                     Any misrepresentation may lead to rejection, suspension or further action as applicable.
                   </p>
                 </section>
+
+                <section className="mt-5">
+                  <h3 className="font-bold">4. Procurement Guidelines (For Buyers):</h3>
+                  <p className="mt-4 text-justify">
+                    Buyers shall ensure that all procurement activities conducted through the MSME Marketplace 
+                    comply with the General Financial Rules (GFR), 2017 and any specific guidelines issued by 
+                    their respective departments or organizations. The platform provides tools for comparative 
+                    analysis and selection, but the final responsibility for procurement decisions rests with 
+                    the Buyer organization.
+                  </p>
+                </section>
+
+                <section className="mt-5">
+                  <h3 className="font-bold">5. Code of Conduct:</h3>
+                  <p className="mt-4 text-justify">
+                    All users are expected to maintain the highest standards of integrity and transparency. 
+                    Collusion, price manipulation, or any fraudulent activity is strictly prohibited and will 
+                    result in immediate termination of access and possible legal action.
+                  </p>
+                </section>
+
+                <section className="mt-5">
+                  <h3 className="font-bold">6. Amendments to Terms:</h3>
+                  <p className="mt-4 text-justify">
+                    PugArch reserves the right to modify these terms and conditions at any time. Users will 
+                    be notified of significant changes, and continued use of the platform after such 
+                    notifications will constitute acceptance of the revised terms.
+                  </p>
+                </section>
               </article>
             </main>
           </div>
@@ -174,7 +203,14 @@ function PdfToolbar({ role }: { role: 'buyer' | 'seller' }) {
       <div className="ml-auto flex items-center gap-3 text-slate-200 sm:gap-4">
         <Search className="hidden h-5 w-5 sm:block" />
         <RotateCcw className="hidden h-5 w-5 sm:block" />
-        <Download className="h-5 w-5" />
+        <a 
+          href="/terms_and_conditions.pdf" 
+          download="MSME_Marketplace_Terms_Conditions.pdf"
+          className="transition-colors hover:text-white"
+          title="Download Terms & Conditions"
+        >
+          <Download className="h-5 w-5" />
+        </a>
         <Printer className="hidden h-5 w-5 sm:block" />
         <Maximize2 className="h-5 w-5" />
         <MoreVertical className="h-5 w-5" />

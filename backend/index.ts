@@ -1,6 +1,8 @@
 import dotenv from 'dotenv';
+console.log('--- BACKEND index.ts EXECUTING ---');
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({
@@ -21,6 +23,7 @@ import { User } from './src/models/User.js';
 import { SellerProfile } from './src/models/SellerProfile.js';
 import { BuyerProfile } from './src/models/BuyerProfile.js';
 import { Otp } from './src/models/Otp.js';
+// (Tender model moved directly below to avoid import issues)
 import { authenticate, authorizeAdmin } from './src/middleware/auth.js';
 import type { AuthRequest } from './src/middleware/auth.js';
 import nodemailer from 'nodemailer';
@@ -57,6 +60,30 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// Global Exception Logging
+process.on('uncaughtException', (err) => {
+  const logMsg = `[${new Date().toISOString()}] UNCAUGHT EXCEPTION: ${err.stack}\n`;
+  try {
+    fs.appendFileSync('backend-debug.log', logMsg);
+  } catch (e) {}
+  console.error(logMsg);
+});
+
+// Tender Model Definition
+const tenderSchema = new mongoose.Schema({
+  buyerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  tenderId: { type: String, required: true, unique: true },
+  title: { type: String, required: true },
+  category: { type: String, required: true },
+  budget: { type: Number, required: true },
+  description: { type: String, required: true },
+  status: { type: String, enum: ['draft', 'active', 'closed'], default: 'draft' },
+  closesAt: { type: Date },
+  bidsCount: { type: Number, default: 0 }
+}, { timestamps: true });
+
+const Tender = mongoose.models.Tender || mongoose.model('Tender', tenderSchema);
+
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 5001;
@@ -72,6 +99,12 @@ async function startServer() {
   }));
   app.use(express.json());
 
+  // Request Logging Middleware
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+  });
+
   app.get("/", (req, res) => {
     res.json({
       message: "PugArch MSME Marketplace API is running",
@@ -81,6 +114,50 @@ async function startServer() {
 
   // Test Route for verifying connection
   app.get("/api/test", (req, res) => res.json({ message: "API working" }));
+  
+  // Direct test route for Tender API (no auth)
+  app.get("/api/tenders-test", (req, res) => res.json({ message: "Tender API Reachable" }));
+
+  // --- Tender APIs ---
+  app.get('/api/tenders', authenticate, async (req: AuthRequest, res) => {
+    try {
+      console.log('GET /api/tenders requested by:', req.user?.id);
+      const tenders = await Tender.find({ buyerId: req.user?.id }).sort({ createdAt: -1 });
+      res.json(tenders);
+    } catch (err: any) {
+      console.error('Error fetching tenders:', err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/tenders', authenticate, async (req: AuthRequest, res) => {
+    try {
+      console.log('POST /api/tenders request received:', req.body);
+      if (req.user?.role !== 'buyer') {
+        console.log('Unauthorized: Role is not buyer', req.user?.role);
+        return res.status(403).json({ message: 'Only buyers can create tenders' });
+      }
+      
+      const count = await Tender.countDocuments();
+      // Use a more robust ID generation for now to avoid conflicts
+      const tenderId = `T-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      console.log('Generated tenderId:', tenderId);
+      
+      const tender = new Tender({
+        ...req.body,
+        buyerId: req.user.id,
+        tenderId,
+        closesAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000) // Default 15 days
+      });
+      
+      await tender.save();
+      console.log('Tender saved successfully:', tender.tenderId);
+      res.status(201).json(tender);
+    } catch (err: any) {
+      console.error('Tender creation error:', err);
+      res.status(500).json({ message: err.message });
+    }
+  });
 
   // Connect to MongoDB
   mongoose.connect(MONGODB_URI, {
@@ -142,6 +219,50 @@ async function startServer() {
               });
             }
           }
+          
+          // Seed sample tenders
+          const sampleTenders = [
+            {
+              buyerId: await User.findOne({ email: 'suresh@buildcon.com' }).then(u => u?._id),
+              tenderId: 'T-2026-0142',
+              title: 'Supply of 500 ergonomic office chairs',
+              category: 'Furniture',
+              budget: 2500000,
+              description: 'High-quality ergonomic chairs for new HQ campus.',
+              status: 'active',
+              bidsCount: 14,
+              closesAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000)
+            },
+            {
+              buyerId: await User.findOne({ email: 'suresh@buildcon.com' }).then(u => u?._id),
+              tenderId: 'T-2026-0138',
+              title: 'Annual cloud hosting & managed services',
+              category: 'Software & Cloud',
+              budget: 18000000,
+              description: 'Enterprise cloud hosting for all internal applications.',
+              status: 'active',
+              bidsCount: 7,
+              closesAt: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000)
+            },
+            {
+              buyerId: await User.findOne({ email: 'suresh@buildcon.com' }).then(u => u?._id),
+              tenderId: 'T-2026-0131',
+              title: 'Quarterly catering services — HQ campus',
+              category: 'Catering',
+              budget: 4200000,
+              description: 'Daily meals for 500+ employees.',
+              status: 'active',
+              bidsCount: 22,
+              closesAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+            }
+          ];
+
+          for (const t of sampleTenders) {
+            if (t.buyerId) {
+              await Tender.findOneAndUpdate({ tenderId: t.tenderId }, t, { upsert: true });
+            }
+          }
+
           console.log('Seeding completed.');
         }
       } catch (seedErr) {
@@ -491,6 +612,27 @@ async function startServer() {
     }
   });
 
+  // Buyer: Get all approved vendors
+  app.get('/api/vendors', authenticate, async (req, res) => {
+    try {
+      const vendors = await User.aggregate([
+        { $match: { role: 'seller', onboardingStatus: 'approved_for_procurement' } },
+        {
+          $lookup: {
+            from: 'sellerprofiles',
+            localField: '_id',
+            foreignField: 'userId',
+            as: 'profile'
+          }
+        },
+        { $unwind: '$profile' }
+      ]);
+      res.json(vendors);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Admin: Update Section Status
   app.post('/api/admin/section-status', authenticate, authorizeAdmin, async (req, res) => {
     try {
@@ -588,6 +730,17 @@ async function startServer() {
         awarded: 4
       }
     });
+  });
+
+  // (Tender routes moved higher)
+
+  // Global Express Error Handler
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error('GLOBAL ERROR:', err);
+    try {
+      fs.appendFileSync('backend-debug.log', `[${new Date().toISOString()}] GLOBAL ERROR: ${err.stack}\n`);
+    } catch (e) {}
+    res.status(500).json({ message: 'Internal Server Error', error: err.message });
   });
 
   return new Promise<void>((resolve, reject) => {

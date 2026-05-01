@@ -14,7 +14,10 @@ import {
   X,
   ChevronRight,
   Bell,
-  Search
+  Search,
+  Users,
+  FileText,
+  User as UserIcon
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -37,6 +40,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['seller', 'buyer', 'admin'] },
     { label: 'Seller Portal', path: '/seller/onboarding', icon: Store, roles: ['seller'] },
     { label: 'Buyer Hub', path: '/buyer/onboarding', icon: Building2, roles: ['buyer'] },
+    { label: 'Vendors', path: '/buyer/vendors', icon: Users, roles: ['buyer'] },
+    { label: 'Tenders', path: '/buyer/tenders', icon: FileText, roles: ['buyer'] },
+    { label: 'Profile', path: '/buyer/profile', icon: UserIcon, roles: ['buyer'] },
     { label: 'Admin Console', path: '/admin/onboarding', icon: ShieldCheck, roles: ['admin'] },
   ];
 
@@ -160,6 +166,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       case '/dashboard': return 'Dashboard Overview';
       case '/seller/onboarding': return 'Seller Onboarding';
       case '/buyer/onboarding': return 'Buyer Onboarding';
+      case '/buyer/vendors': return 'Vendor Discovery';
       case '/admin/onboarding': return 'Onboarding Verification';
       default: return 'Procurement ERP';
     }
