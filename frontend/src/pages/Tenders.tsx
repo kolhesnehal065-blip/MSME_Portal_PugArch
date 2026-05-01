@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Input, TextArea } from '../components/ui/Input';
+import { Input } from '../components/ui/Input';
 import { 
   Plus, 
   Search, 
