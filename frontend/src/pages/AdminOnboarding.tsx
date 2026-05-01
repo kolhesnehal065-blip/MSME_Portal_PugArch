@@ -259,75 +259,122 @@ export default function AdminOnboarding() {
                  No {activeTab} registrations in record.
               </div>
             ) : (
-            <div className="overflow-x-auto no-scrollbar">
-              <Table>
-                <TableHeader className="bg-slate-50/80 border-y border-slate-100">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4">Full Name</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4">Entity Name</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4">Budget / Category</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4">Submitted At</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4">Status</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 md:px-6 py-4 text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentData.map((item) => (
-                    <TableRow key={item._id} className="group hover:bg-slate-50/50 transition-colors border-b border-slate-50">
-                      <TableCell className="px-3 md:px-6 py-8">
-                         <div className="font-bold text-slate-800 text-sm tracking-tight">{item.name}</div>
-                      </TableCell>
-                      <TableCell className="px-3 md:px-6 py-8">
-                        <div className="font-bold text-slate-600 text-sm italic underline decoration-indigo-200 underline-offset-4">{item.profile?.businessName || item.profile?.organizationName || 'N/A'}</div>
-                      </TableCell>
-                      <TableCell className="px-3 md:px-6 py-8">
-                        <div className="space-y-1">
-                          <div className="text-[10px] font-black text-indigo-600 uppercase italic">
-                            {item.role === 'buyer' ? (item.profile?.annualBudget || 'N/A') : (Array.isArray(item.profile?.productCategories) ? item.profile.productCategories[0] : 'N/A')}
-                          </div>
-                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                            {item.role === 'buyer' ? (item.profile?.procurementCategories?.[0] || 'IT Equipment') : (item.profile?.industry || 'Manufacturing')}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-3 md:px-6 py-8">
-                        <div className="text-xs font-bold text-slate-500 font-mono italic">{new Date(item.createdAt || Date.now()).toISOString().split('T')[0]}</div>
-                      </TableCell>
-                      <TableCell className="px-3 md:px-6 py-8">
-                        <div className="space-y-2">
-                          {getStatusBadge(item.onboardingStatus)}
-                          <div className="flex space-x-0.5">
-                            {['basic', 'business', 'compliance', 'bank', 'documents'].map(section => (
-                              <div 
-                                key={section} 
-                                className={cn(
-                                  "h-1.5 w-4 rounded-full",
-                                  item.sectionStatus?.[section] === 'approved' ? "bg-green-500" : 
-                                  item.sectionStatus?.[section] === 'rejected' ? "bg-red-500" : "bg-slate-200"
-                                ) || ""} 
-                                title={`${section}: ${item.sectionStatus?.[section] || 'pending'}`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-3 md:px-6 py-8 text-right">
-                         <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedItem(item);
-                              setFeedback(item.adminFeedback || '');
-                            }}
-                            className="text-[10px] font-black text-indigo-600 uppercase italic hover:underline hover:text-indigo-800 transition-all decoration-2 underline-offset-4"
-                          >
-                            Review
-                          </button>
-                      </TableCell>
+            <>
+              {/* Responsive Table for Desktop */}
+              <div className="hidden md:block overflow-x-auto no-scrollbar">
+                <Table>
+                  <TableHeader className="bg-slate-50/80 border-y border-slate-100">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4">Full Name</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4">Entity Name</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4">Budget / Category</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4">Submitted At</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4">Status</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-6 py-4 text-right">Action</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {currentData.map((item) => (
+                      <TableRow key={item._id} className="group hover:bg-slate-50/50 transition-colors border-b border-slate-50">
+                        <TableCell className="px-6 py-8">
+                           <div className="font-bold text-slate-800 text-sm tracking-tight">{item.name}</div>
+                        </TableCell>
+                        <TableCell className="px-6 py-8">
+                          <div className="font-bold text-slate-600 text-sm italic underline decoration-indigo-200 underline-offset-4">{item.profile?.businessName || item.profile?.organizationName || 'N/A'}</div>
+                        </TableCell>
+                        <TableCell className="px-6 py-8">
+                          <div className="space-y-1">
+                            <div className="text-[10px] font-black text-indigo-600 uppercase italic">
+                              {item.role === 'buyer' ? (item.profile?.annualBudget || 'N/A') : (Array.isArray(item.profile?.productCategories) ? item.profile.productCategories[0] : 'N/A')}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                              {item.role === 'buyer' ? (item.profile?.procurementCategories?.[0] || 'IT Equipment') : (item.profile?.industry || 'Manufacturing')}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-8">
+                          <div className="text-xs font-bold text-slate-500 font-mono italic">{new Date(item.createdAt || Date.now()).toISOString().split('T')[0]}</div>
+                        </TableCell>
+                        <TableCell className="px-6 py-8">
+                          <div className="space-y-2">
+                            {getStatusBadge(item.onboardingStatus)}
+                            <div className="flex space-x-0.5">
+                              {['basic', 'business', 'compliance', 'bank', 'documents'].map(section => (
+                                <div 
+                                  key={section} 
+                                  className={cn(
+                                    "h-1.5 w-4 rounded-full",
+                                    item.sectionStatus?.[section] === 'approved' ? "bg-green-500" : 
+                                    item.sectionStatus?.[section] === 'rejected' ? "bg-red-500" : "bg-slate-200"
+                                  ) || ""} 
+                                  title={`${section}: ${item.sectionStatus?.[section] || 'pending'}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-8 text-right">
+                           <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedItem(item);
+                                setFeedback(item.adminFeedback || '');
+                              }}
+                              className="text-[10px] font-black text-indigo-600 uppercase italic hover:underline hover:text-indigo-800 transition-all decoration-2 underline-offset-4"
+                            >
+                              Review
+                            </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Responsive Card Grid for Mobile */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {currentData.map((item) => (
+                  <div key={item._id} className="p-4 space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <div className="font-bold text-slate-800 text-sm tracking-tight">{item.name}</div>
+                        <div className="font-bold text-slate-500 text-[10px] italic underline decoration-indigo-200 underline-offset-2">{item.profile?.businessName || item.profile?.organizationName || 'N/A'}</div>
+                      </div>
+                      {getStatusBadge(item.onboardingStatus)}
+                    </div>
+                    
+                    <div className="flex justify-between items-end">
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-black text-indigo-600 uppercase italic">
+                          {item.role === 'buyer' ? (item.profile?.annualBudget || 'N/A') : (Array.isArray(item.profile?.productCategories) ? item.profile.productCategories[0] : 'N/A')}
+                        </div>
+                        <div className="flex space-x-0.5">
+                          {['basic', 'business', 'compliance', 'bank', 'documents'].map(section => (
+                            <div 
+                              key={section} 
+                              className={cn(
+                                "h-1 w-4 rounded-full",
+                                item.sectionStatus?.[section] === 'approved' ? "bg-green-500" : 
+                                item.sectionStatus?.[section] === 'rejected' ? "bg-red-500" : "bg-slate-200"
+                              ) || ""} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setSelectedItem(item);
+                          setFeedback(item.adminFeedback || '');
+                        }}
+                        className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase italic"
+                      >
+                        Review
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
             )}
           </CardContent>
         </Card>

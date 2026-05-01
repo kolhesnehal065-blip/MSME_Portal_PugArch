@@ -173,7 +173,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-40 lg:ml-64 transition-all duration-300">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-40 transition-all duration-300">
       <div className="flex items-center gap-4">
         <button 
           onClick={onMenuClick}
@@ -181,7 +181,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         >
           <Menu className="h-6 w-6" />
         </button>
-        <h1 className="text-sm md:text-lg font-bold truncate max-w-[150px] md:max-w-none">{getPageTitle()}</h1>
+        <h1 className="text-sm md:text-lg font-bold truncate max-w-[120px] xs:max-w-[180px] sm:max-w-[250px] md:max-w-none">{getPageTitle()}</h1>
       </div>
       
       <div className="flex items-center gap-6">

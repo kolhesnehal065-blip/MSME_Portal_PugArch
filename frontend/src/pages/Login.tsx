@@ -120,22 +120,6 @@ export default function Login() {
                 <Link to="/seller/register" className="text-indigo-600 font-black uppercase hover:text-indigo-700 transition-colors underline decoration-indigo-200 underline-offset-4 decoration-2">Create Profile</Link>
               </p>
             </div>
-
-            <div className="pt-4 border-t border-slate-100/50 mt-1">
-              <div className="flex flex-col items-center gap-3">
-                <span className="px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[8px] text-slate-400 uppercase tracking-[0.3em] font-black italic">Developer Preview</span>
-                <div className="grid grid-cols-2 gap-2 w-full">
-                   <div className="p-2 bg-white/50 border border-slate-100 rounded-xl text-[9px] flex flex-col items-center group hover:border-indigo-200 transition-colors">
-                      <span className="text-slate-500 font-bold uppercase tracking-wider mb-0.5">Buyer</span>
-                      <span className="text-indigo-600 font-black truncate w-full text-center">suresh@buildcon.com</span>
-                   </div>
-                   <div className="p-2 bg-white/50 border border-slate-100 rounded-xl text-[9px] flex flex-col items-center group hover:border-indigo-200 transition-colors">
-                      <span className="text-slate-500 font-bold uppercase tracking-wider mb-0.5">Seller</span>
-                      <span className="text-indigo-600 font-black truncate w-full text-center">rajesh@texcorp.com</span>
-                   </div>
-                </div>
-              </div>
-            </div>
           </form>
         </CardContent>
       </Card>

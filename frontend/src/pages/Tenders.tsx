@@ -108,19 +108,19 @@ export default function Tenders() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-white p-4 md:p-8">
+    <div className="min-h-screen bg-slate-50 text-slate-950 p-4 md:p-8">
 
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
         <div className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500">Procurement</p>
-          <h1 className="text-4xl font-black tracking-tight italic">Tenders</h1>
-          <p className="text-sm text-slate-400 font-medium italic">Manage drafts, monitor live bids, and review closed tenders.</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600">Procurement</p>
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 italic">Tenders</h1>
+          <p className="text-sm text-slate-500 font-medium italic">Manage drafts, monitor live bids, and review closed tenders.</p>
         </div>
         <Button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-[#00D1C1] hover:bg-[#00B8A9] text-[#0B0F17] border-0 h-12 px-6 rounded-xl font-black uppercase text-xs tracking-widest italic transition-all shadow-xl shadow-[#00D1C1]/10"
+          className="bg-[#00D1C1] hover:bg-[#00B8A9] text-white border-0 h-12 px-6 rounded-xl font-black uppercase text-xs tracking-widest italic transition-all shadow-xl shadow-[#00D1C1]/10"
         >
           <Plus className="h-4 w-4 mr-2" />
           Create Tender
@@ -129,7 +129,7 @@ export default function Tenders() {
 
       {/* Search & Tabs */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-        <div className="flex items-center gap-2 p-1 bg-[#151B28] rounded-xl border border-slate-800/50">
+        <div className="flex items-center gap-2 p-1 bg-white rounded-xl border border-slate-200">
           {(['draft', 'active', 'closed'] as const).map((tab) => (
             <button
               key={tab}
@@ -137,8 +137,8 @@ export default function Tenders() {
               className={cn(
                 "px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest italic transition-all",
                 activeTab === tab 
-                  ? "bg-slate-800 text-white shadow-lg" 
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "bg-slate-100 text-slate-900 shadow-sm" 
+                  : "text-slate-400 hover:text-slate-600"
               )}
             >
               {tab} <span className="ml-1 opacity-50">{tenders.filter(t => t.status === tab).length}</span>
@@ -147,57 +147,57 @@ export default function Tenders() {
         </div>
 
         <div className="relative w-full md:w-96 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
           <input 
             type="text" 
             placeholder="Search GSTIN, vendors, tenders.." 
-            className="w-full bg-[#151B28] border-slate-800/50 border rounded-xl py-3 pl-12 pr-4 text-sm font-bold placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all italic"
+            className="w-full bg-white border-slate-200 border rounded-xl py-3 pl-12 pr-4 text-sm font-bold placeholder:text-slate-300 focus:outline-none focus:border-indigo-500/30 transition-all italic text-slate-900"
           />
         </div>
       </div>
 
       {/* Tenders Table */}
-      <div className="bg-[#151B28]/40 border border-slate-800/50 rounded-3xl overflow-hidden backdrop-blur-xl">
+      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-800/50 bg-slate-900/20">
-                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Tender ID</th>
-                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Title</th>
-                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Category</th>
-                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic text-right">Budget</th>
-                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic text-center">Bids</th>
-                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic text-center">Closes</th>
-                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic text-center">Status</th>
+              <tr className="border-b border-slate-100 bg-slate-50/50">
+                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Tender ID</th>
+                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Title</th>
+                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Category</th>
+                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic text-right">Budget</th>
+                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic text-center">Bids</th>
+                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic text-center">Closes</th>
+                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic text-center">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/30">
+            <tbody className="divide-y divide-slate-50">
               {filteredTenders.length > 0 ? filteredTenders.map((tender) => (
-                <tr key={tender._id} className="group hover:bg-white/5 transition-colors">
-                  <td className="p-6 text-xs font-bold text-slate-500 font-mono tracking-tight">{tender.tenderId}</td>
+                <tr key={tender._id} className="group hover:bg-slate-50/50 transition-colors">
+                  <td className="p-6 text-xs font-bold text-slate-400 font-mono tracking-tight">{tender.tenderId}</td>
                   <td className="p-6">
-                    <p className="text-sm font-bold text-slate-200 tracking-wide">{tender.title}</p>
+                    <p className="text-sm font-bold text-slate-700 tracking-wide">{tender.title}</p>
                   </td>
                   <td className="p-6">
-                    <span className="px-3 py-1 rounded-full bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
+                    <span className="px-3 py-1 rounded-full bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500 italic border border-slate-100">
                       {tender.category}
                     </span>
                   </td>
                   <td className="p-6 text-right">
-                    <p className="text-sm font-black text-slate-100 italic">₹{tender.budget.toLocaleString()}</p>
+                    <p className="text-sm font-black text-slate-900 italic">₹{tender.budget.toLocaleString()}</p>
                   </td>
                   <td className="p-6 text-center">
-                    <p className="text-xs font-bold text-slate-400">{tender.bidsCount}</p>
+                    <p className="text-xs font-bold text-slate-500">{tender.bidsCount}</p>
                   </td>
                   <td className="p-6 text-center">
-                    <p className="text-xs font-bold text-slate-400 italic">{getDaysLeft(tender.closesAt)}</p>
+                    <p className="text-xs font-bold text-slate-500 italic">{getDaysLeft(tender.closesAt)}</p>
                   </td>
                   <td className="p-6 text-center">
                     <span className={cn(
                       "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest italic",
-                      tender.status === 'active' ? "bg-green-500/10 text-green-500" :
-                      tender.status === 'draft' ? "bg-yellow-500/10 text-yellow-500" :
-                      "bg-slate-700 text-slate-400"
+                      tender.status === 'active' ? "bg-emerald-50 text-emerald-600" :
+                      tender.status === 'draft' ? "bg-amber-50 text-amber-600" :
+                      "bg-slate-100 text-slate-500"
                     )}>
                       {tender.status}
                     </span>
@@ -207,8 +207,8 @@ export default function Tenders() {
                 <tr>
                   <td colSpan={7} className="p-20 text-center">
                     <div className="flex flex-col items-center gap-4">
-                       <FileText className="h-12 w-12 text-slate-800" />
-                       <p className="text-slate-500 font-black uppercase tracking-widest text-xs italic">No {activeTab} tenders found</p>
+                       <FileText className="h-12 w-12 text-slate-100" />
+                       <p className="text-slate-300 font-black uppercase tracking-widest text-xs italic">No {activeTab} tenders found</p>
                     </div>
                   </td>
                 </tr>
@@ -220,41 +220,41 @@ export default function Tenders() {
 
       {/* New Tender Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-xl bg-[#151B28] rounded-[2.5rem] border border-slate-800/50 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="relative w-full max-w-xl bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-6 right-6 p-2 rounded-xl hover:bg-slate-800 transition-colors"
+              className="absolute top-6 right-6 p-2 rounded-xl hover:bg-slate-50 transition-colors"
             >
-              <X className="h-5 w-5 text-slate-500" />
+              <X className="h-5 w-5 text-slate-400" />
             </button>
 
             <form onSubmit={handleCreateTender} className="p-10 space-y-8">
               <div className="space-y-2">
-                <h2 className="text-2xl font-black italic tracking-tight">New tender</h2>
-                <p className="text-xs text-slate-400 font-bold italic">Save as draft now. You can add line items and publish from the draft list.</p>
+                <h2 className="text-2xl font-black italic tracking-tight text-slate-900">New tender</h2>
+                <p className="text-xs text-slate-500 font-bold italic">Save as draft now. You can add line items and publish from the draft list.</p>
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic ml-1">Title</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Title</label>
                   <input 
                     required
                     value={newTender.title}
                     onChange={(e) => setNewTender({...newTender, title: e.target.value})}
                     placeholder="Supply of 500 ergonomic office chairs"
-                    className="w-full bg-[#0B0F17] border-slate-800/50 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/50 transition-all italic"
+                    className="w-full bg-slate-50 border-slate-200 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/20 transition-all italic text-slate-900"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic ml-1">Category</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Category</label>
                     <select 
                       required
                       value={newTender.category}
                       onChange={(e) => setNewTender({...newTender, category: e.target.value})}
-                      className="w-full bg-[#0B0F17] border-slate-800/50 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/50 transition-all italic appearance-none"
+                      className="w-full bg-slate-50 border-slate-200 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/20 transition-all italic appearance-none text-slate-900"
                     >
                       <option value="">Select Category</option>
                       <option value="Furniture">Furniture</option>
@@ -265,27 +265,27 @@ export default function Tenders() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic ml-1">Budget (₹)</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Budget (₹)</label>
                     <input 
                       required
                       type="number"
                       value={newTender.budget}
                       onChange={(e) => setNewTender({...newTender, budget: e.target.value})}
                       placeholder="2500000"
-                      className="w-full bg-[#0B0F17] border-slate-800/50 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/50 transition-all italic"
+                      className="w-full bg-slate-50 border-slate-200 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/20 transition-all italic text-slate-900"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic ml-1">Brief Description</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Brief Description</label>
                   <textarea 
                     required
                     value={newTender.description}
                     onChange={(e) => setNewTender({...newTender, description: e.target.value})}
                     placeholder="Specifications, delivery timelines, etc."
                     rows={4}
-                    className="w-full bg-[#0B0F17] border-slate-800/50 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/50 transition-all italic resize-none"
+                    className="w-full bg-slate-50 border-slate-200 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/20 transition-all italic resize-none text-slate-900"
                   />
                 </div>
               </div>
@@ -294,13 +294,13 @@ export default function Tenders() {
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors italic"
+                  className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors italic"
                 >
                   Cancel
                 </button>
                 <Button 
                   disabled={submitting}
-                  className="bg-[#00D1C1] hover:bg-[#00B8A9] text-[#0B0F17] border-0 h-14 px-10 rounded-2xl font-black uppercase text-xs tracking-widest italic transition-all shadow-xl shadow-[#00D1C1]/10"
+                  className="bg-[#00D1C1] hover:bg-[#00B8A9] text-white border-0 h-14 px-10 rounded-2xl font-black uppercase text-xs tracking-widest italic transition-all shadow-xl shadow-[#00D1C1]/10"
                 >
                   {submitting ? 'Saving...' : 'Save as draft'}
                 </Button>
