@@ -4,7 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui/card';
-import { AlertTriangle, CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck, Bell, Info } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 export default function Dashboard() {
   const { user, token, logout } = useAuth();
@@ -12,20 +13,6 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [adminStats, setAdminStats] = useState<any>(null);
   const navigate = useNavigate();
-  const sectionRouteMap: Record<string, { seller: string; buyer: string }> = {
-    basic: { seller: '/seller/onboarding?section=basic', buyer: '/buyer/onboarding?section=basic' },
-    business: { seller: '/seller/onboarding?section=business', buyer: '/buyer/onboarding?section=business' },
-    compliance: { seller: '/seller/onboarding?section=compliance', buyer: '/buyer/onboarding?section=compliance' },
-    bank: { seller: '/seller/onboarding?section=bank', buyer: '/buyer/onboarding?section=bank' },
-    documents: { seller: '/seller/onboarding?section=documents', buyer: '/buyer/onboarding?section=documents' },
-  };
-  const sectionLabels: Record<string, string> = {
-    basic: 'Basic Information',
-    business: 'Business Details',
-    compliance: 'Compliance',
-    bank: 'Bank Details',
-    documents: 'Documents',
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,8 +24,6 @@ export default function Dashboard() {
 
       try {
         const headers = { Authorization: `Bearer ${token}` };
-        
-        // Fetch profile (for both roles)
         const profileRes = await api.fetch('/api/auth/me', { headers });
         if (profileRes.status === 401) {
           logout();
@@ -49,9 +34,7 @@ export default function Dashboard() {
         const profileData = await profileRes.json();
         setProfile(profileData.profile);
 
-        // Fetch stats if admin
-        const currentUser = profileData.user;
-        if (currentUser?.role === 'admin') {
+        if (profileData.user?.role === 'admin') {
           const statsRes = await api.fetch('/api/admin/stats', { headers });
           if (statsRes.ok) {
             const statsData = await statsRes.json();
@@ -67,231 +50,203 @@ export default function Dashboard() {
     fetchData();
   }, [token, navigate, logout]);
 
-  if (isLoading) return <div className="flex justify-center py-12">Loading portal...</div>;
+  if (isLoading) return <div className="flex h-screen items-center justify-center font-black italic text-blue-600 animate-pulse text-xl">Loading MSME Portal...</div>;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved_for_procurement': return <CheckCircle2 className="h-12 w-12 text-green-500" />;
-      case 'rejected': return <XCircle className="h-12 w-12 text-red-500" />;
-      case 'verified': return <ShieldCheck className="h-12 w-12 text-indigo-500" />;
-      default: return <Clock className="h-12 w-12 text-amber-500" />;
+      case 'approved_for_procurement': return <CheckCircle2 className="h-10 w-10 text-emerald-500" />;
+      case 'rejected': return <XCircle className="h-10 w-10 text-red-500" />;
+      case 'under_compliance_review': return <Clock className="h-10 w-10 text-amber-500" />;
+      case 'resubmission_required': return <AlertTriangle className="h-10 w-10 text-amber-500" />;
+      default: return <Clock className="h-10 w-10 text-blue-500" />;
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved_for_procurement': return 'success';
-      case 'rejected': return 'error';
-      case 'verified': return 'success';
-      case 'resubmission_required': return 'warning';
-      case 'under_compliance_review': return 'warning';
-      default: return 'warning';
-    }
+  const getStatusLabel = (status: string) => {
+    return status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
-  const sectionMessages = Object.entries(user?.sectionRejectionReasons || {}).filter(([section, reason]) => {
-    const status = user?.sectionStatus?.[section as keyof typeof user.sectionStatus];
-    return reason && ['rejected', 'resubmission_required'].includes(status || '');
-  });
 
   if (user?.role === 'admin') {
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 animate-in fade-in duration-500">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl md:text-3xl font-bold">System Overview</h1>
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tight">Admin Control Center</h1>
+            <p className="text-slate-500 font-medium italic">Manage the MSME Procurement Network</p>
+          </div>
           <Link to="/admin/onboarding">
-            <Button className="space-x-2">
+            <Button className="bg-slate-900 hover:bg-black text-white h-12 px-6 rounded-xl space-x-2 font-black uppercase italic tracking-widest text-xs">
               <ShieldCheck className="h-4 w-4" />
-              <span>Review Onboarding</span>
+              <span>Review Submissions</span>
             </Button>
           </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
-            <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 italic">Pending Approval</div>
-            <div className="text-3xl font-bold tracking-tight">{adminStats?.pendingApproval ?? '...'}</div>
-            <div className="mt-2 text-[10px] uppercase font-bold text-amber-600 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-              Requires Review
+          {[
+            { label: 'Pending Approval', value: adminStats?.pendingApproval, color: 'amber' },
+            { label: 'Active Sellers', value: adminStats?.activeSellers, color: 'emerald' },
+            { label: 'Active Buyers', value: adminStats?.activeBuyers, color: 'blue' }
+          ].map(stat => (
+            <div key={stat.label} className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-xl hover:-translate-y-1">
+              <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1 italic">{stat.label}</div>
+              <div className="text-4xl font-black tracking-tight text-slate-900">{stat.value ?? '0'}</div>
             </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
-            <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 italic">Active Sellers</div>
-            <div className="text-3xl font-bold tracking-tight">{adminStats?.activeSellers ?? '...'}</div>
-            <div className="mt-2 text-[10px] uppercase font-bold text-emerald-600">Verified & Validated</div>
-          </div>
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
-            <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 italic">Active Buyers</div>
-            <div className="text-3xl font-bold tracking-tight">{adminStats?.activeBuyers ?? '...'}</div>
-            <div className="mt-2 text-[10px] uppercase font-bold text-indigo-600">Enterprise Tier</div>
-          </div>
+          ))}
         </div>
 
-        <Card>
-          <CardContent className="py-12 text-center space-y-6">
-             <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <ShieldCheck className="h-8 w-8 text-blue-600" />
+        <Card className="rounded-3xl border-none shadow-2xl shadow-slate-200/50 overflow-hidden">
+          <CardContent className="py-16 text-center space-y-6">
+             <div className="mx-auto w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center rotate-3 transition-transform hover:rotate-0">
+                <ShieldCheck className="h-10 w-10 text-blue-600" />
              </div>
-             <h2 className="text-xl font-semibold">Welcome, Administrator</h2>
-             <p className="text-slate-600 max-w-md mx-auto">Manage buyer and seller registrations, review document details and approve access to the procurement network.</p>
+             <h2 className="text-2xl font-black text-slate-900 uppercase italic">Welcome back, Administrator</h2>
+             <p className="text-slate-500 font-medium italic max-w-md mx-auto leading-relaxed">
+               Verified stakeholders are currently awaiting your review. Please ensure all document compliance before granting marketplace access.
+             </p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const onboardingComplete = !!profile;
-
-
+  const sectionMessages = Object.entries(user?.sectionRejectionReasons || {}).filter(([section, reason]) => {
+    const status = user?.sectionStatus?.[section as keyof typeof user.sectionStatus];
+    return reason && ['rejected', 'resubmission_required'].includes(status || '');
+  });
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+    <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 border-b border-slate-100 pb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Welcome, {user?.name}</h1>
-          <p className="text-slate-500 mt-1">Role: <span className="capitalize font-semibold text-slate-700">{user?.role}</span></p>
+          <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] italic mb-1">MSME Procurement Portal</p>
+          <h1 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter">Dashboard</h1>
         </div>
-        <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg border border-slate-200">
-          <span className="text-sm font-medium text-slate-500">Account Status:</span>
-          <Badge variant={getStatusColor(user?.onboardingStatus || 'pending') as any}>{user?.onboardingStatus || 'pending'}</Badge>
+        <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+           <div className="h-12 w-12 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-lg italic">
+             {user?.name?.charAt(0)}
+           </div>
+           <div className="pr-4">
+             <p className="text-xs font-black text-slate-900 uppercase italic">{user?.name}</p>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user?.role} Tier Account</p>
+           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-        {/* Onboarding Progress */}
-        <Card className="h-full">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <FileText className="h-5 w-5 text-blue-600" />
-              <span>Onboarding Status</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center space-x-4">
-              <div className={onboardingComplete ? "text-green-500" : "text-yellow-500"}>
-                {onboardingComplete ? <CheckCircle2 className="h-10 w-10" /> : <Clock className="h-10 w-10" />}
-              </div>
-              <div>
-                <h4 className="font-bold text-lg">{onboardingComplete ? 'Profile Submitted' : 'Profile Pending'}</h4>
-                <p className="text-sm text-slate-500">{onboardingComplete ? 'Your registration details are active and under review.' : 'Complete your registration to start using the platform.'}</p>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Onboarding Status Tracker */}
+        <div className="lg:col-span-2 space-y-8">
+          <Card className="rounded-3xl border-none shadow-xl shadow-slate-100/50 overflow-hidden bg-white">
+            <div className="bg-slate-50 border-b border-white px-8 py-6 flex items-center justify-between">
+               <h3 className="text-sm font-black uppercase text-slate-900 italic tracking-tight flex items-center gap-2">
+                 <ShieldCheck className="h-5 w-5 text-indigo-600" />
+                 Verification Status Tracker
+               </h3>
+               <Badge className="bg-white text-indigo-600 border border-indigo-100 px-4 py-1 rounded-full text-[10px] font-black uppercase italic">
+                 Live Monitoring
+               </Badge>
             </div>
+            <CardContent className="p-8">
+               <div className="flex flex-col md:flex-row items-center gap-8">
+                  <div className="relative h-32 w-32 shrink-0">
+                    <div className="absolute inset-0 bg-blue-50 rounded-full animate-pulse opacity-50" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       {getStatusIcon(user?.onboardingStatus || 'pending')}
+                    </div>
+                  </div>
+                  <div className="space-y-4 text-center md:text-left">
+                     <div>
+                        <h4 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">
+                          {getStatusLabel(user?.onboardingStatus || 'pending')}
+                        </h4>
+                        <p className="text-slate-500 font-medium italic text-sm mt-1">
+                          {user?.onboardingStatus === 'approved_for_procurement' 
+                            ? "Your profile is fully verified. You can now participate in all procurement activities."
+                            : "Your profile is currently being reviewed by the MSME compliance department."}
+                        </p>
+                     </div>
+                     <Link to={user?.role === 'seller' ? '/seller/onboarding' : '/buyer/onboarding'}>
+                       <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 px-8 font-black uppercase italic text-xs tracking-widest shadow-lg shadow-indigo-100 transition-all hover:scale-105 active:scale-95">
+                          {user?.onboardingStatus === 'approved_for_procurement' ? 'View Full Profile' : 'Complete Profile'}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                       </Button>
+                     </Link>
+                  </div>
+               </div>
+            </CardContent>
+          </Card>
 
-            {!onboardingComplete ? (
-              <Link to={user?.role === 'seller' ? '/seller/onboarding' : '/buyer/onboarding'}>
-                <Button className="w-full space-x-2 h-11" variant="primary">
-                  <span>Complete Onboarding</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            ) : (
-              <Link to={user?.role === 'seller' ? '/seller/onboarding' : '/buyer/onboarding'}>
-                <Button className="w-full" variant="outline">View/Edit Profile</Button>
-              </Link>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Status Illustration */}
-        <Card className="h-full bg-slate-50 border-dashed border-2 flex items-center justify-center p-8">
-          <div className="text-center space-y-4">
-             <div className="mx-auto bg-white p-4 rounded-full shadow-sm w-max">
-                {getStatusIcon(user?.onboardingStatus || 'pending')}
-             </div>
-             <h3 className="text-xl font-bold capitalize">{user?.onboardingStatus || 'pending'}</h3>
-             <p className="text-sm text-slate-500 max-w-xs mx-auto">
-               {user?.onboardingStatus === 'pending' && "Your account is currently under review by our admin team. You will be notified once approved."}
-               {user?.onboardingStatus === 'approved' && "Congratulations! Your account is approved. You can now access full procurement features."}
-               {user?.onboardingStatus === 'rejected' && "Unfortunately, your application was not approved at this time. Please contact support for more information."}
-             </p>
-          </div>
-        </Card>
-      </div>
-
-      {user?.adminFeedback && (
-        <div className="p-6 rounded-2xl bg-amber-50 border border-amber-100 space-y-4 mb-6 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-amber-600" />
-            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Important: Message from Administrator</p>
-          </div>
-          <p className="text-sm font-medium text-amber-900 italic border-l-4 border-amber-200 pl-4 py-1">"{user.adminFeedback}"</p>
-        </div>
-      )}
-
-      {user?.onboardingStatus !== 'approved' && user?.sectionStatus && (
-        <Card className="border-indigo-100 bg-indigo-50/10 mb-6">
-          <CardHeader>
-            <CardTitle className="text-indigo-950 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-indigo-600" />
-              <span>Verification Breakdown</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
-              {Object.entries(user.sectionStatus).map(([section, status]: [string, any]) => (
-                <button
-                  key={section}
-                  type="button"
-                  onClick={() => navigate(sectionRouteMap[section]?.[user.role as 'seller' | 'buyer'] || '/dashboard')}
-                  className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm flex flex-col items-center text-center gap-2 transition-all hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
-                >
-                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{section}</p>
-                   <Badge variant={status === 'approved' ? 'success' : status === 'rejected' ? 'error' : 'warning'} className="w-full justify-center capitalize">
-                      {status}
-                   </Badge>
-                </button>
-              ))}
-            </div>
-            {sectionMessages.length > 0 && (
-              <div className="rounded-2xl border border-red-100 bg-red-50 p-5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-red-700">Rejected section messages</p>
+          {/* Quick Actions / Info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                   <Info className="h-5 w-5" />
                 </div>
-                {sectionMessages.map(([section, reason]) => (
-                  <button
-                    key={section}
-                    type="button"
-                    onClick={() => navigate(sectionRouteMap[section]?.[user.role as 'seller' | 'buyer'] || '/dashboard')}
-                    className="w-full rounded-xl bg-white p-4 text-left transition-all hover:shadow-sm"
+                <h5 className="font-black text-slate-900 uppercase italic text-sm">Need Help?</h5>
+                <p className="text-xs font-medium text-slate-500 italic leading-relaxed">Our support team is available 24/7 to help you with the GeM-style onboarding process.</p>
+                <Button variant="ghost" className="text-blue-600 font-black uppercase italic text-[10px] p-0 h-auto hover:bg-transparent">Contact Support</Button>
+             </div>
+             <div className="bg-slate-900 p-6 rounded-3xl shadow-xl shadow-slate-200 space-y-4 text-white overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-6 opacity-10">
+                   <ShieldCheck className="h-20 w-20" />
+                </div>
+                <h5 className="font-black uppercase italic text-sm">Trust & Security</h5>
+                <p className="text-xs font-medium text-slate-400 italic leading-relaxed">Your data is encrypted and stored in compliance with MSME data sovereignty rules.</p>
+                <Badge className="bg-white/10 text-white border-none rounded-lg px-3 py-1 font-black italic text-[9px]">AES-256 SECURED</Badge>
+             </div>
+          </div>
+        </div>
+
+        {/* Notification Panel */}
+        <div className="space-y-6">
+           <div className="flex items-center justify-between px-2">
+              <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest italic flex items-center gap-2">
+                 <Bell className="h-4 w-4" />
+                 Notifications
+              </h3>
+              {sectionMessages.length > 0 && (
+                <span className="flex h-2 w-2 rounded-full bg-red-500 animate-ping" />
+              )}
+           </div>
+
+           <div className="space-y-4">
+              {user?.adminFeedback && (
+                <div className="bg-amber-50 border border-amber-100 p-6 rounded-3xl space-y-3 animate-in slide-in-from-right-4 duration-500">
+                   <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-amber-600" />
+                      <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Admin Remark</p>
+                   </div>
+                   <p className="text-sm font-semibold text-amber-900 italic leading-relaxed">"{user.adminFeedback}"</p>
+                </div>
+              )}
+
+              {sectionMessages.length > 0 ? (
+                sectionMessages.map(([section, reason]) => (
+                  <Link 
+                    key={section} 
+                    to={user?.role === 'seller' ? '/seller/onboarding' : '/buyer/onboarding'}
+                    className="block bg-red-50 border border-red-100 p-6 rounded-3xl space-y-3 transition-all hover:shadow-md group animate-in slide-in-from-right-4 duration-500"
                   >
-                    <p className="text-[10px] font-black uppercase tracking-widest text-red-500">{sectionLabels[section] || section}</p>
-                    <p className="mt-1 text-sm font-medium italic text-red-950">"{reason}"</p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {onboardingComplete && profile && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Business Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Company Name</p>
-                  <p className="text-sm font-medium text-slate-900 mt-1">{profile.businessName || profile.organizationName}</p>
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                           <AlertTriangle className="h-4 w-4 text-red-500" />
+                           <p className="text-[10px] font-black text-red-600 uppercase tracking-widest">Rejection Alert</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-red-300 group-hover:translate-x-1 transition-transform" />
+                     </div>
+                     <p className="text-[11px] font-black text-slate-900 uppercase italic">Section: {section}</p>
+                     <p className="text-sm font-semibold text-red-900 italic leading-relaxed">"{reason}"</p>
+                  </Link>
+                ))
+              ) : !user?.adminFeedback ? (
+                <div className="bg-white border border-slate-100 p-12 rounded-3xl text-center space-y-3 italic opacity-60">
+                   <Bell className="h-8 w-8 text-slate-300 mx-auto" />
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No New Notifications</p>
                 </div>
-                <div>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tax ID (GST)</p>
-                   <p className="text-sm font-medium text-slate-900 mt-1">{profile.gst}</p>
-                </div>
-                <div>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">City/State</p>
-                   <p className="text-sm font-medium text-slate-900 mt-1">{profile.city}, {profile.state}</p>
-                </div>
-                <div>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Submitted On</p>
-                   <p className="text-sm font-medium text-slate-900 mt-1">{profile.updatedAt ? new Date(profile.updatedAt).toLocaleDateString() : 'N/A'}</p>
-                </div>
-             </div>
-          </CardContent>
-        </Card>
-      )}
+              ) : null}
+           </div>
+        </div>
+      </div>
     </div>
   );
 }

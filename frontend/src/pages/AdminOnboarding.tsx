@@ -53,17 +53,21 @@ export default function AdminOnboarding() {
         toast.success(`Complete application ${status}`);
         if (selectedItem && selectedItem._id === userId) {
           const sectionStatus = status === 'approved' ? {
-            basic: 'approved',
-            business: 'approved',
-            compliance: 'approved',
+            pan: 'approved',
+            details: 'approved',
+            additional: 'approved',
+            offices: 'approved',
             bank: 'approved',
-            documents: 'approved'
+            einvoicing: 'approved',
+            ownership: 'approved'
           } : status === 'rejected' ? {
-            basic: 'rejected',
-            business: 'rejected',
-            compliance: 'rejected',
+            pan: 'rejected',
+            details: 'rejected',
+            additional: 'rejected',
+            offices: 'rejected',
             bank: 'rejected',
-            documents: 'rejected'
+            einvoicing: 'rejected',
+            ownership: 'rejected'
           } : selectedItem.sectionStatus;
 
           setSelectedItem({ ...selectedItem, status, sectionStatus });
@@ -88,7 +92,7 @@ export default function AdminOnboarding() {
         toast.success(`${section} status updated to ${status}`);
         if (selectedItem && selectedItem._id === userId) {
           const updatedSectionStatus = { 
-            ...(selectedItem.sectionStatus || { basic: 'pending', business: 'pending', compliance: 'pending', bank: 'pending', documents: 'pending' }), 
+            ...(selectedItem.sectionStatus || { pan: 'pending', details: 'pending', additional: 'pending', offices: 'pending', bank: 'pending', einvoicing: 'pending', ownership: 'pending' }), 
             [section]: status 
           };
           setSelectedItem({ ...selectedItem, sectionStatus: updatedSectionStatus });
@@ -191,8 +195,9 @@ export default function AdminOnboarding() {
 
   const getProgress = (item: any) => {
     if (!item?.sectionStatus) return 0;
+    const sections = ['pan', 'details', 'additional', 'offices', 'bank', 'einvoicing', 'ownership'];
     const count = Object.values(item.sectionStatus).filter(s => s === 'approved').length;
-    return Math.round((count / 5) * 100);
+    return Math.round((count / sections.length) * 100);
   };
 
   return (
@@ -299,11 +304,11 @@ export default function AdminOnboarding() {
                           <div className="space-y-2">
                             {getStatusBadge(item.onboardingStatus)}
                             <div className="flex space-x-0.5">
-                              {['basic', 'business', 'compliance', 'bank', 'documents'].map(section => (
+                              {['pan', 'details', 'additional', 'offices', 'bank', 'einvoicing', 'ownership'].map(section => (
                                 <div 
                                   key={section} 
                                   className={cn(
-                                    "h-1.5 w-4 rounded-full",
+                                    "h-1.5 w-3 rounded-full",
                                     item.sectionStatus?.[section] === 'approved' ? "bg-green-500" : 
                                     item.sectionStatus?.[section] === 'rejected' ? "bg-red-500" : "bg-slate-200"
                                   ) || ""} 
@@ -486,207 +491,164 @@ export default function AdminOnboarding() {
 
                 {/* Right Area: Structured Sections (Grid col-span-2) */}
                 <div className="lg:col-span-2 space-y-12">
-                   {/* Section 1: Basic Information */}
+                   {/* Section 1: PAN */}
                    <div className="group">
                       <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
                         <div className="flex items-center space-x-3">
                            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
                              <ShieldCheck className="h-4 w-4" />
                            </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest italic">1. Basic Information</h4>
+                           <h4 className="text-xs font-black text-slate-700 uppercase italic">1. Business PAN Validation</h4>
                         </div>
                         <div className="flex space-x-2">
-                           <button 
-                            onClick={() => handleUpdateSectionStatus(selectedItem._id, 'basic', 'approved')}
-                            className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", 
-                              selectedItem.sectionStatus?.basic === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white"
-                            )}
-                           >
-                             <Check className="h-3 w-3" />
-                           </button>
-                           <button 
-                            onClick={() => openRejectionModal('basic')}
-                            className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", 
-                              selectedItem.sectionStatus?.basic === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white"
-                            )}
-                           >
-                             <X className="h-3 w-3" />
-                           </button>
-                        </div>
-                      </div>
-                      <div className="grid md:grid-cols-2 gap-8">
-                         <InfoItem label="Business Name" value={selectedItem.profile?.businessName || selectedItem.profile?.organizationName} highlight />
-                         <InfoItem label="Business Type" value={selectedItem.profile?.businessType} />
-                         <InfoItem label="Incorporation Date" value={selectedItem.profile?.dateOfIncorporation ? new Date(selectedItem.profile.dateOfIncorporation).toLocaleDateString() : 'N/A'} />
-                         <InfoItem label="Legal Entity" value={selectedItem.profile?.legalEntityType || 'N/A'} />
-                      </div>
-                   </div>
-
-                   {/* Section 2: Business Details */}
-                   <div className="group">
-                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
-                        <div className="flex items-center space-x-3">
-                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                             <MapPin className="h-4 w-4" />
-                           </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest italic">2. Business Details</h4>
-                        </div>
-                        <div className="flex space-x-2">
-                           <button 
-                            onClick={() => handleUpdateSectionStatus(selectedItem._id, 'business', 'approved')}
-                            className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", 
-                              selectedItem.sectionStatus?.business === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white"
-                            )}
-                           >
-                             <Check className="h-3 w-3" />
-                           </button>
-                           <button 
-                            onClick={() => openRejectionModal('business')}
-                            className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", 
-                              selectedItem.sectionStatus?.business === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white"
-                            )}
-                           >
-                             <X className="h-3 w-3" />
-                           </button>
-                        </div>
-                      </div>
-                      <div className="grid md:grid-cols-2 gap-8">
-                         <div className="md:col-span-2">
-                           <InfoItem label="Registered Address" value={selectedItem.profile?.fullAddress || selectedItem.profile?.registeredAddress} />
-                         </div>
-                         <InfoItem label="City" value={selectedItem.profile?.city} />
-                         <InfoItem label="State" value={selectedItem.profile?.state} />
-                         <InfoItem label="Pincode" value={selectedItem.profile?.pincode} />
-                         <InfoItem label="Aggregate Turnover" value={selectedItem.profile?.turnover || selectedItem.profile?.annualBudget || 'N/A'} highlight />
-                      </div>
-                   </div>
-
-                   {/* Section 3: Compliance */}
-                   <div className="group">
-                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
-                        <div className="flex items-center space-x-3">
-                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                             <Briefcase className="h-4 w-4" />
-                           </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest italic">3. Compliance (GST/PAN)</h4>
-                        </div>
-                        <div className="flex space-x-2">
-                           <button 
-                            onClick={() => handleUpdateSectionStatus(selectedItem._id, 'compliance', 'approved')}
-                            className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", 
-                              selectedItem.sectionStatus?.compliance === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white"
-                            )}
-                           >
-                             <Check className="h-3 w-3" />
-                           </button>
-                           <button 
-                            onClick={() => openRejectionModal('compliance')}
-                            className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", 
-                              selectedItem.sectionStatus?.compliance === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white"
-                            )}
-                           >
-                             <X className="h-3 w-3" />
-                           </button>
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'pan', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.pan === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
+                           <button onClick={() => openRejectionModal('pan')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.pan === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
                         </div>
                       </div>
                       <div className="grid md:grid-cols-2 gap-8">
                          <InfoItem label="PAN Number" value={selectedItem.profile?.pan} mono highlight />
-                         <InfoItem label="GST Number" value={selectedItem.profile?.gst || 'N/A'} mono highlight />
-                         <InfoItem label="Aadhaar Number" value={selectedItem.profile?.aadhaarNumber || 'N/A'} mono />
-                         <InfoItem label="Udyam Number" value={selectedItem.profile?.udyam || 'N/A'} mono />
+                         <InfoItem label="Name in PAN" value={selectedItem.profile?.nameAsInPan} />
+                         <InfoItem label="Date in PAN" value={selectedItem.profile?.dateAsInPan ? new Date(selectedItem.profile.dateAsInPan).toLocaleDateString() : 'N/A'} />
+                         <InfoItem label="Verification Status" value={selectedItem.profile?.panVerified ? 'VERIFIED' : 'PENDING'} highlight />
                       </div>
                    </div>
 
-                   {/* Section 4: Bank Details */}
+                   {/* Section 2: Details */}
                    <div className="group">
                       <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
                         <div className="flex items-center space-x-3">
                            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
                              <Building2 className="h-4 w-4" />
                            </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest italic">4. Bank Details</h4>
+                           <h4 className="text-xs font-black text-slate-700 uppercase italic">2. Business Details</h4>
                         </div>
                         <div className="flex space-x-2">
-                           <button 
-                            onClick={() => handleUpdateSectionStatus(selectedItem._id, 'bank', 'approved')}
-                            className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", 
-                              selectedItem.sectionStatus?.bank === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white"
-                            )}
-                           >
-                             <Check className="h-3 w-3" />
-                           </button>
-                           <button 
-                            onClick={() => openRejectionModal('bank')}
-                            className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", 
-                              selectedItem.sectionStatus?.bank === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white"
-                            )}
-                           >
-                             <X className="h-3 w-3" />
-                           </button>
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'details', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.details === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
+                           <button onClick={() => openRejectionModal('details')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.details === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
                         </div>
                       </div>
                       <div className="grid md:grid-cols-2 gap-8">
-                         <InfoItem label="Bank Account" value={selectedItem.profile?.bankAccount || 'N/A'} mono />
-                         <InfoItem label="IFSC Code" value={selectedItem.profile?.ifsc || 'N/A'} mono />
-                         <div className="md:col-span-2">
-                           <InfoItem label="Branch Name" value={selectedItem.profile?.branchName || 'N/A'} />
-                         </div>
+                         <InfoItem label="Organization Name" value={selectedItem.profile?.businessName} highlight />
+                         <InfoItem label="Date of Incorporation" value={selectedItem.profile?.dateOfIncorporation ? new Date(selectedItem.profile.dateOfIncorporation).toLocaleDateString() : 'N/A'} />
                       </div>
                    </div>
 
-                   {/* Section 5: Documents */}
-                   <div className="group pb-12">
+                   {/* Section 3: Additional */}
+                   <div className="group">
+                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                        <div className="flex items-center space-x-3">
+                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                             <Briefcase className="h-4 w-4" />
+                           </div>
+                           <h4 className="text-xs font-black text-slate-700 uppercase italic">3. Additional Details</h4>
+                        </div>
+                        <div className="flex space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'additional', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.additional === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
+                           <button onClick={() => openRejectionModal('additional')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.additional === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        </div>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-8">
+                         <InfoItem label="Startup Status" value={selectedItem.profile?.isStartup ? 'YES' : 'NO'} />
+                         <InfoItem label="Udyam Certified" value={selectedItem.profile?.isUdyamCertified ? 'YES' : 'NO'} />
+                         <InfoItem label="Bid Participation" value={selectedItem.profile?.participateInBid ? 'YES' : 'NO'} />
+                      </div>
+                   </div>
+
+                   {/* Section 4: Offices */}
+                   <div className="group">
+                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                        <div className="flex items-center space-x-3">
+                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                             <MapPin className="h-4 w-4" />
+                           </div>
+                           <h4 className="text-xs font-black text-slate-700 uppercase italic">4. Office Locations</h4>
+                        </div>
+                        <div className="flex space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'offices', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.offices === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
+                           <button onClick={() => openRejectionModal('offices')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.offices === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                         {selectedItem.profile?.offices?.map((office: any) => (
+                           <div key={office.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-start">
+                              <div className="space-y-1">
+                                 <p className="text-sm font-black text-slate-900 uppercase italic">{office.name} <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full ml-2 not-italic">{office.type}</span></p>
+                                 <p className="text-[11px] font-medium text-slate-600 uppercase">{office.address}</p>
+                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{office.city}, {office.state} - {office.pincode}</p>
+                              </div>
+                              {office.gstRegistered && <Badge variant="success" className="text-[8px]">GST REG</Badge>}
+                           </div>
+                         ))}
+                         {(!selectedItem.profile?.offices || selectedItem.profile.offices.length === 0) && <p className="text-[10px] font-bold text-slate-400 italic">No offices registered.</p>}
+                      </div>
+                   </div>
+
+                   {/* Section 5: Bank */}
+                   <div className="group">
+                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                        <div className="flex items-center space-x-3">
+                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                             <Building2 className="h-4 w-4" />
+                           </div>
+                           <h4 className="text-xs font-black text-slate-700 uppercase italic">5. Bank Accounts</h4>
+                        </div>
+                        <div className="flex space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'bank', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.bank === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
+                           <button onClick={() => openRejectionModal('bank')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.bank === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                         {selectedItem.profile?.bankAccounts?.map((bank: any) => (
+                           <div key={bank.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-start">
+                              <div className="space-y-1">
+                                 <p className="text-sm font-black text-slate-900 uppercase italic">{bank.bankName} {bank.isPrimary && <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full ml-2 not-italic">PRIMARY</span>}</p>
+                                 <p className="text-[11px] font-bold text-slate-700 uppercase">A/C: <span className="text-slate-900">{bank.accountNumber}</span> | IFSC: <span className="text-slate-900">{bank.ifsc}</span></p>
+                                 <p className="text-[10px] font-medium text-slate-500 uppercase">Holder: {bank.holderName}</p>
+                                 <p className="text-[10px] font-medium text-slate-400 uppercase italic">{bank.bankAddress}</p>
+                              </div>
+                              {bank.isVerified && <Badge variant="success" className="text-[8px] h-5">VERIFIED</Badge>}
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+
+                   {/* Section 6: e-Invoicing */}
+                   <div className="group">
                       <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
                         <div className="flex items-center space-x-3">
                            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
                              <FileText className="h-4 w-4" />
                            </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest italic">5. Documents</h4>
+                           <h4 className="text-xs font-black text-slate-700 uppercase italic">6. e-Invoicing</h4>
                         </div>
                         <div className="flex space-x-2">
-                           <button 
-                            onClick={() => handleUpdateSectionStatus(selectedItem._id, 'documents', 'approved')}
-                            className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", 
-                              selectedItem.sectionStatus?.documents === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white"
-                            )}
-                           >
-                             <Check className="h-3 w-3" />
-                           </button>
-                           <button 
-                            onClick={() => openRejectionModal('documents')}
-                            className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", 
-                              selectedItem.sectionStatus?.documents === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white"
-                            )}
-                           >
-                             <X className="h-3 w-3" />
-                           </button>
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'einvoicing', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.einvoicing === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
+                           <button onClick={() => openRejectionModal('einvoicing')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.einvoicing === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                         {selectedItem.profile?.documents ? (
-                           Object.entries(selectedItem.profile.documents).map(([key, url]: [string, any]) => (
-                             url ? (
-                               <a 
-                                 key={key} 
-                                 href={url} 
-                                 target="_blank" 
-                                 rel="noopener noreferrer"
-                                 onClick={(e) => e.stopPropagation()}
-                                 className="group/doc flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-400 hover:bg-white hover:shadow-xl hover:shadow-indigo-500/10 transition-all text-left"
-                               >
-                                 <span className="text-[10px] font-black text-slate-500 group-hover/doc:text-indigo-600 uppercase tracking-tighter">
-                                   {key.replace(/([A-Z])/g, ' $1').trim()}
-                                 </span>
-                                 <div className="flex items-center gap-2">
-                                   <Badge variant="success" className="text-[8px] px-1 py-0 rounded">VIEW</Badge>
-                                   <FileText className="h-3 w-3 text-slate-300 group-hover/doc:text-indigo-400" />
-                                 </div>
-                               </a>
-                             ) : null
-                           ))
-                         ) : (
-                           <p className="text-[10px] font-bold text-slate-400 italic col-span-2">No documents uploaded yet.</p>
-                         )}
+                      <div className="grid md:grid-cols-2 gap-8">
+                         <InfoItem label="Turnover (Last 3 yrs)" value={selectedItem.profile?.turnoverMax3Yrs} highlight />
+                         <InfoItem label="Excluded Status" value={selectedItem.profile?.eInvoicingExcluded ? 'EXEMPT' : 'APPLICABLE'} />
+                      </div>
+                   </div>
+
+                   {/* Section 7: Ownership */}
+                   <div className="group pb-12">
+                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                        <div className="flex items-center space-x-3">
+                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                             <ShieldCheck className="h-4 w-4" />
+                           </div>
+                           <h4 className="text-xs font-black text-slate-700 uppercase italic">7. Beneficial Ownership</h4>
+                        </div>
+                        <div className="flex space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'ownership', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.ownership === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
+                           <button onClick={() => openRejectionModal('ownership')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.ownership === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        </div>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-8">
+                         <InfoItem label="Declaration Accepted" value={selectedItem.profile?.ownershipDeclarationAccepted ? 'YES' : 'NO'} highlight />
+                         <InfoItem label="Verification Status" value={selectedItem.profile?.ownershipVerified ? 'VERIFIED' : 'PENDING'} />
                       </div>
                    </div>
                 </div>

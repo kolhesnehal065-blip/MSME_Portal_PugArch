@@ -1,0 +1,214 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  seller
+  buyer
+  admin
+}
+
+enum RegistrationStatus {
+  incomplete
+  completed
+}
+
+enum OnboardingStatus {
+  pending
+  pending_validation
+  under_compliance_review
+  resubmission_required
+  approved_for_procurement
+  rejected
+}
+
+enum TenderStatus {
+  draft
+  active
+  closed
+}
+
+model User {
+  id                      Int                @id @default(autoincrement())
+  name                    String
+  email                   String             @unique
+  password                String
+  role                    Role
+  registrationStatus      RegistrationStatus @default(incomplete)
+  onboardingStatus        OnboardingStatus   @default(pending)
+  sectionStatus           Json?              // Stores {basic, business, compliance, bank, documents}
+  sectionRejectionReasons Json?              // Stores rejection reasons for each section
+  registrationDetails     Json?              // Stores businessType, verificationMethod, isEmailVerified
+  adminFeedback           String?            @default("")
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+
+  buyerProfile            BuyerProfile?
+  sellerProfile           SellerProfile?
+  tenders                 Tender[]
+}
+
+model BuyerProfile {
+  id                 Int      @id @default(autoincrement())
+  userId             Int      @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Organization Details
+  organizationName   String
+  businessType       String
+  industry           String
+  cin                String?
+  pan                String
+  gst                String?
+  website            String?
+  
+  // Authorized Representative
+  representativeName String
+  designation        String?
+  department         String?
+  email              String?
+  mobile             String
+  alternateMobile    String?
+  
+  // Organization Address
+  country            String   @default("India")
+  state              String
+  city               String
+  pincode            String
+  registeredAddress  String
+  corporateAddress   String?
+  
+  // Procurement Profile
+  procurementCategories String[]
+  otherCategoryDetails  String?
+  annualBudget          String?
+  preferredMethods      String[]
+  
+  // Documents (Storage URLs)
+  documents             Json?    // Stores URLs for panCard, gstCert, authLetter, etc.
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model SellerProfile {
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Step 1: Business PAN Validation
+  organizationType    String?  // e.g., Proprietorship, Partnership, Pvt Ltd
+  pan                 String   @unique
+  nameAsInPan         String?
+  dateAsInPan         DateTime?
+  panVerified         Boolean  @default(false)
+
+  // Step 2: Business Details
+  businessName        String?
+  dateOfIncorporation DateTime?
+  detailsUpdated      Boolean  @default(false) // Logic: Editable only once
+
+  // Step 3: Additional Details
+  isStartup           Boolean  @default(false)
+  isUdyamCertified    Boolean  @default(false)
+  participateInBid    Boolean  @default(false)
+  optForSahay         Boolean  @default(false)
+
+  // Step 4: Office Locations (Managed via SellerOffice model)
+  offices             SellerOffice[]
+
+  // Step 5: Bank Accounts (Managed via SellerBankAccount model)
+  bankAccounts        SellerBankAccount[]
+
+  // Step 6: e-Invoicing
+  turnoverMax3Yrs     String?
+  eInvoicingExcluded  Boolean  @default(false)
+
+  // Step 7: Beneficial Ownership Compliance
+  ownershipDeclarationAccepted Boolean @default(false)
+  ownershipVerified            Boolean @default(false)
+
+  // Legacy / General Fields (kept for compatibility)
+  msmeCategory        String?
+  productCategories    String[]
+  otherCategoryDetails String?
+  productList          String?
+  detailedProductName  String?
+  hsnCode              String?
+  brand                String?
+  specifications       String?
+  documents            Json?    // Stores URLs for miscellaneous docs
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model SellerOffice {
+  id              Int           @id @default(autoincrement())
+  sellerProfileId Int
+  sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+  
+  name            String
+  type            String        // Registered, Branch, Warehouse
+  gstRegistered   Boolean       @default(false)
+  gstNumber       String?
+  declaringAs     String?
+  pincode         String
+  state           String
+  city            String
+  address         String
+  isMandatory     Boolean       @default(false) // Registered office is mandatory
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model SellerBankAccount {
+  id              Int           @id @default(autoincrement())
+  sellerProfileId Int
+  sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+  
+  ifsc            String
+  bankName        String
+  bankAddress     String
+  holderName      String
+  accountNumber   String
+  isPrimary       Boolean       @default(false)
+  isVerified      Boolean       @default(false)
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Tender {
+  id          Int          @id @default(autoincrement())
+  buyerId     Int
+  buyer       User         @relation(fields: [buyerId], references: [id])
+  tenderId    String       @unique
+  title       String
+  category    String
+  budget      Float
+  description String
+  status      TenderStatus @default(draft)
+  bidsCount   Int          @default(0)
+  closesAt    DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Otp {
+  id         Int      @id @default(autoincrement())
+  email      String
+  otp        String
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+}

@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-console.log('--- BACKEND index.ts EXECUTING ---');
+console.log('--- BACKEND index.ts (PRISMA) EXECUTING ---');
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -13,17 +13,12 @@ dotenv.config({
 });
 
 import express from 'express';
-import mongoose from 'mongoose';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-// Import Models
-import { User } from './src/models/User.js';
-import { SellerProfile } from './src/models/SellerProfile.js';
-import { BuyerProfile } from './src/models/BuyerProfile.js';
-import { Otp } from './src/models/Otp.js';
-// (Tender model moved directly below to avoid import issues)
+// Import Prisma Client
+import prisma from './src/lib/prisma.js';
 import { authenticate, authorizeAdmin } from './src/middleware/auth.js';
 import type { AuthRequest } from './src/middleware/auth.js';
 import nodemailer from 'nodemailer';
@@ -31,9 +26,8 @@ import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-procure-key';
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pugarch';
 
-// Cloudinary Configuration - loads CLOUDINARY_URL automatically
+// Cloudinary Configuration
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -50,39 +44,15 @@ const upload = multer({ storage });
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: Number(process.env.SMTP_PORT) || 587,
-  secure: false, // false for port 587 (STARTTLS), true for port 465
+  secure: false,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
   tls: {
-    rejectUnauthorized: false // allows self-signed certs in dev
+    rejectUnauthorized: false
   }
 });
-
-// Global Exception Logging
-process.on('uncaughtException', (err) => {
-  const logMsg = `[${new Date().toISOString()}] UNCAUGHT EXCEPTION: ${err.stack}\n`;
-  try {
-    fs.appendFileSync('backend-debug.log', logMsg);
-  } catch (e) {}
-  console.error(logMsg);
-});
-
-// Tender Model Definition
-const tenderSchema = new mongoose.Schema({
-  buyerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  tenderId: { type: String, required: true, unique: true },
-  title: { type: String, required: true },
-  category: { type: String, required: true },
-  budget: { type: Number, required: true },
-  description: { type: String, required: true },
-  status: { type: String, enum: ['draft', 'active', 'closed'], default: 'draft' },
-  closesAt: { type: Date },
-  bidsCount: { type: Number, default: 0 }
-}, { timestamps: true });
-
-const Tender = mongoose.models.Tender || mongoose.model('Tender', tenderSchema);
 
 async function startServer() {
   const app = express();
@@ -99,7 +69,6 @@ async function startServer() {
   }));
   app.use(express.json());
 
-  // Request Logging Middleware
   app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
@@ -107,578 +76,575 @@ async function startServer() {
 
   app.get("/", (req, res) => {
     res.json({
-      message: "PugArch MSME Marketplace API is running",
+      message: "PugArch MSME Marketplace API (Prisma/PostgreSQL) is running",
       health: "/api/test"
     });
   });
 
-  // Test Route for verifying connection
   app.get("/api/test", (req, res) => res.json({ message: "API working" }));
-  
-  // Direct test route for Tender API (no auth)
-  app.get("/api/tenders-test", (req, res) => res.json({ message: "Tender API Reachable" }));
 
   // --- Tender APIs ---
   app.get('/api/tenders', authenticate, async (req: AuthRequest, res) => {
     try {
-      console.log('GET /api/tenders requested by:', req.user?.id);
-      const tenders = await Tender.find({ buyerId: req.user?.id }).sort({ createdAt: -1 });
+      const tenders = await prisma.tender.findMany({
+        where: { buyerId: Number(req.user?.id) },
+        orderBy: { createdAt: 'desc' }
+      });
       res.json(tenders);
     } catch (err: any) {
-      console.error('Error fetching tenders:', err);
       res.status(500).json({ message: err.message });
     }
   });
 
   app.post('/api/tenders', authenticate, async (req: AuthRequest, res) => {
     try {
-      console.log('POST /api/tenders request received:', req.body);
       if (req.user?.role !== 'buyer') {
-        console.log('Unauthorized: Role is not buyer', req.user?.role);
         return res.status(403).json({ message: 'Only buyers can create tenders' });
       }
-      
-      const count = await Tender.countDocuments();
-      // Use a more robust ID generation for now to avoid conflicts
+
       const tenderId = `T-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-      console.log('Generated tenderId:', tenderId);
-      
-      const tender = new Tender({
-        ...req.body,
-        buyerId: req.user.id,
-        tenderId,
-        closesAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000) // Default 15 days
+
+      const tender = await prisma.tender.create({
+        data: {
+          ...req.body,
+          buyerId: Number(req.user.id),
+          tenderId,
+          closesAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+        }
       });
-      
-      await tender.save();
-      console.log('Tender saved successfully:', tender.tenderId);
+
       res.status(201).json(tender);
     } catch (err: any) {
-      console.error('Tender creation error:', err);
       res.status(500).json({ message: err.message });
     }
   });
 
-  // Connect to MongoDB
-  mongoose.connect(MONGODB_URI, {
-    connectTimeoutMS: 10000,
-    serverSelectionTimeoutMS: 10000,
-  })
-    .then(async () => {
-      console.log('Connected to MongoDB');
-      // Seed sample data if empty
-      try {
-        const userCount = await User.countDocuments();
-        if (userCount === 1) { // Only the admin who just registered exists
-          console.log('Seeding sample data...');
-          const sampleUsers = [
-            { name: 'Rajesh Kumar', email: 'rajesh@texcorp.com', password: 'password123', role: 'seller', status: 'approved' },
-            { name: 'Anita Desai', email: 'anita@fashionhub.in', password: 'password123', role: 'seller', status: 'pending' },
-            { name: 'Vikram Singh', email: 'vikram@steelworks.com', password: 'password123', role: 'seller', status: 'pending' },
-            { name: 'Suresh Raina', email: 'suresh@buildcon.com', password: 'password123', role: 'buyer', status: 'approved' },
-            { name: 'Priya Sharma', email: 'priya@retailnexus.com', password: 'password123', role: 'buyer', status: 'pending' },
-          ];
-          
-          for (const u of sampleUsers) {
-            const newUser = new User(u);
-            await newUser.save();
-            
-            if (u.role === 'seller') {
-              await SellerProfile.create({
-                userId: newUser._id,
-                applicantName: u.name,
-                businessName: u.email.split('@')[1].split('.')[0].toUpperCase() + ' Corp',
-                businessType: 'Pvt Ltd',
-                pan: 'ABCDE1234F',
-                mobile: '9876543210',
-                state: 'Maharashtra',
-                city: 'Mumbai',
-                pincode: '400001',
-                fullAddress: '123, Business Park, Andheri East',
-                gst: '27ABCDE1234F1Z5',
-                productCategories: ['Textiles', 'Raw Materials'],
-                bankAccount: '123456789012',
-                ifsc: 'HDFC0001234'
-              });
-            } else {
-              await BuyerProfile.create({
-                userId: newUser._id,
-                organizationName: u.email.split('@')[1].split('.')[0].toUpperCase() + ' Solutions',
-                businessType: 'Partnership',
-                industry: 'Construction',
-                pan: 'BCDEF2345G',
-                representativeName: u.name,
-                mobile: '9123456789',
-                state: 'Karnataka',
-                city: 'Bangalore',
-                pincode: '560001',
-                registeredAddress: '45, Tech Center, MG Road',
-                gst: '29BCDEF2345G1Z2',
-                annualBudget: '₹50,00,000 - ₹1,00,00,000',
-                procurementCategories: ['Plumbing', 'Electrical']
-              });
-            }
-          }
-          
-          // Seed sample tenders
-          const sampleTenders = [
-            {
-              buyerId: await User.findOne({ email: 'suresh@buildcon.com' }).then(u => u?._id),
-              tenderId: 'T-2026-0142',
-              title: 'Supply of 500 ergonomic office chairs',
-              category: 'Furniture',
-              budget: 2500000,
-              description: 'High-quality ergonomic chairs for new HQ campus.',
-              status: 'active',
-              bidsCount: 14,
-              closesAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000)
-            },
-            {
-              buyerId: await User.findOne({ email: 'suresh@buildcon.com' }).then(u => u?._id),
-              tenderId: 'T-2026-0138',
-              title: 'Annual cloud hosting & managed services',
-              category: 'Software & Cloud',
-              budget: 18000000,
-              description: 'Enterprise cloud hosting for all internal applications.',
-              status: 'active',
-              bidsCount: 7,
-              closesAt: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000)
-            },
-            {
-              buyerId: await User.findOne({ email: 'suresh@buildcon.com' }).then(u => u?._id),
-              tenderId: 'T-2026-0131',
-              title: 'Quarterly catering services — HQ campus',
-              category: 'Catering',
-              budget: 4200000,
-              description: 'Daily meals for 500+ employees.',
-              status: 'active',
-              bidsCount: 22,
-              closesAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
-            }
-          ];
+  // --- Seed Data Logic ---
+  try {
+    const userCount = await prisma.user.count();
+    if (userCount === 0) {
+      console.log('Seeding sample data for Prisma...');
+      const hashedPassword = await bcrypt.hash('password123', 10);
 
-          for (const t of sampleTenders) {
-            if (t.buyerId) {
-              await Tender.findOneAndUpdate({ tenderId: t.tenderId }, t, { upsert: true });
-            }
-          }
-
-          console.log('Seeding completed.');
+      // Admin
+      await prisma.user.create({
+        data: {
+          name: 'Admin User',
+          email: 'admin@pugarch.com',
+          password: hashedPassword,
+          role: 'admin',
+          registrationStatus: 'completed',
+          onboardingStatus: 'approved_for_procurement'
         }
-      } catch (seedErr) {
-        console.error('Seeding error:', seedErr);
-      }
-    })
-    .catch(err => {
-      console.error('MongoDB connection error. Make sure MONGODB_URI is valid in .env:', err);
-    });
+      });
 
-  // --- API Routes ---
-  
+      // Sample Users
+      const sampleUsers = [
+        { name: 'Rajesh Kumar', email: 'rajesh@texcorp.com', role: 'seller' as const },
+        { name: 'Suresh Raina', email: 'suresh@buildcon.com', role: 'buyer' as const },
+      ];
+
+      for (const u of sampleUsers) {
+        const user = await prisma.user.create({
+          data: {
+            name: u.name,
+            email: u.email,
+            password: hashedPassword,
+            role: u.role,
+            registrationStatus: 'completed',
+            onboardingStatus: 'approved_for_procurement'
+          }
+        });
+
+        if (u.role === 'seller') {
+          await prisma.sellerProfile.create({
+            data: {
+              userId: user.id,
+              organizationType: 'Pvt Ltd',
+              pan: 'ABCDE1234F',
+              nameAsInPan: u.name,
+              panVerified: true,
+              businessName: 'TEXCORP',
+              productCategories: ['Textiles'],
+            }
+          });
+        } else {
+          await prisma.buyerProfile.create({
+            data: {
+              userId: user.id,
+              organizationName: 'BUILDCON',
+              businessType: 'Partnership',
+              industry: 'Construction',
+              pan: 'BCDEF2345G',
+              representativeName: u.name,
+              mobile: '9123456789',
+              state: 'Karnataka',
+              city: 'Bangalore',
+              pincode: '560001',
+              registeredAddress: '45, Tech Center, MG Road',
+              gst: '29BCDEF2345G1Z2',
+            }
+          });
+
+          // Add a tender for the buyer
+          await prisma.tender.create({
+            data: {
+              buyerId: user.id,
+              tenderId: 'T-2026-0001',
+              title: 'Office Furniture Supply',
+              category: 'Furniture',
+              budget: 500000,
+              description: 'Need ergonomic chairs and desks.',
+              status: 'active',
+              closesAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
+            }
+          });
+        }
+      }
+      console.log('Seeding completed.');
+    }
+  } catch (err) {
+    console.error('Seeding error:', err);
+  }
+
   // --- File Upload ---
   app.post('/api/upload', authenticate, upload.single('file'), async (req: any, res: any) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ message: 'No file uploaded' });
-      }
-
-      // Convert buffer to base64
+      if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
       const b64 = Buffer.from(req.file.buffer).toString('base64');
       let dataURI = 'data:' + req.file.mimetype + ';base64,' + b64;
-
       const result = await cloudinary.uploader.upload(dataURI, {
         folder: 'msme_marketplace_docs',
         resource_type: 'auto'
       });
-
-      res.json({
-        url: result.secure_url,
-        publicId: result.public_id
-      });
+      res.json({ url: result.secure_url, publicId: result.public_id });
     } catch (err: any) {
-      console.error('Cloudinary upload error:', err);
-      res.status(500).json({ message: 'Failed to upload to Cloudinary' });
+      res.status(500).json({ message: 'Upload failed' });
     }
   });
 
-  // Auth: Send Email OTP
+  // --- Auth APIs ---
   app.post('/api/auth/send-email-otp', async (req, res) => {
     try {
       const { email } = req.body;
       if (!email) return res.status(400).json({ message: 'Email is required' });
-
-      // Generate 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // Save to DB (overwrite previous OTPs for this email)
-      await Otp.deleteMany({ email });
-      const newOtp = new Otp({ email, otp });
-      await newOtp.save();
+      await prisma.otp.deleteMany({ where: { email } });
+      await prisma.otp.create({
+        data: {
+          email,
+          otp,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+        }
+      });
 
-      // Send Email
       const mailOptions = {
         from: `"PugArch Admin" <${process.env.SMTP_USER}>`,
         to: email,
-        subject: 'Your Email Verification Code - PugArch MSME Marketplace',
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #2563eb; text-align: center;">PugArch Verification</h2>
-            <p>Hello,</p>
-            <p>Thank you for choosing PugArch MSME Marketplace. Use the following OTP to verify your email address. This code is valid for 5 minutes.</p>
-            <div style="background: #f3f4f6; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1f2937; border-radius: 8px; margin: 20px 0;">
-              ${otp}
-            </div>
-            <p style="font-size: 12px; color: #6b7280; text-align: center;">If you did not request this code, please ignore this email.</p>
-          </div>
-        `,
+        subject: 'Verification Code',
+        html: `<h2>Code: ${otp}</h2>`
       };
 
-      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-        console.warn('SMTP credentials missing. Logging OTP to console:', otp);
-      } else {
+      if (process.env.SMTP_USER && process.env.SMTP_PASS) {
         await transporter.sendMail(mailOptions);
-        console.log(`OTP ${otp} sent to ${email}`);
+      } else {
+        console.log('OTP:', otp);
       }
-      
-      res.json({ success: true, message: 'OTP sent successfully' });
-    } catch (err: any) {
-      console.error('Error sending OTP:', err);
-      res.status(500).json({ message: `Failed to send OTP: ${err.message || 'Check SMTP settings'}` });
-    }
-  });
-
-  // Auth: Verify Email OTP
-  app.post('/api/auth/verify-email-otp', async (req, res) => {
-    try {
-      const { email, otp } = req.body;
-      if (!email || !otp) return res.status(400).json({ message: 'Email and OTP are required' });
-
-      const otpRecord = await Otp.findOne({ email, otp });
-      if (!otpRecord) {
-        return res.status(400).json({ message: 'Invalid or expired OTP' });
-      }
-
-      otpRecord.isVerified = true;
-      await otpRecord.save();
-
-      res.json({ success: true, message: 'Email verified successfully' });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  // Auth: Register (Basic)
-  app.post('/api/auth/register', async (req, res) => {
-    try {
-      const { name, email, password, role, registrationDetails } = req.body;
-
-      // Check if email is verified
-      const otpRecord = await Otp.findOne({ email, isVerified: true });
-      if (!otpRecord && role !== 'admin') {
-        return res.status(400).json({ message: 'Please verify your email first' });
-      }
-
-      const existingUser = await User.findOne({ email });
-      if (existingUser) return res.status(400).json({ message: 'Email already exists' });
-
-      const user = new User({ 
-        name, 
-        email, 
-        password, 
-        role, 
-        registrationStatus: role === 'admin' ? 'completed' : 'completed',
-        registrationDetails 
-      });
-      await user.save();
-
-      // Clean up verified OTP
-      if (otpRecord) await Otp.deleteOne({ _id: otpRecord._id });
-
-      const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-      res.status(201).json({ 
-        token, 
-        user: { 
-          id: user._id, 
-          name: user.name, 
-          role: user.role, 
-          registrationStatus: user.registrationStatus,
-          onboardingStatus: user.onboardingStatus 
-        } 
-      });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  // Auth: Login
-  app.post('/api/auth/login', async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      const user = await User.findOne({ email });
-      if (!user) return res.status(400).json({ message: 'User not found' });
-
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
-
-      const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-      res.json({ 
-        token, 
-        user: { 
-          id: user._id, 
-          name: user.name, 
-          role: user.role, 
-          registrationStatus: user.registrationStatus,
-          onboardingStatus: user.onboardingStatus 
-        } 
-      });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  // Get current session profile
-  app.get('/api/auth/me', authenticate, async (req: AuthRequest, res) => {
-    try {
-      const user = await User.findById(req.user?.id).select('-password');
-      if (!user) return res.status(404).json({ message: 'User not found' });
-      
-      let profile = null;
-      if (user.role === 'seller') {
-        profile = await SellerProfile.findOne({ userId: user._id });
-      } else if (user.role === 'buyer') {
-        profile = await BuyerProfile.findOne({ userId: user._id });
-      }
-
-      res.json({ 
-        user: { 
-          ...user.toObject(), 
-          status: user.onboardingStatus, // Backward compatibility if needed
-          onboardingStatus: user.onboardingStatus,
-          registrationStatus: user.registrationStatus 
-        }, 
-        profile 
-      });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  // Seller: Register / Update Profile
-  app.post('/api/seller/register', authenticate, async (req: AuthRequest, res) => {
-    try {
-      if (req.user?.role !== 'seller') return res.status(403).json({ message: 'Only sellers can register profiles here' });
-      
-      const userId = req.user.id;
-      const { password, ...profileData } = req.body;
-      
-      if (password) {
-        const user = await User.findById(userId);
-        if (user) {
-          user.password = password;
-          await user.save();
-        }
-      }
-
-      const submissionData = { ...profileData, userId };
-      
-      let profile = await SellerProfile.findOneAndUpdate(
-        { userId },
-        submissionData,
-        { upsert: true, returnDocument: 'after' }
-      );
-      
-      res.json({ success: true, profile });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  // Buyer: Register / Update Profile
-  app.post('/api/buyer/register', authenticate, async (req: AuthRequest, res) => {
-    try {
-      if (req.user?.role !== 'buyer') return res.status(403).json({ message: 'Only buyers can register profiles here' });
-      
-      const userId = req.user.id;
-      const { password, ...profileData } = req.body;
-
-      if (password) {
-        const user = await User.findById(userId);
-        if (user) {
-          user.password = password;
-          await user.save();
-        }
-      }
-      
-      const submissionData = { ...profileData, userId };
-      
-      let profile = await BuyerProfile.findOneAndUpdate(
-        { userId },
-        submissionData,
-        { upsert: true, returnDocument: 'after' }
-      );
-
-      res.json({ success: true, profile });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  // Seller: Final Submit for Admin Approval
-  app.post('/api/admin/onboarding/submit', authenticate, async (req: AuthRequest, res) => {
-    try {
-      const user = await User.findById(req.user?.id);
-      if (!user) return res.status(404).json({ message: 'User not found' });
-      
-      user.onboardingStatus = 'pending_validation';
-      await user.save();
-      
-      res.json({ success: true, onboardingStatus: user.onboardingStatus });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  // Admin: Get all onboarding registrations
-  app.get('/api/admin/onboarding', authenticate, authorizeAdmin, async (req, res) => {
-    try {
-      const sellers = await User.aggregate([
-        { $match: { role: 'seller' } },
-        {
-          $lookup: {
-            from: 'sellerprofiles',
-            localField: '_id',
-            foreignField: 'userId',
-            as: 'profile'
-          }
-        },
-        { $unwind: { path: '$profile', preserveNullAndEmptyArrays: true } }
-      ]);
-
-      const buyers = await User.aggregate([
-        { $match: { role: 'buyer' } },
-        {
-          $lookup: {
-            from: 'buyerprofiles',
-            localField: '_id',
-            foreignField: 'userId',
-            as: 'profile'
-          }
-        },
-        { $unwind: { path: '$profile', preserveNullAndEmptyArrays: true } }
-      ]);
-
-      res.json({ 
-        sellers: sellers.map(s => ({ ...s, status: s.onboardingStatus })), 
-        buyers: buyers.map(b => ({ ...b, status: b.onboardingStatus })) 
-      });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  // Admin: Update User Status (Approve/Reject)
-  app.post('/api/admin/status', authenticate, authorizeAdmin, async (req, res) => {
-    try {
-      const { userId, status } = req.body;
-      const validStatuses = ['pending', 'pending_validation', 'under_compliance_review', 'resubmission_required', 'approved_for_procurement', 'rejected'];
-      
-      if (!validStatuses.includes(status)) {
-        return res.status(400).json({ message: 'Invalid status' });
-      }
-
-      const updateData: any = { onboardingStatus: status };
-      if (status === 'approved_for_procurement') {
-        updateData.sectionStatus = {
-          basic: 'approved',
-          business: 'approved',
-          compliance: 'approved',
-          bank: 'approved',
-          documents: 'approved'
-        };
-      } else if (status === 'rejected') {
-        updateData.sectionStatus = {
-          basic: 'rejected',
-          business: 'rejected',
-          compliance: 'rejected',
-          bank: 'rejected',
-          documents: 'rejected'
-        };
-      }
-
-      await User.findByIdAndUpdate(userId, updateData);
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  // Buyer: Get all approved vendors
-  app.get('/api/vendors', authenticate, async (req, res) => {
+  app.post('/api/auth/verify-email-otp', async (req, res) => {
     try {
-      const vendors = await User.aggregate([
-        { $match: { role: 'seller', onboardingStatus: 'approved_for_procurement' } },
-        {
-          $lookup: {
-            from: 'sellerprofiles',
-            localField: '_id',
-            foreignField: 'userId',
-            as: 'profile'
-          }
-        },
-        { $unwind: '$profile' }
-      ]);
-      res.json(vendors);
+      const { email, otp } = req.body;
+      const otpRecord = await prisma.otp.findFirst({ where: { email, otp } });
+      if (!otpRecord) return res.status(400).json({ message: 'Invalid OTP' });
+
+      await prisma.otp.update({
+        where: { id: otpRecord.id },
+        data: { isVerified: true }
+      });
+      res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  // Admin: Update Section Status
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const { name, email, password, role, registrationDetails } = req.body;
+      const otpRecord = await prisma.otp.findFirst({ where: { email, isVerified: true } });
+      if (!otpRecord && role !== 'admin') return res.status(400).json({ message: 'Verify email first' });
+
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) return res.status(400).json({ message: 'Exists' });
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await prisma.user.create({
+        data: {
+          name, email, password: hashedPassword, role,
+          registrationStatus: 'completed',
+          registrationDetails: registrationDetails || {}
+        }
+      });
+
+      if (otpRecord) await prisma.otp.delete({ where: { id: otpRecord.id } });
+
+      const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+      const { password: _, ...userSafe } = user;
+      res.status(201).json({ token, user: { ...userSafe, _id: user.id } });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) return res.status(400).json({ message: 'Not found' });
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) return res.status(400).json({ message: 'Invalid' });
+
+      const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+      const { password: _, ...userSafe } = user;
+      res.json({ token, user: { ...userSafe, _id: user.id } });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/auth/me', authenticate, async (req: AuthRequest, res) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: Number(req.user?.id) },
+        include: {
+          sellerProfile: {
+            include: {
+              offices: true,
+              bankAccounts: true
+            }
+          },
+          buyerProfile: true
+        }
+      });
+      if (!user) return res.status(404).json({ message: 'Not found' });
+
+      const { password, ...userData } = user;
+      res.json({
+        user: { ...userData, _id: user.id },
+        profile: user.role === 'seller' ? user.sellerProfile : user.buyerProfile
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // --- Profile APIs ---
+  app.post('/api/seller/register', authenticate, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'seller') return res.status(403).json({ message: 'Forbidden' });
+      const userId = Number(req.user.id);
+      const { password, ...rawData } = req.body;
+
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await prisma.user.update({ where: { id: userId }, data: { password: hashedPassword } });
+      }
+
+      // Filter only allowed fields for SellerProfile (GeM Style)
+      const profileData: any = {
+        organizationType: rawData.organizationType,
+        pan: rawData.pan,
+        nameAsInPan: rawData.nameAsInPan,
+        dateAsInPan: rawData.dateAsInPan ? new Date(rawData.dateAsInPan) : null,
+        panVerified: rawData.panVerified ?? false,
+        businessName: rawData.businessName,
+        dateOfIncorporation: rawData.dateOfIncorporation ? new Date(rawData.dateOfIncorporation) : null,
+        detailsUpdated: rawData.detailsUpdated ?? false,
+        isStartup: rawData.isStartup ?? false,
+        isUdyamCertified: rawData.isUdyamCertified ?? false,
+        participateInBid: rawData.participateInBid ?? false,
+        optForSahay: rawData.optForSahay ?? false,
+        turnoverMax3Yrs: rawData.turnoverMax3Yrs,
+        eInvoicingExcluded: rawData.eInvoicingExcluded ?? false,
+        ownershipDeclarationAccepted: rawData.ownershipDeclarationAccepted ?? false,
+        ownershipVerified: rawData.ownershipVerified ?? false,
+        msmeCategory: rawData.msmeCategory,
+        productCategories: rawData.productCategories,
+        otherCategoryDetails: rawData.otherCategoryDetails,
+        productList: rawData.productList,
+        detailedProductName: rawData.detailedProductName,
+        hsnCode: rawData.hsnCode,
+        brand: rawData.brand,
+        specifications: rawData.specifications,
+        documents: rawData.documents
+      };
+
+      const profile = await prisma.sellerProfile.upsert({
+        where: { userId },
+        update: profileData,
+        create: { ...profileData, userId }
+      });
+      res.json({ success: true, profile });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Manage Seller Offices
+  app.post('/api/seller/profile/offices', authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = Number(req.user?.id);
+      const profile = await prisma.sellerProfile.findUnique({ where: { userId } });
+      if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+      const office = await prisma.sellerOffice.create({
+        data: { ...req.body, sellerProfileId: profile.id }
+      });
+      res.json({ success: true, office });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete('/api/seller/profile/offices/:id', authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = Number(req.user?.id);
+      const officeId = Number(req.params.id);
+      const office = await prisma.sellerOffice.findUnique({
+        where: { id: officeId },
+        include: { sellerProfile: true }
+      });
+      if (!office || office.sellerProfile.userId !== userId) {
+        return res.status(404).json({ message: 'Office not found' });
+      }
+      await prisma.sellerOffice.delete({ where: { id: officeId } });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Manage Seller Bank Accounts
+  app.post('/api/seller/profile/bank', authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = Number(req.user?.id);
+      const profile = await prisma.sellerProfile.findUnique({ where: { userId } });
+      if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+      const bank = await prisma.sellerBankAccount.create({
+        data: { ...req.body, sellerProfileId: profile.id }
+      });
+      res.json({ success: true, bank });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete('/api/seller/profile/bank/:id', authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = Number(req.user?.id);
+      const bankId = Number(req.params.id);
+      const bank = await prisma.sellerBankAccount.findUnique({
+        where: { id: bankId },
+        include: { sellerProfile: true }
+      });
+      if (!bank || bank.sellerProfile.userId !== userId) {
+        return res.status(404).json({ message: 'Bank account not found' });
+      }
+      await prisma.sellerBankAccount.delete({ where: { id: bankId } });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/buyer/register', authenticate, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'buyer') return res.status(403).json({ message: 'Forbidden' });
+      const userId = Number(req.user.id);
+      const { password, ...rawData } = req.body;
+
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await prisma.user.update({ where: { id: userId }, data: { password: hashedPassword } });
+      }
+
+      // Filter only allowed fields for BuyerProfile
+      const profileData: any = {
+        organizationName: rawData.organizationName,
+        businessType: rawData.businessType,
+        industry: rawData.industry,
+        cin: rawData.cin,
+        pan: rawData.pan,
+        gst: rawData.gst,
+        website: rawData.website,
+        representativeName: rawData.representativeName,
+        designation: rawData.designation,
+        department: rawData.department,
+        email: rawData.email,
+        mobile: rawData.mobile,
+        alternateMobile: rawData.alternateMobile,
+        country: rawData.country,
+        state: rawData.state,
+        city: rawData.city,
+        pincode: rawData.pincode,
+        registeredAddress: rawData.registeredAddress,
+        corporateAddress: rawData.corporateAddress,
+        procurementCategories: rawData.procurementCategories,
+        otherCategoryDetails: rawData.otherCategoryDetails,
+        annualBudget: rawData.annualBudget,
+        preferredMethods: rawData.preferredMethods,
+        documents: rawData.documents
+      };
+
+      const profile = await prisma.buyerProfile.upsert({
+        where: { userId },
+        update: profileData,
+        create: { ...profileData, userId }
+      });
+      res.json({ success: true, profile });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // --- Admin APIs ---
+  app.get('/api/admin/onboarding', authenticate, authorizeAdmin, async (req, res) => {
+    try {
+      const sellers = await prisma.user.findMany({
+        where: { role: 'seller' },
+        include: { sellerProfile: true },
+        orderBy: { createdAt: 'desc' }
+      });
+      const buyers = await prisma.user.findMany({
+        where: { role: 'buyer' },
+        include: { buyerProfile: true },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      // Exclude passwords and format for frontend
+      const formatUser = (u: any) => {
+        const { password, ...rest } = u;
+        return {
+          ...rest,
+          _id: u.id,
+          profile: u.sellerProfile || u.buyerProfile,
+          status: u.onboardingStatus
+        };
+      };
+
+      res.json({
+        sellers: sellers.map(formatUser),
+        buyers: buyers.map(formatUser)
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/admin/status', authenticate, authorizeAdmin, async (req, res) => {
+    try {
+      const { userId, status } = req.body;
+      const updateData: any = { onboardingStatus: status };
+
+      if (status === 'approved_for_procurement') {
+        updateData.sectionStatus = {
+          pan: 'approved',
+          details: 'approved',
+          additional: 'approved',
+          offices: 'approved',
+          bank: 'approved',
+          einvoicing: 'approved',
+          ownership: 'approved'
+        };
+      }
+
+      await prisma.user.update({ where: { id: Number(userId) }, data: updateData });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/vendors', authenticate, async (req, res) => {
+    try {
+      const vendors = await prisma.user.findMany({
+        where: { role: 'seller', onboardingStatus: 'approved_for_procurement' },
+        include: { sellerProfile: true }
+      });
+      res.json(vendors.map(v => ({ ...v, _id: v.id })));
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post('/api/admin/section-status', authenticate, authorizeAdmin, async (req, res) => {
     try {
       const { userId, section, status, rejectionReason } = req.body;
-      const validSections = ['basic', 'business', 'compliance', 'bank', 'documents'];
-      const validStatuses = ['pending', 'approved', 'rejected', 'resubmission_required'];
 
-      if (!validSections.includes(section) || !validStatuses.includes(status)) {
-        return res.status(400).json({ message: 'Invalid section or status' });
+      console.log(`[Admin] Attempting update - User: ${userId}, Section: ${section}, Status: ${status}`);
+
+      if (!userId || !section || !status) {
+        console.error('!!! CRITICAL DATA MISSING FROM FRONTEND !!!', { userId, section, status });
+        return res.status(400).json({ message: 'Missing required fields: userId, section, or status' });
       }
 
-      const user = await User.findById(userId);
-      if (!user) return res.status(404).json({ message: 'User not found' });
+      const numericId = Number(userId);
+      if (isNaN(numericId)) {
+        console.error(`!!! INVALID USER ID RECEIVED !!!: ${userId}`);
+        return res.status(400).json({ message: 'User ID must be a valid number' });
+      }
 
-      const sectionStatus = { ...user.sectionStatus, [section]: status };
-      
-      // Update rejection reason if status is rejected
-      const sectionRejectionReasons = { ...user.sectionRejectionReasons };
+      const user = await prisma.user.findUnique({ where: { id: numericId } });
+      if (!user) {
+        console.error(`!!! USER NOT FOUND IN DATABASE !!!: ${numericId}`);
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Initialize status and reasons if they are null
+      const currentStatus = (user.sectionStatus as Record<string, any>) || {};
+      const currentReasons = (user.sectionRejectionReasons as Record<string, any>) || {};
+
+      const sectionStatus = { ...currentStatus, [section]: status };
+      const sectionRejectionReasons = { ...currentReasons };
+
       if (status === 'rejected' || status === 'resubmission_required') {
         sectionRejectionReasons[section] = rejectionReason || '';
       } else if (status === 'approved') {
         sectionRejectionReasons[section] = '';
       }
 
-      // Calculate overall status
-      let newOnboardingStatus = 'under_compliance_review';
-      const statuses = Object.values(sectionStatus);
-      
-      if (statuses.every(s => s === 'approved')) {
-        newOnboardingStatus = 'approved_for_procurement';
-      } else if (statuses.some(s => s === 'rejected')) {
-        newOnboardingStatus = 'rejected';
-      } else if (statuses.some(s => s === 'resubmission_required')) {
-        newOnboardingStatus = 'resubmission_required';
-      } else if (statuses.every(s => s === 'pending')) {
-        newOnboardingStatus = 'pending';
-      }
+      // Calculate overall onboarding status based on all sections
+      const sections = ['pan', 'details', 'additional', 'offices', 'bank', 'einvoicing', 'ownership'];
+      const statuses = sections.map(s => sectionStatus[s] || 'pending');
 
-      await User.findByIdAndUpdate(userId, { 
-        sectionStatus, 
-        sectionRejectionReasons,
-        onboardingStatus: newOnboardingStatus 
+      let onboardingStatus = 'under_compliance_review';
+      if (statuses.every(s => s === 'approved')) onboardingStatus = 'approved_for_procurement';
+      else if (statuses.some(s => s === 'rejected')) onboardingStatus = 'rejected';
+      else if (statuses.some(s => s === 'resubmission_required')) onboardingStatus = 'resubmission_required';
+
+      console.log(`[Admin] New calculated status: ${onboardingStatus}`);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          sectionStatus,
+          sectionRejectionReasons,
+          onboardingStatus: onboardingStatus as any
+        }
       });
-      
-      res.json({ success: true, onboardingStatus: newOnboardingStatus });
+
+      res.json({ success: true, onboardingStatus: onboardingStatus });
     } catch (err: any) {
+      console.error('--- SECTION STATUS ERROR ---');
+      console.error('Message:', err.message);
+      console.error('Stack:', err.stack);
       res.status(500).json({ message: err.message });
     }
   });
@@ -687,76 +653,34 @@ async function startServer() {
   app.post('/api/admin/feedback', authenticate, authorizeAdmin, async (req, res) => {
     try {
       const { userId, feedback } = req.body;
-      await User.findByIdAndUpdate(userId, { adminFeedback: feedback });
+      await prisma.user.update({
+        where: { id: Number(userId) },
+        data: { adminFeedback: feedback }
+      });
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  // Admin: Get Dashboard Stats
   app.get('/api/admin/stats', authenticate, authorizeAdmin, async (req, res) => {
     try {
-      const pendingCount = await User.countDocuments({ onboardingStatus: 'pending', role: { $in: ['seller', 'buyer'] } });
-      const activeSellers = await User.countDocuments({ onboardingStatus: 'approved_for_procurement', role: 'seller' });
-      const activeBuyers = await User.countDocuments({ onboardingStatus: 'approved_for_procurement', role: 'buyer' });
-      const totalNetwork = await User.countDocuments({ role: { $in: ['seller', 'buyer'] } });
-
-      res.json({
-        pendingApproval: pendingCount,
-        activeSellers,
-        activeBuyers,
-        totalNetwork
-      });
+      const [pending, sellers, buyers, total] = await Promise.all([
+        prisma.user.count({ where: { onboardingStatus: 'pending', role: { in: ['seller', 'buyer'] } } }),
+        prisma.user.count({ where: { onboardingStatus: 'approved_for_procurement', role: 'seller' } }),
+        prisma.user.count({ where: { onboardingStatus: 'approved_for_procurement', role: 'buyer' } }),
+        prisma.user.count({ where: { role: { in: ['seller', 'buyer'] } } })
+      ]);
+      res.json({ pendingApproval: pending, activeSellers: sellers, activeBuyers: buyers, totalNetwork: total });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  // --- Buyer Dashboard APIs ---
-  app.get('/api/buyer/overview', authenticate, async (req: AuthRequest, res) => {
-    if (req.user?.role !== 'buyer') return res.status(403).json({ message: 'Access Denied' });
-    
-    // Returning standardized structured mock data until real schema bindings are requested
-    res.json({
-      totalRequirements: 12,
-      activeBids: 34,
-      totalSavings: 18.4,
-      pendingPayments: 2130000,
-      monthlySpend: [42, 65, 51, 78, 63, 88],
-      pipeline: {
-        draft: 12,
-        published: 6,
-        awarded: 4
-      }
-    });
-  });
-
-  // (Tender routes moved higher)
-
-  // Global Express Error Handler
-  app.use((err: any, req: any, res: any, next: any) => {
-    console.error('GLOBAL ERROR:', err);
-    try {
-      fs.appendFileSync('backend-debug.log', `[${new Date().toISOString()}] GLOBAL ERROR: ${err.stack}\n`);
-    } catch (e) {}
-    res.status(500).json({ message: 'Internal Server Error', error: err.message });
-  });
-
-  return new Promise<void>((resolve, reject) => {
-    const server = app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      resolve();
-    });
-
-    server.on('error', (err) => {
-      console.error('Server error:', err);
-      reject(err);
-    });
-  });
+  app.listen(PORT, () => console.log(`Server running on port ${PORT} (Prisma/PostgreSQL)`));
 }
 
 startServer().catch(err => {
-  console.error("Critical error during server startup:", err);
+  console.error("Critical error:", err);
   process.exit(1);
 });

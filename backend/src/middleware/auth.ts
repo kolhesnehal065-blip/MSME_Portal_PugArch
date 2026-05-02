@@ -5,10 +5,11 @@ const getJwtSecret = () => process.env.JWT_SECRET || 'super-secret-procure-key';
 
 export interface AuthRequest extends Request {
   user?: {
-    id: string;
+    id: any; // Using any to handle transition from Mongo string IDs to Prisma numeric IDs
     role: string;
   };
 }
+
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
