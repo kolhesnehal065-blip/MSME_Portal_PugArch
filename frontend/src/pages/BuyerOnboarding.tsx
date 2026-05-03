@@ -550,6 +550,14 @@ export default function BuyerOnboarding() {
     });
   };
 
+  const saveDraft = () => {
+    localStorage.setItem(BUYER_ONBOARDING_DRAFT_KEY, JSON.stringify({
+      activeSection,
+      formData
+    }));
+    toast.success('Draft saved');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -598,8 +606,8 @@ export default function BuyerOnboarding() {
           const data = await res.json();
           toast.error(data.message || 'Submission failed');
         }
-      } catch (err) {
-        toast.error('Network error');
+      } catch (err: any) {
+        toast.error(err?.message || 'Network error');
       } finally {
         setIsLoading(false);
       }
@@ -938,7 +946,7 @@ export default function BuyerOnboarding() {
                   Previous Section
                 </button>
                 <div className="flex items-center gap-4">
-                  <Button type="button" variant="ghost" className="text-slate-600 font-bold border border-slate-200 px-6 rounded-lg h-10 text-sm">
+                  <Button type="button" variant="ghost" onClick={saveDraft} className="text-slate-600 font-bold border border-slate-200 px-6 rounded-lg h-10 text-sm">
                     Save Draft
                   </Button>
                   <Button type="submit" disabled={isLoading} className="bg-teal-700 hover:bg-teal-800 text-white font-bold px-8 rounded-lg h-10 text-sm flex items-center gap-2">

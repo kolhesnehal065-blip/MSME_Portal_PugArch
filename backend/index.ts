@@ -58,14 +58,32 @@ const transporter = nodemailer.createTransport({
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 5001;
+  const configuredOrigins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    ...(process.env.FRONTEND_URL
+      ? process.env.FRONTEND_URL.split(',').map(origin => origin.trim()).filter(Boolean)
+      : [
+          "https://msme-portal-pug-arch-frontend.vercel.app",
+          "https://msme-portal-pug-arch-frontend-onet.vercel.app"
+        ])
+  ];
 
   app.use(cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "http://localhost:5174",
-      process.env.FRONTEND_URL || "https://msme-portal-pug-arch-frontend.vercel.app"
-    ],
+    origin: (origin, callback) => {
+      let hostname = '';
+      try {
+        hostname = origin ? new URL(origin).hostname : '';
+      } catch {
+        return callback(new Error(`CORS blocked for invalid origin: ${origin}`));
+      }
+
+      if (!origin || configuredOrigins.includes(origin) || /^msme-portal-pug-arch-frontend(-[a-z0-9-]+)?\.vercel\.app$/.test(hostname)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true
   }));
   app.use(express.json());
@@ -479,18 +497,25 @@ async function startServer() {
       if (req.user?.role !== 'buyer') return res.status(403).json({ message: 'Forbidden' });
       const userId = Number(req.user.id);
       const { password, ...rawData } = req.body;
+      const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+      if (!existingUser) return res.status(404).json({ message: 'User not found' });
+
+      const mobile = rawData.mobile || existingUser.mobile;
+      if (!mobile) {
+        return res.status(400).json({ message: 'Mobile number is required to complete buyer onboarding' });
+      }
 
       if (password || rawData.mobile) {
         const updateData: any = {};
         if (password) updateData.password = await bcrypt.hash(password, 10);
-        if (rawData.mobile) updateData.mobile = rawData.mobile;
+        if (rawData.mobile) updateData.mobile = mobile;
         await prisma.user.update({ where: { id: userId }, data: updateData });
       }
 
       // Filter only allowed fields for BuyerProfile
       const profileData: any = {
-        organizationName: rawData.organizationName,
-        businessType: rawData.businessType,
+        organizationName: rawData.organizationName || existingUser.name,
+        businessType: rawData.businessType || 'Private Limited Company',
         industry: rawData.industry,
         cin: rawData.cin,
         pan: rawData.pan,
@@ -503,7 +528,7 @@ async function startServer() {
         designation: rawData.designation,
         department: rawData.department,
         email: rawData.email,
-        mobile: rawData.mobile,
+        mobile,
         alternateMobile: rawData.alternateMobile,
         aadhaarNumber: rawData.aadhaarNumber,
         aadhaarVerified: rawData.aadhaarVerified ?? false,
@@ -512,24 +537,48 @@ async function startServer() {
         pincode: rawData.pincode,
         registeredAddress: rawData.registeredAddress,
         corporateAddress: rawData.corporateAddress,
-        procurementCategories: rawData.procurementCategories,
+        procurementCategories: Array.isArray(rawData.procurementCategories) ? rawData.procurementCategories : [],
         otherCategoryDetails: rawData.otherCategoryDetails,
         annualBudget: rawData.annualBudget,
-        preferredMethods: rawData.preferredMethods,
+        preferredMethods: Array.isArray(rawData.preferredMethods) ? rawData.preferredMethods : [],
         otherMethodDetails: rawData.otherMethodDetails,
         declarationAccepted: rawData.declaration ?? false,
         termsAccepted: rawData.agreeTerms ?? false,
         documents: rawData.documents
       };
 
-      const profile = await prisma.buyerProfile.upsert({
-        where: { userId },
-        update: profileData,
-        create: { ...profileData, userId }
-      });
+      const sectionStatus = {
+        org: 'pending',
+        rep: 'pending',
+        address: 'pending',
+        procurement: 'pending',
+        docs: 'pending'
+      };
+
+      const [profile] = await prisma.$transaction([
+        prisma.buyerProfile.upsert({
+          where: { userId },
+          update: profileData,
+          create: { ...profileData, userId }
+        }),
+        prisma.user.update({
+          where: { id: userId },
+          data: {
+            registrationStatus: 'completed',
+            onboardingStatus: 'under_compliance_review',
+            sectionStatus
+          }
+        })
+      ]);
+
       res.json({ success: true, profile });
     } catch (err: any) {
-      res.status(500).json({ message: err.message });
+      console.error('[Buyer Register] Failed:', err);
+      res.status(500).json({
+        message: process.env.NODE_ENV === 'production'
+          ? 'Unable to save buyer onboarding. Please try again.'
+          : err.message
+      });
     }
   });
 
