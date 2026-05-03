@@ -354,9 +354,12 @@ async function startServer() {
       const userId = Number(req.user?.id);
       const { password, ...rawData } = req.body;
 
-      if (password) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await prisma.user.update({ where: { id: userId }, data: { password: hashedPassword } });
+      if (password || rawData.mobile || rawData.dob) {
+        const updateData: any = {};
+        if (password) updateData.password = await bcrypt.hash(password, 10);
+        if (rawData.mobile) updateData.mobile = rawData.mobile;
+        if (rawData.dob && !isNaN(Date.parse(rawData.dob))) updateData.dob = new Date(rawData.dob);
+        await prisma.user.update({ where: { id: userId }, data: updateData });
       }
 
       // Filter only allowed fields for SellerProfile (GeM Style)
@@ -388,7 +391,8 @@ async function startServer() {
         documents: rawData.documents,
         mobile: rawData.mobile,
         dob: (rawData.dob && !isNaN(Date.parse(rawData.dob))) ? new Date(rawData.dob) : null,
-        roleInOrg: rawData.roleInOrg
+        roleInOrg: rawData.roleInOrg,
+        termsAccepted: rawData.agreeTerms ?? false
       };
 
       const profile = await prisma.sellerProfile.upsert({
@@ -476,9 +480,11 @@ async function startServer() {
       const userId = Number(req.user.id);
       const { password, ...rawData } = req.body;
 
-      if (password) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await prisma.user.update({ where: { id: userId }, data: { password: hashedPassword } });
+      if (password || rawData.mobile) {
+        const updateData: any = {};
+        if (password) updateData.password = await bcrypt.hash(password, 10);
+        if (rawData.mobile) updateData.mobile = rawData.mobile;
+        await prisma.user.update({ where: { id: userId }, data: updateData });
       }
 
       // Filter only allowed fields for BuyerProfile
@@ -490,14 +496,18 @@ async function startServer() {
         pan: rawData.pan,
         gst: rawData.gst,
         website: rawData.website,
+        state: rawData.state,
+        district: rawData.district,
+        officeZoneName: rawData.officeZoneName,
         representativeName: rawData.representativeName,
         designation: rawData.designation,
         department: rawData.department,
         email: rawData.email,
         mobile: rawData.mobile,
         alternateMobile: rawData.alternateMobile,
+        aadhaarNumber: rawData.aadhaarNumber,
+        aadhaarVerified: rawData.aadhaarVerified ?? false,
         country: rawData.country,
-        state: rawData.state,
         city: rawData.city,
         pincode: rawData.pincode,
         registeredAddress: rawData.registeredAddress,
@@ -507,6 +517,8 @@ async function startServer() {
         annualBudget: rawData.annualBudget,
         preferredMethods: rawData.preferredMethods,
         otherMethodDetails: rawData.otherMethodDetails,
+        declarationAccepted: rawData.declaration ?? false,
+        termsAccepted: rawData.agreeTerms ?? false,
         documents: rawData.documents
       };
 
@@ -561,15 +573,11 @@ async function startServer() {
       const updateData: any = { onboardingStatus: status };
 
       if (status === 'approved_for_procurement') {
-        updateData.sectionStatus = {
-          pan: 'approved',
-          details: 'approved',
-          additional: 'approved',
-          offices: 'approved',
-          bank: 'approved',
-          einvoicing: 'approved',
-          ownership: 'approved'
-        };
+        const user = await prisma.user.findUnique({ where: { id: Number(userId) } });
+        const buyerSections = { org: 'approved', rep: 'approved', address: 'approved', procurement: 'approved', docs: 'approved' };
+        const sellerSections = { pan: 'approved', details: 'approved', additional: 'approved', offices: 'approved', bank: 'approved', einvoicing: 'approved', ownership: 'approved' };
+        
+        updateData.sectionStatus = user?.role === 'buyer' ? buyerSections : sellerSections;
       }
 
       await prisma.user.update({ where: { id: Number(userId) }, data: updateData });
@@ -703,7 +711,10 @@ async function startServer() {
       }
 
       // Calculate overall onboarding status based on all sections
-      const sections = ['pan', 'details', 'additional', 'offices', 'bank', 'einvoicing', 'ownership'];
+      const sections = user.role === 'buyer' 
+        ? ['org', 'rep', 'address', 'procurement', 'docs'] 
+        : ['pan', 'details', 'additional', 'offices', 'bank', 'einvoicing', 'ownership'];
+        
       const statuses = sections.map(s => sectionStatus[s] || 'pending');
 
       let onboardingStatus = 'under_compliance_review';
