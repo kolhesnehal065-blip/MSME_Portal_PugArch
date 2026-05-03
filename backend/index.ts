@@ -19,6 +19,7 @@ import bcrypt from 'bcryptjs';
 
 // Import Prisma Client
 import prisma from './src/lib/prisma.js';
+import { Role, RegistrationStatus } from '@prisma/client';
 import { authenticate, authorize, authorizeAdmin } from './src/middleware/auth.js';
 import type { AuthRequest } from './src/middleware/auth.js';
 import nodemailer from 'nodemailer';
@@ -275,7 +276,7 @@ async function startServer() {
 
   app.post('/api/auth/register', async (req, res) => {
     try {
-      const { name, email, password, role, registrationDetails } = req.body;
+      const { name, email, password, role, registrationDetails, mobile, dob } = req.body;
       const otpRecord = await prisma.otp.findFirst({ where: { email, isVerified: true } });
       if (!otpRecord && role !== 'admin') return res.status(400).json({ message: 'Verify email first' });
 
@@ -285,8 +286,11 @@ async function startServer() {
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await prisma.user.create({
         data: {
-          name, email, password: hashedPassword, role,
-          registrationStatus: 'completed',
+          name, email, password: hashedPassword,
+          role: role as Role,
+          mobile,
+          dob: (dob && !isNaN(Date.parse(dob))) ? new Date(dob) : null,
+          registrationStatus: RegistrationStatus.completed,
           registrationDetails: registrationDetails || {}
         }
       });
@@ -347,8 +351,7 @@ async function startServer() {
   // --- Profile APIs ---
   app.post('/api/seller/register', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
-      if (req.user?.role !== 'seller') return res.status(403).json({ message: 'Forbidden' });
-      const userId = Number(req.user.id);
+      const userId = Number(req.user?.id);
       const { password, ...rawData } = req.body;
 
       if (password) {
@@ -382,7 +385,10 @@ async function startServer() {
         hsnCode: rawData.hsnCode,
         brand: rawData.brand,
         specifications: rawData.specifications,
-        documents: rawData.documents
+        documents: rawData.documents,
+        mobile: rawData.mobile,
+        dob: (rawData.dob && !isNaN(Date.parse(rawData.dob))) ? new Date(rawData.dob) : null,
+        roleInOrg: rawData.roleInOrg
       };
 
       const profile = await prisma.sellerProfile.upsert({
@@ -589,7 +595,7 @@ async function startServer() {
     try {
       const vendor = await prisma.user.findUnique({
         where: { id: Number(req.params.id), role: 'seller' },
-        include: { 
+        include: {
           sellerProfile: {
             include: {
               offices: true,

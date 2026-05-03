@@ -48,6 +48,8 @@ model User {
   sectionRejectionReasons Json?              // Stores rejection reasons for each section
   registrationDetails     Json?              // Stores businessType, verificationMethod, isEmailVerified
   adminFeedback           String?            @default("")
+  mobile                  String?            // Added for registration
+  dob                     DateTime?          // Added for registration
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @updatedAt
 
@@ -140,6 +142,9 @@ model SellerProfile {
   // Step 7: Beneficial Ownership Compliance
   ownershipDeclarationAccepted Boolean @default(false)
   ownershipVerified            Boolean @default(false)
+  mobile                       String?   // Added to match registration
+  dob                          DateTime? // Added to match registration
+  roleInOrg                    String?   // Added to match registration
 
   // Legacy / General Fields (kept for compatibility)
   msmeCategory        String?
@@ -170,6 +175,7 @@ model SellerOffice {
   state           String
   city            String
   address         String
+  contactNumber   String?       // Added for onboarding
   isMandatory     Boolean       @default(false) // Registered office is mandatory
   
   createdAt       DateTime      @default(now())
