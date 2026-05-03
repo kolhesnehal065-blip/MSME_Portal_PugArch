@@ -54,6 +54,10 @@ model User {
   buyerProfile            BuyerProfile?
   sellerProfile           SellerProfile?
   tenders                 Tender[]
+  
+  // Quote Requests
+  sentRequests            QuoteRequest[]     @relation("BuyerRequests")
+  receivedRequests        QuoteRequest[]     @relation("SellerRequests")
 }
 
 model BuyerProfile {
@@ -91,6 +95,7 @@ model BuyerProfile {
   otherCategoryDetails  String?
   annualBudget          String?
   preferredMethods      String[]
+  otherMethodDetails    String?
   
   // Documents (Storage URLs)
   documents             Json?    // Stores URLs for panCard, gstCert, authLetter, etc.
@@ -211,4 +216,17 @@ model Otp {
   isVerified Boolean  @default(false)
   createdAt  DateTime @default(now())
   expiresAt  DateTime
+}
+
+model QuoteRequest {
+  id          Int      @id @default(autoincrement())
+  buyerId     Int
+  buyer       User     @relation("BuyerRequests", fields: [buyerId], references: [id])
+  sellerId    Int
+  seller      User     @relation("SellerRequests", fields: [sellerId], references: [id])
+  subject     String
+  message     String
+  status      String   @default("pending") // pending, accepted, rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

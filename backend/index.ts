@@ -19,7 +19,7 @@ import bcrypt from 'bcryptjs';
 
 // Import Prisma Client
 import prisma from './src/lib/prisma.js';
-import { authenticate, authorizeAdmin } from './src/middleware/auth.js';
+import { authenticate, authorize, authorizeAdmin } from './src/middleware/auth.js';
 import type { AuthRequest } from './src/middleware/auth.js';
 import nodemailer from 'nodemailer';
 import multer from 'multer';
@@ -84,7 +84,7 @@ async function startServer() {
   app.get("/api/test", (req, res) => res.json({ message: "API working" }));
 
   // --- Tender APIs ---
-  app.get('/api/tenders', authenticate, async (req: AuthRequest, res) => {
+  app.get('/api/tenders', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
     try {
       const tenders = await prisma.tender.findMany({
         where: { buyerId: Number(req.user?.id) },
@@ -96,7 +96,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/tenders', authenticate, async (req: AuthRequest, res) => {
+  app.post('/api/tenders', authenticate, authorize('buyer'), async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'buyer') {
         return res.status(403).json({ message: 'Only buyers can create tenders' });
@@ -345,7 +345,7 @@ async function startServer() {
   });
 
   // --- Profile APIs ---
-  app.post('/api/seller/register', authenticate, async (req: AuthRequest, res) => {
+  app.post('/api/seller/register', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'seller') return res.status(403).json({ message: 'Forbidden' });
       const userId = Number(req.user.id);
@@ -397,7 +397,7 @@ async function startServer() {
   });
 
   // Manage Seller Offices
-  app.post('/api/seller/profile/offices', authenticate, async (req: AuthRequest, res) => {
+  app.post('/api/seller/profile/offices', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
       const userId = Number(req.user?.id);
       const profile = await prisma.sellerProfile.findUnique({ where: { userId } });
@@ -412,7 +412,7 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/seller/profile/offices/:id', authenticate, async (req: AuthRequest, res) => {
+  app.delete('/api/seller/profile/offices/:id', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
       const userId = Number(req.user?.id);
       const officeId = Number(req.params.id);
@@ -431,7 +431,7 @@ async function startServer() {
   });
 
   // Manage Seller Bank Accounts
-  app.post('/api/seller/profile/bank', authenticate, async (req: AuthRequest, res) => {
+  app.post('/api/seller/profile/bank', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
       const userId = Number(req.user?.id);
       const profile = await prisma.sellerProfile.findUnique({ where: { userId } });
@@ -446,7 +446,7 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/seller/profile/bank/:id', authenticate, async (req: AuthRequest, res) => {
+  app.delete('/api/seller/profile/bank/:id', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
       const userId = Number(req.user?.id);
       const bankId = Number(req.params.id);
@@ -464,7 +464,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/buyer/register', authenticate, async (req: AuthRequest, res) => {
+  app.post('/api/buyer/register', authenticate, authorize('buyer'), async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'buyer') return res.status(403).json({ message: 'Forbidden' });
       const userId = Number(req.user.id);
@@ -500,6 +500,7 @@ async function startServer() {
         otherCategoryDetails: rawData.otherCategoryDetails,
         annualBudget: rawData.annualBudget,
         preferredMethods: rawData.preferredMethods,
+        otherMethodDetails: rawData.otherMethodDetails,
         documents: rawData.documents
       };
 
@@ -572,13 +573,88 @@ async function startServer() {
     }
   });
 
-  app.get('/api/vendors', authenticate, async (req, res) => {
+  app.get('/api/vendors', authenticate, authorize('buyer', 'admin'), async (req, res) => {
     try {
       const vendors = await prisma.user.findMany({
         where: { role: 'seller', onboardingStatus: 'approved_for_procurement' },
         include: { sellerProfile: true }
       });
       res.json(vendors.map(v => ({ ...v, _id: v.id })));
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/vendors/:id', authenticate, authorize('buyer', 'admin'), async (req, res) => {
+    try {
+      const vendor = await prisma.user.findUnique({
+        where: { id: Number(req.params.id), role: 'seller' },
+        include: { 
+          sellerProfile: {
+            include: {
+              offices: true,
+              bankAccounts: true
+            }
+          }
+        }
+      });
+      if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+      const { password, ...vendorSafe } = vendor;
+      res.json({ ...vendorSafe, _id: vendor.id });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // --- Quote Request APIs ---
+  app.post('/api/quotes', authenticate, authorize('buyer'), async (req: AuthRequest, res) => {
+    try {
+      const { sellerId, subject, message } = req.body;
+      const buyerId = Number(req.user?.id);
+
+      if (req.user?.role !== 'buyer') {
+        return res.status(403).json({ message: 'Only buyers can request quotes' });
+      }
+
+      const quote = await prisma.quoteRequest.create({
+        data: {
+          buyerId,
+          sellerId: Number(sellerId),
+          subject,
+          message,
+          status: 'pending'
+        }
+      });
+
+      res.status(201).json(quote);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/quotes', authenticate, authorize('buyer', 'seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const userId = Number(req.user?.id);
+      const role = req.user?.role;
+
+      let quotes;
+      if (role === 'buyer') {
+        quotes = await prisma.quoteRequest.findMany({
+          where: { buyerId: userId },
+          include: { seller: { include: { sellerProfile: true } } },
+          orderBy: { createdAt: 'desc' }
+        });
+      } else if (role === 'seller') {
+        quotes = await prisma.quoteRequest.findMany({
+          where: { sellerId: userId },
+          include: { buyer: { include: { buyerProfile: true } } },
+          orderBy: { createdAt: 'desc' }
+        });
+      } else {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+
+      res.json(quotes);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

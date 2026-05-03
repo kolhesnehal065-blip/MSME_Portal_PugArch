@@ -64,13 +64,13 @@ export default function BuyerProfile() {
       icon: Building2,
       onEdit: () => navigate('/buyer/onboarding?section=basic'),
       fields: [
-        { label: 'LEGAL NAME', value: profile?.organizationName },
-        { label: 'ENTITY TYPE', value: profile?.businessType },
-        { label: 'INDUSTRY', value: profile?.industry },
-        { label: 'CIN', value: profile?.cin || 'Not Provided' },
-        { label: 'PAN', value: profile?.pan },
-        { label: 'GSTIN', value: profile?.gst || 'Not Provided' },
-        { label: 'WEBSITE', value: profile?.website || 'Not Provided' },
+        { label: 'Organization / Company Name', value: profile?.organizationName },
+        { label: 'Business Type', value: profile?.businessType },
+        { label: 'Industry / Sector', value: profile?.industry },
+        { label: 'CIN / Registration Number (if applicable)', value: profile?.cin || 'Not Provided' },
+        { label: 'PAN of Organization', value: profile?.pan },
+        { label: 'GSTIN (Optional)', value: profile?.gst || 'Not Provided' },
+        { label: 'Website URL (Optional)', value: profile?.website || 'Not Provided' },
       ]
     },
     {
@@ -106,9 +106,9 @@ export default function BuyerProfile() {
       icon: Briefcase,
       onEdit: () => navigate('/buyer/onboarding?section=bank'),
       fields: [
-        { label: 'CATEGORIES', value: profile?.procurementCategories?.join(', ') || 'Not Provided' },
-        { label: 'ANNUAL BUDGET', value: profile?.annualBudget },
-        { label: 'PREFERRED METHODS', value: profile?.preferredMethods?.join(', ') || 'Not Provided' },
+        { label: 'PROCUREMENT CATEGORIES', value: profile?.procurementCategories?.join(', ') || 'Not Provided' },
+        { label: 'ANNUAL PROCUREMENT BUDGET', value: profile?.annualBudget || 'Not Provided' },
+        { label: 'PREFERRED PROCUREMENT METHODS', value: profile?.preferredMethods?.join(', ') || 'Not Provided' },
       ]
     },
     {
@@ -167,13 +167,13 @@ export default function BuyerProfile() {
                   {section.fields.map((field, idx) => (
                     <div key={idx} className={cn("space-y-1", (field.label === 'REGISTERED ADDRESS' || field.label === 'CORPORATE ADDRESS' || field.label === 'CATEGORIES' || field.label === 'PREFERRED METHODS') ? "sm:col-span-2" : "")}>
                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">
-                        {field.label === 'LEGAL NAME' ? 'LEGAL NAME' : field.label === 'ENTITY TYPE' ? 'ENTITY TYPE' : field.label === 'CIN' ? 'YEAR OF INCORPORATION' : field.label}
+                        {field.label}
                       </p>
                       <p className={cn(
                         "text-sm font-bold tracking-tight",
                         field.value ? "text-slate-900" : "text-slate-300 italic"
                       )}>
-                        {field.label === 'CIN' ? '2025' : field.value || "—"}
+                        {field.value || "—"}
                       </p>
                     </div>
                   ))}

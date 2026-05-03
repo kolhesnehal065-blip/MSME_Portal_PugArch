@@ -108,13 +108,13 @@ export default function Prerequisites({ onProceed, role }: PrerequisitesProps) {
 
   return (
     <div className="mx-auto w-full max-w-4xl">
-      <Card className="overflow-hidden rounded-2xl border-none bg-white shadow-lg shadow-slate-200/70 sm:shadow-xl">
+      <Card className="overflow-visible rounded-2xl border-none bg-white shadow-lg shadow-slate-200/70 sm:shadow-xl">
         <div className="p-4 pb-3 text-left sm:p-6 md:p-8 md:pb-4">
            <h2 className="text-lg font-bold text-slate-800 sm:text-xl">Pre-requisites</h2>
            <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm md:text-xs">Registration on PugArch should be done by an authorized person (Director of the organisation or a Key Person/Proprietor).</p>
         </div>
         
-        <CardContent className="p-4 pt-0 sm:p-6 md:p-8 md:pt-0">
+        <CardContent className="p-4 pt-0 pb-10 sm:p-6 sm:pt-0 sm:pb-12 md:p-8 md:pt-0 md:pb-16">
           <div className="mb-6 sm:mb-8">
             <label className="mb-2 block text-xs font-bold text-slate-700">{isBuyer ? 'User Type' : 'Business / Organisation Type'} * <Info className="inline h-3 w-3 text-slate-400" /></label>
             <div className="w-full max-w-md">

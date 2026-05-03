@@ -146,7 +146,7 @@ export default function Tenders() {
                 "px-2 py-0.5 rounded-full text-[10px] font-bold",
                 activeTab === tab.toLowerCase() ? "bg-slate-100 text-slate-600" : "bg-slate-200/50 text-slate-400"
               )}>
-                {tab === 'Draft' ? '2' : tab === 'Active' ? '3' : '2'}
+                {tenders.filter(t => t.status === tab.toLowerCase()).length}
               </span>
             </button>
           ))}

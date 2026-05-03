@@ -23,7 +23,8 @@ const SIDEBAR_SECTIONS = [
 
 const DEPARTMENT_OPTIONS = ['Procurement', 'Finance', 'Admin', 'Operations', 'Management', 'Others'];
 const PROCUREMENT_CATEGORY_OPTIONS = ['IT Equipment', 'Office Supplies', 'Machinery', 'Services', 'Construction', 'Consulting', 'Others'];
-const PROCUREMENT_METHOD_OPTIONS = ['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction'];
+const ANNUAL_BUDGET_OPTIONS = ['< ₹10 Lakh', '₹10 Lakh – ₹1 Crore', '₹1 Crore – ₹10 Crore', '₹10 Crore+'];
+const PROCUREMENT_METHOD_OPTIONS = ['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction', 'Others'];
 const BUYER_ONBOARDING_DRAFT_KEY = 'buyer-onboarding-draft';
 const DASHBOARD_SECTION_TO_BUYER_SECTION: Record<string, string> = {
   basic: 'org',
@@ -103,6 +104,9 @@ export default function BuyerOnboarding() {
     customProcurementCategories: [],
     annualBudget: '< ₹10 Lakh',
     preferredMethods: [],
+    otherMethodDetails: '',
+    customProcurementMethodInput: '',
+    customPreferredMethods: [],
     
     // Document Upload
     documents: {
@@ -156,6 +160,13 @@ export default function BuyerOnboarding() {
         const draftDepartment = storedDraft?.formData?.department || '';
         const hasDraftPresetDepartment = DEPARTMENT_OPTIONS.includes(draftDepartment) && draftDepartment !== 'Others';
 
+        const profilePreferredMethods = Array.isArray(data.profile?.preferredMethods) ? data.profile.preferredMethods : [];
+        const savedPresetMethods = profilePreferredMethods.filter((method: string) => PROCUREMENT_METHOD_OPTIONS.includes(method) && method !== 'Others');
+        const savedCustomMethods = profilePreferredMethods.filter((method: string) => !PROCUREMENT_METHOD_OPTIONS.includes(method));
+        const normalizedMethods = savedCustomMethods.length > 0
+          ? [...savedPresetMethods, 'Others']
+          : savedPresetMethods;
+
         setFormData((prev: any) => ({
           ...prev,
           ...(data.profile || {}),
@@ -163,6 +174,10 @@ export default function BuyerOnboarding() {
           customProcurementCategories: savedCustomProcurementCategories,
           otherCategoryDetails: savedCustomProcurementCategories.join(', '),
           customProcurementCategoryInput: '',
+          preferredMethods: normalizedMethods.length > 0 ? normalizedMethods : prev.preferredMethods,
+          customPreferredMethods: savedCustomMethods,
+          otherMethodDetails: savedCustomMethods.join(', '),
+          customProcurementMethodInput: '',
           ...(storedDraft?.formData || {}),
           department: profileDepartment ? (hasPresetDepartment ? profileDepartment : 'Others') : prev.department,
           customDepartment: profileDepartment && !hasPresetDepartment ? profileDepartment : (prev.customDepartment || ''),
@@ -283,6 +298,9 @@ export default function BuyerOnboarding() {
         [field]: values.filter(v => v !== value),
         ...(field === 'procurementCategories' && value === 'Others'
           ? { otherCategoryDetails: '', customProcurementCategoryInput: '', customProcurementCategories: [] }
+          : {}),
+        ...(field === 'preferredMethods' && value === 'Others'
+          ? { otherMethodDetails: '', customProcurementMethodInput: '', customPreferredMethods: [] }
           : {})
       });
     } else {
@@ -348,6 +366,42 @@ export default function BuyerOnboarding() {
         preferredMethods: [...formData.preferredMethods, value]
       });
     }
+  };
+
+  const addCustomPreferredMethod = () => {
+    const method = formData.customProcurementMethodInput.trim();
+    if (!method) return;
+
+    const existsInPreset = formData.preferredMethods.some((item: string) => item.toLowerCase() === method.toLowerCase());
+    const existsInCustom = formData.customPreferredMethods.some((item: string) => item.toLowerCase() === method.toLowerCase());
+
+    if (existsInPreset || existsInCustom) {
+      toast.error('This procurement method is already added');
+      return;
+    }
+
+    const updatedCustomPreferredMethods = [...formData.customPreferredMethods, method];
+    setFormData({
+      ...formData,
+      preferredMethods: formData.preferredMethods.includes('Others')
+        ? formData.preferredMethods
+        : [...formData.preferredMethods, 'Others'],
+      customProcurementMethodInput: '',
+      customPreferredMethods: updatedCustomPreferredMethods,
+      otherMethodDetails: updatedCustomPreferredMethods.join(', ')
+    });
+  };
+
+  const removeCustomPreferredMethod = (methodToRemove: string) => {
+    const updatedCustomPreferredMethods = formData.customPreferredMethods.filter((item: string) => item !== methodToRemove);
+    setFormData({
+      ...formData,
+      customPreferredMethods: updatedCustomPreferredMethods,
+      otherMethodDetails: updatedCustomPreferredMethods.join(', '),
+      preferredMethods: updatedCustomPreferredMethods.length === 0
+        ? formData.preferredMethods.filter((item: string) => item !== 'Others')
+        : formData.preferredMethods
+    });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
@@ -505,6 +559,7 @@ export default function BuyerOnboarding() {
       setIsLoading(true);
       try {
         const normalizedProcurementCategories = formData.procurementCategories.filter((category: string) => category !== 'Others');
+        const normalizedPreferredMethods = formData.preferredMethods.filter((method: string) => method !== 'Others');
         const submissionData = {
           ...formData,
           department: formData.department === 'Others' ? formData.customDepartment.trim() || 'Others' : formData.department,
@@ -512,7 +567,12 @@ export default function BuyerOnboarding() {
             ...normalizedProcurementCategories,
             ...formData.customProcurementCategories
           ],
-          otherCategoryDetails: formData.customProcurementCategories.join(', ')
+          otherCategoryDetails: formData.customProcurementCategories.join(', '),
+          preferredMethods: [
+            ...normalizedPreferredMethods,
+            ...formData.customPreferredMethods
+          ],
+          otherMethodDetails: formData.customPreferredMethods.join(', ')
         };
 
         const res = await api.post('/api/buyer/register', submissionData, {
@@ -619,19 +679,24 @@ export default function BuyerOnboarding() {
                 {/* Section Content */}
                 {activeSection === 'org' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Input label="LEGAL NAME" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={touched.organizationName ? errors.organizationName : ''} required className="h-12" />
-                    <Input label="TRADE NAME (optional)" name="tradeName" value={formData.tradeName || ''} onChange={handleChange} placeholder="Business name if different" className="h-12" />
-                    <Select label="ENTITY TYPE" name="businessType" value={formData.businessType} onChange={handleChange} required className="h-12">
+                    <Input label="Organization / Company Name" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={touched.organizationName ? errors.organizationName : ''} required className="h-12" />
+                    <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} required className="h-12">
                       <option value="Private Limited Company">Private Limited Company</option>
                       <option value="Public Limited Company">Public Limited Company</option>
                       <option value="Partnership Firm">Partnership Firm</option>
                       <option value="LLP">LLP</option>
                       <option value="Proprietorship">Proprietorship</option>
                       <option value="Startup">Startup</option>
+                      <option value="NGO / Trust">NGO / Trust</option>
+                      <option value="Educational Institution">Educational Institution</option>
                     </Select>
-                    <Input label="YEAR OF INCORPORATION" name="incorporationYear" value={formData.incorporationYear || ''} onChange={handleChange} placeholder="YYYY" className="h-12" />
-                    <Input label="PAN of Organization" name="pan" value={formData.pan} onChange={handleChange} onBlur={handleBlur} error={touched.pan ? errors.pan : ''} placeholder="ABCDE1234F" className="h-12" />
+                    <Input label="Industry / Sector" name="industry" value={formData.industry} onChange={handleChange} onBlur={handleBlur} error={touched.industry ? errors.industry : ''} placeholder="e.g. Construction, IT, Healthcare" required className="h-12" />
+                    <Input label="CIN / Registration Number (if applicable)" name="cin" value={formData.cin} onChange={handleChange} onBlur={handleBlur} error={touched.cin ? errors.cin : ''} placeholder="U12345KA2023PTC123456" className="h-12" />
+                    <Input label="PAN of Organization" name="pan" value={formData.pan} onChange={handleChange} onBlur={handleBlur} error={touched.pan ? errors.pan : ''} placeholder="ABCDE1234F" required className="h-12" />
                     <Input label="GSTIN (Optional)" name="gst" value={formData.gst} onChange={handleChange} onBlur={handleBlur} error={touched.gst ? errors.gst : ''} placeholder="22ABCDE1234F1Z5" className="h-12" />
+                    <div className="md:col-span-2">
+                      <Input label="Website URL (Optional)" name="website" value={formData.website} onChange={handleChange} onBlur={handleBlur} error={touched.website ? errors.website : ''} placeholder="https://www.company.com" className="h-12" />
+                    </div>
                   </div>
                 )}
 
@@ -664,36 +729,132 @@ export default function BuyerOnboarding() {
                 {activeSection === 'procurement' && (
                   <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <Select
-                        label="PROCUREMENT CATEGORY"
-                        name="procurementCategoryPicker"
-                        value=""
-                        onChange={handleProcurementCategorySelect}
-                        className="h-12"
-                      >
-                        <option value="" disabled>Select a category</option>
-                        {PROCUREMENT_CATEGORY_OPTIONS.map((cat) => (
-                          <option key={cat} value={cat} disabled={formData.procurementCategories.includes(cat)}>
-                            {cat}
-                          </option>
-                        ))}
-                      </Select>
-                      <Select label="ANNUAL PROCUREMENT BUDGET" name="annualBudget" value={formData.annualBudget} onChange={handleChange} className="h-12">
-                        <option value="< ₹10 Lakh">&lt; ₹10 Lakh</option>
-                        <option value="₹10 Lakh - ₹50 Lakh">₹10 Lakh - ₹50 Lakh</option>
-                        <option value="₹50 Lakh - ₹1 Crore">₹50 Lakh - ₹1 Crore</option>
-                        <option value="> ₹1 Crore">&gt; ₹1 Crore</option>
-                      </Select>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.procurementCategories.map((cat: string) => (
-                        <span key={cat} className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200">
-                          {cat}
-                          <button type="button" onClick={() => toggleTag('procurementCategories', cat)} className="text-slate-400 hover:text-slate-600">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
+                      <div className="space-y-4">
+                        <Select
+                          label="PROCUREMENT CATEGORY (Multiple)"
+                          name="procurementCategoryPicker"
+                          value=""
+                          onChange={handleProcurementCategorySelect}
+                          className="h-12"
+                        >
+                          <option value="" disabled>Select a category</option>
+                          {PROCUREMENT_CATEGORY_OPTIONS.map((cat) => (
+                            <option key={cat} value={cat} disabled={formData.procurementCategories.includes(cat)}>
+                              {cat}
+                            </option>
+                          ))}
+                        </Select>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          {formData.procurementCategories.map((cat: string) => (
+                            <span key={cat} className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200">
+                              {cat}
+                              <button type="button" onClick={() => toggleTag('procurementCategories', cat)} className="text-slate-400 hover:text-slate-600">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+
+                        {formData.procurementCategories.includes('Others') && (
+                          <div className="space-y-4 pt-2">
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="Enter custom category"
+                                name="customProcurementCategoryInput"
+                                value={formData.customProcurementCategoryInput}
+                                onChange={handleChange}
+                                className="h-10"
+                              />
+                              <Button
+                                type="button"
+                                onClick={addCustomProcurementCategory}
+                                className="bg-slate-900 text-white h-10 px-4 rounded-lg"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {formData.customProcurementCategories.map((cat: string) => (
+                                <span key={cat} className="inline-flex items-center gap-2 bg-teal-50 text-teal-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase italic border border-teal-100">
+                                  {cat}
+                                  <button type="button" onClick={() => removeCustomProcurementCategory(cat)} className="text-teal-400 hover:text-teal-600">
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-8">
+                        <Select label="ANNUAL PROCUREMENT BUDGET (Optional)" name="annualBudget" value={formData.annualBudget} onChange={handleChange} className="h-12">
+                          <option value="">Select Budget Range</option>
+                          {ANNUAL_BUDGET_OPTIONS.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </Select>
+
+                        <div className="space-y-4">
+                          <Select
+                            label="PREFERRED PROCUREMENT METHODS (Multiple)"
+                            name="preferredMethodPicker"
+                            value=""
+                            onChange={handleProcurementMethodSelect}
+                            className="h-12"
+                          >
+                            <option value="" disabled>Select a method</option>
+                            {PROCUREMENT_METHOD_OPTIONS.map((method) => (
+                              <option key={method} value={method} disabled={formData.preferredMethods.includes(method)}>
+                                {method}
+                              </option>
+                            ))}
+                          </Select>
+
+                          <div className="flex flex-wrap gap-2">
+                            {formData.preferredMethods.map((method: string) => (
+                              <span key={method} className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200">
+                                {method}
+                                <button type="button" onClick={() => toggleTag('preferredMethods', method)} className="text-slate-400 hover:text-slate-600">
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+
+                          {formData.preferredMethods.includes('Others') && (
+                            <div className="space-y-4 pt-2">
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Enter custom method"
+                                  name="customProcurementMethodInput"
+                                  value={formData.customProcurementMethodInput}
+                                  onChange={handleChange}
+                                  className="h-10"
+                                />
+                                <Button
+                                  type="button"
+                                  onClick={addCustomPreferredMethod}
+                                  className="bg-slate-900 text-white h-10 px-4 rounded-lg"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {formData.customPreferredMethods.map((method: string) => (
+                                  <span key={method} className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase italic border border-indigo-100">
+                                    {method}
+                                    <button type="button" onClick={() => removeCustomPreferredMethod(method)} className="text-indigo-400 hover:text-indigo-600">
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
