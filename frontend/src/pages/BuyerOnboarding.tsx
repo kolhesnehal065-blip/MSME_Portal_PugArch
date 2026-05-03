@@ -79,7 +79,7 @@ export default function BuyerOnboarding() {
     pan: '',
     gst: '',
     website: '',
-    
+
     // Authorized Representative
     representativeName: '',
     designation: '',
@@ -88,7 +88,7 @@ export default function BuyerOnboarding() {
     email: '',
     mobile: '',
     alternateMobile: '',
-    
+
     // Address Details
     country: 'India',
     state: '',
@@ -96,7 +96,7 @@ export default function BuyerOnboarding() {
     pincode: '',
     registeredAddress: '',
     corporateAddress: '',
-    
+
     // Procurement Profile
     procurementCategories: [],
     otherCategoryDetails: '',
@@ -107,7 +107,7 @@ export default function BuyerOnboarding() {
     otherMethodDetails: '',
     customProcurementMethodInput: '',
     customPreferredMethods: [],
-    
+
     // Document Upload
     documents: {
       panCard: '',
@@ -147,6 +147,7 @@ export default function BuyerOnboarding() {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         const data = await res.json();
+        const regDetails = data.user?.registrationDetails || {};
         const profileDepartment = data.profile?.department || '';
         const hasPresetDepartment = DEPARTMENT_OPTIONS.includes(profileDepartment) && profileDepartment !== 'Others';
         const profileProcurementCategories = Array.isArray(data.profile?.procurementCategories) ? data.profile.procurementCategories : [];
@@ -428,7 +429,7 @@ export default function BuyerOnboarding() {
         },
         body: formDataUpload
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         const fieldPath = fieldName.split('.');
@@ -551,7 +552,7 @@ export default function BuyerOnboarding() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Final Submission Logic
     if (activeSection === 'account') {
       if (!validateSection('account')) return;
@@ -584,11 +585,11 @@ export default function BuyerOnboarding() {
         };
 
         const res = await api.post('/api/buyer/register', submissionData, {
-          headers: { 
+          headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
-        
+
         if (res.ok) {
           localStorage.removeItem(BUYER_ONBOARDING_DRAFT_KEY);
           toast.success('Registration finished successfully');
@@ -628,8 +629,8 @@ export default function BuyerOnboarding() {
             </p>
           </div>
           <div className="mt-4 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-teal-600 transition-all duration-500" 
+            <div
+              className="h-full bg-teal-600 transition-all duration-500"
               style={{ width: `${((SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection) + 1) / SIDEBAR_SECTIONS.length) * 100}%` }}
             />
           </div>
@@ -646,9 +647,9 @@ export default function BuyerOnboarding() {
                 onClick={() => setActiveSection(section.id)}
                 className={cn(
                   "flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border",
-                  isActive 
-                    ? "bg-teal-50 text-teal-700 border-teal-200 shadow-sm" 
-                    : isCompleted 
+                  isActive
+                    ? "bg-teal-50 text-teal-700 border-teal-200 shadow-sm"
+                    : isCompleted
                       ? "bg-white text-slate-900 border-slate-200 shadow-sm"
                       : "bg-transparent text-slate-400 border-transparent hover:text-slate-600"
                 )}
@@ -673,12 +674,12 @@ export default function BuyerOnboarding() {
                 {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}
               </h2>
               <p className="text-sm text-slate-500">
-                {activeSection === 'org' ? 'Tell us about your organization.' : 
-                 activeSection === 'rep' ? 'Contact details of the authorized person.' :
-                 activeSection === 'address' ? 'Registered and corporate office locations.' :
-                 activeSection === 'procurement' ? 'Define your procurement requirements.' :
-                 activeSection === 'docs' ? 'Upload verification documents.' :
-                 'Secure your account with a password.'}
+                {activeSection === 'org' ? 'Tell us about your organization.' :
+                  activeSection === 'rep' ? 'Contact details of the authorized person.' :
+                    activeSection === 'address' ? 'Registered and corporate office locations.' :
+                      activeSection === 'procurement' ? 'Define your procurement requirements.' :
+                        activeSection === 'docs' ? 'Upload verification documents.' :
+                          'Secure your account with a password.'}
               </p>
             </div>
 
@@ -719,13 +720,13 @@ export default function BuyerOnboarding() {
                         ))}
                       </Select>
                       {formData.department === 'Others' && (
-                        <Input 
-                          placeholder="Please specify your department" 
-                          name="customDepartment" 
-                          value={formData.customDepartment} 
-                          onChange={handleChange} 
-                          required 
-                          className="h-10 animate-in slide-in-from-top-2 duration-300" 
+                        <Input
+                          placeholder="Please specify your department"
+                          name="customDepartment"
+                          value={formData.customDepartment}
+                          onChange={handleChange}
+                          required
+                          className="h-10 animate-in slide-in-from-top-2 duration-300"
                         />
                       )}
                     </div>
@@ -764,7 +765,7 @@ export default function BuyerOnboarding() {
                             </option>
                           ))}
                         </Select>
-                        
+
                         <div className="flex flex-wrap gap-2">
                           {formData.procurementCategories.map((cat: string) => (
                             <span key={cat} className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200">
@@ -925,8 +926,8 @@ export default function BuyerOnboarding() {
 
               {/* Action Buttons */}
               <div className="flex items-center justify-between pt-10 border-t border-slate-100">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     const currentIndex = SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection);
                     if (currentIndex > 0) setActiveSection(SIDEBAR_SECTIONS[currentIndex - 1].id);
