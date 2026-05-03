@@ -39,8 +39,8 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
         const data = await res.json();
         toast.error(data.message || 'Failed to send OTP');
       }
-    } catch (err) {
-      toast.error('Network error. Check your connection.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Network error. Check your connection.');
     } finally {
       setIsSendingOtp(false);
     }
@@ -61,8 +61,8 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
         const data = await res.json();
         toast.error(data.message || 'Invalid code');
       }
-    } catch (err) {
-      toast.error('Verification failed');
+    } catch (err: any) {
+      toast.error(err?.message || 'Verification failed');
     } finally {
       setIsVerifyingOtp(false);
     }
@@ -89,8 +89,8 @@ export default function Register({ type }: { type: 'seller' | 'buyer' | 'admin' 
       } else {
         toast.error(data.message || 'Registration failed');
       }
-    } catch (err) {
-      toast.error('Something went wrong');
+    } catch (err: any) {
+      toast.error(err?.message || 'Something went wrong');
     } finally {
       setIsLoading(false);
     }

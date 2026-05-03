@@ -245,7 +245,7 @@ async function startServer() {
   // --- Auth APIs ---
   app.post('/api/auth/send-email-otp', async (req, res) => {
     try {
-      const { email } = req.body;
+      const email = String(req.body.email || '').trim().toLowerCase();
       if (!email) return res.status(400).json({ message: 'Email is required' });
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -272,15 +272,25 @@ async function startServer() {
       }
       res.json({ success: true });
     } catch (err: any) {
-      res.status(500).json({ message: err.message });
+      console.error('[Email OTP] Failed:', err);
+      res.status(500).json({
+        message: process.env.NODE_ENV === 'production'
+          ? 'Unable to send OTP right now. Please try again.'
+          : err.message
+      });
     }
   });
 
   app.post('/api/auth/verify-email-otp', async (req, res) => {
     try {
-      const { email, otp } = req.body;
+      const email = String(req.body.email || '').trim().toLowerCase();
+      const otp = String(req.body.otp || '').trim();
       const otpRecord = await prisma.otp.findFirst({ where: { email, otp } });
       if (!otpRecord) return res.status(400).json({ message: 'Invalid OTP' });
+      if (otpRecord.expiresAt < new Date()) {
+        await prisma.otp.delete({ where: { id: otpRecord.id } });
+        return res.status(400).json({ message: 'OTP expired. Please request a new code.' });
+      }
 
       await prisma.otp.update({
         where: { id: otpRecord.id },
@@ -294,9 +304,14 @@ async function startServer() {
 
   app.post('/api/auth/register', async (req, res) => {
     try {
-      const { name, email, password, role, registrationDetails, mobile, dob } = req.body;
+      const { name, password, role, registrationDetails, mobile, dob } = req.body;
+      const email = String(req.body.email || '').trim().toLowerCase();
       const otpRecord = await prisma.otp.findFirst({ where: { email, isVerified: true } });
-      if (!otpRecord && role !== 'admin') return res.status(400).json({ message: 'Verify email first' });
+      if (!otpRecord) return res.status(400).json({ message: 'Verify email first' });
+      if (otpRecord.expiresAt < new Date()) {
+        await prisma.otp.delete({ where: { id: otpRecord.id } });
+        return res.status(400).json({ message: 'OTP expired. Please request a new code.' });
+      }
 
       const existingUser = await prisma.user.findUnique({ where: { email } });
       if (existingUser) return res.status(400).json({ message: 'Exists' });
