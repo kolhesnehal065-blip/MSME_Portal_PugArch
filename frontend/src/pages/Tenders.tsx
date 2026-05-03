@@ -153,8 +153,8 @@ export default function Tenders() {
         </div>
 
         {/* Tenders Table */}
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-sm">
+          <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50">
                 <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tender ID</th>

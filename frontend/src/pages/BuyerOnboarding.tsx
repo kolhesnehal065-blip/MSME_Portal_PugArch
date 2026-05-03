@@ -608,12 +608,12 @@ export default function BuyerOnboarding() {
   if (isFetching) return <div className="buyer-font flex min-h-dvh items-center justify-center px-4 text-center font-bold italic text-indigo-600">Loading form...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-8">
+    <div className="min-h-screen bg-slate-50 text-slate-900 p-3 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
-        <div className="mb-10">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Buyer Registration</p>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Onboarding</h1>
+        <div className="mb-6 md:mb-10">
+          <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Buyer Registration</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Onboarding</h1>
           <div className="flex items-center gap-3">
             <p className="text-sm text-slate-500 font-medium">
               Step {SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection) + 1} of {SIDEBAR_SECTIONS.length} — {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}
@@ -659,9 +659,9 @@ export default function BuyerOnboarding() {
 
         {/* Form Card */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
-          <div className="p-6 md:p-10">
-            <div className="mb-10">
-              <h2 className="text-2xl font-bold text-slate-900 mb-1">
+          <div className="p-5 sm:p-8 md:p-10">
+            <div className="mb-8 md:mb-10">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
                 {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}
               </h2>
               <p className="text-sm text-slate-500">

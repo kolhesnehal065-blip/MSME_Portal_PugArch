@@ -7,10 +7,10 @@ export default function Home() {
   const { user } = useAuth();
 
   return (
-    <div className="space-y-10 px-3 py-8 sm:space-y-14 sm:px-4 sm:py-12">
+    <div className="space-y-12 px-4 py-10 sm:space-y-16 sm:px-6 sm:py-16">
       {/* Hero Section */}
-      <div className="mx-auto max-w-3xl space-y-5 text-center sm:space-y-6">
-        <h1 className="px-1 text-3xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+      <div className="mx-auto max-w-4xl space-y-6 text-center sm:space-y-8">
+        <h1 className="text-3xl sm:text-5xl lg:text-7xl font-extrabold leading-[1.1] tracking-tight text-slate-900">
           Streamline Your Procurement Onboarding with <span className="text-blue-600">PugArch MSME</span>
         </h1>
         <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-600 sm:text-xl">
@@ -54,27 +54,27 @@ export default function Home() {
       </div>
 
       {/* Features */}
-      <div className="grid gap-4 sm:gap-6 md:grid-cols-3 md:gap-8">
-        <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-8 sm:space-y-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-            <ShieldCheck className="h-6 w-6 text-blue-600" />
+      <div className="grid gap-6 md:grid-cols-3">
+        <div className="group space-y-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-md sm:p-8">
+          <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+            <ShieldCheck className="h-7 w-7 text-blue-600" />
           </div>
-          <h3 className="text-xl font-bold">Secure Verification</h3>
-          <p className="text-slate-600">Enterprise-grade document verification and KYB checks for all participants.</p>
+          <h3 className="text-xl font-bold text-slate-900">Secure Verification</h3>
+          <p className="text-slate-600 leading-relaxed">Enterprise-grade document verification and KYB checks for all participants.</p>
         </div>
-        <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-8 sm:space-y-4">
-          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-            <CheckCircle2 className="h-6 w-6 text-green-600" />
+        <div className="group space-y-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-md sm:p-8">
+          <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+            <CheckCircle2 className="h-7 w-7 text-green-600" />
           </div>
-          <h3 className="text-xl font-bold">Fast Approval</h3>
-          <p className="text-slate-600">Dedicated admin workflow ensures onboarding is processed within 48 hours.</p>
+          <h3 className="text-xl font-bold text-slate-900">Fast Approval</h3>
+          <p className="text-slate-600 leading-relaxed">Dedicated admin workflow ensures onboarding is processed within 48 hours.</p>
         </div>
-        <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-8 sm:space-y-4">
-          <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-            <ArrowRight className="h-6 w-6 text-purple-600" />
+        <div className="group space-y-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-md sm:p-8">
+          <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+            <ArrowRight className="h-7 w-7 text-purple-600" />
           </div>
-          <h3 className="text-xl font-bold">Direct Integration</h3>
-          <p className="text-slate-600">Connect directly into our ERP system once your profile is approved.</p>
+          <h3 className="text-xl font-bold text-slate-900">Direct Integration</h3>
+          <p className="text-slate-600 leading-relaxed">Connect directly into our ERP system once your profile is approved.</p>
         </div>
       </div>
       

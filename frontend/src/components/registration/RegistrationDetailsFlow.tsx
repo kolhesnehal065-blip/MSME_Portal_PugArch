@@ -68,7 +68,21 @@ const districtOrganisationOverrides: Record<string, string[]> = {
 
 const getDistrictOrganisations = (state: string, district: string) => {
   if (!state || !district) return [];
-  return districtOrganisationOverrides[`${state}:${district}`] || [];
+  
+  const overrides = districtOrganisationOverrides[`${state}:${district}`];
+  if (overrides && overrides.length > 0) return overrides;
+
+  // Fallback realistic dummy data for each district if no override exists
+  return [
+    `${district} District Central Co-operative Bank Ltd.`,
+    `${district} Zilla Parishad Office`,
+    `${district} Municipal Corporation / Nagar Palika`,
+    `${state} State Electricity Distribution Co. Ltd - ${district} Division`,
+    `${district} Sahakari Dudh Utpadak Sangh (Dairy)`,
+    `Department of Agriculture - ${district} Unit`,
+    `District Rural Development Agency (DRDA) - ${district}`,
+    `Integrated Child Development Services (ICDS) - ${district} Project`
+  ];
 };
 
 export default function RegistrationDetailsFlow({ businessType, onBack, role }: RegistrationDetailsFlowProps) {
@@ -395,21 +409,14 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                           organisation: e.target.value,
                           businessName: e.target.value
                         })}
-                        disabled={!formData.district || organisationOptions.length === 0}
+                        disabled={!formData.district}
                         className="h-14 rounded-lg border-slate-200 bg-white"
                       >
-                        <option value="">
-                          {organisationOptions.length === 0 && formData.district ? 'No verified organisations available' : 'Select Organisation'}
-                        </option>
+                        <option value="">Select Organisation</option>
                         {organisationOptions.map((organisation) => (
                           <option key={organisation} value={organisation}>{organisation}</option>
                         ))}
                       </Select>
-                      {formData.district && organisationOptions.length === 0 && (
-                        <p className="text-[10px] text-amber-600">
-                          No verified organisation data has been added for this district yet.
-                        </p>
-                      )}
 
                       <div>
                         <Input

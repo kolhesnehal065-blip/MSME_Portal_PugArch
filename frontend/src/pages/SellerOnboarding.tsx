@@ -17,6 +17,7 @@ export default function SellerOnboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [savedSections, setSavedSections] = useState<string[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const [formData, setFormData] = useState<any>({
     organizationType: 'Proprietorship',
@@ -184,11 +185,13 @@ export default function SellerOnboarding() {
   if (isFetching) return <div className="flex h-screen items-center justify-center font-black italic text-blue-600 animate-pulse">Initializing GeM-Style Profile...</div>;
 
   return (
-    <div className="flex bg-gray-50 min-h-screen">
+    <div className="flex flex-col lg:flex-row bg-gray-50 min-h-screen">
       <GeMSellerSidebar 
         currentSection={currentSection} 
         onSectionChange={setCurrentSection} 
         sectionStatus={getSectionStatus()} 
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
       
       <div className="flex-1 flex flex-col min-w-0">
@@ -196,9 +199,10 @@ export default function SellerOnboarding() {
           companyName={formData.businessName} 
           completionPercentage={calculateCompletion()} 
           warnings={warnings} 
+          onMenuClick={() => setIsSidebarOpen(true)}
         />
         
-        <main className="p-8 max-w-4xl mx-auto w-full">
+        <main className="p-4 sm:p-8 max-w-4xl mx-auto w-full">
           <Card className="rounded-2xl border-none shadow-xl shadow-gray-200/50 bg-white overflow-hidden">
             <div className="border-b border-gray-100 bg-gray-50/50 px-8 py-5">
                <h3 className="text-sm font-black uppercase tracking-tight text-gray-800 italic">
@@ -286,12 +290,12 @@ export default function SellerOnboarding() {
                      <button onClick={() => setOfficeTab('add')} className={`px-6 py-3 text-sm font-semibold ${officeTab === 'add' ? 'text-blue-600 border-t-2 border-l-2 border-r-2 border-gray-200 rounded-t-lg bg-white -mb-px' : 'text-gray-500 hover:text-gray-700'}`}>Add New Office</button>
                    </div>
 
-                   {officeTab === 'manage' && (
-                     <div className="pt-4 space-y-6 animate-in fade-in">
-                        <p className="text-sm text-gray-700">You need to update your GSTIN for getting the order above 40 lakhs.</p>
-                        
-                        <div className="border border-gray-200 bg-white">
-                           <table className="w-full text-left text-sm whitespace-nowrap">
+                    {officeTab === 'manage' && (
+                      <div className="pt-4 space-y-6 animate-in fade-in">
+                         <p className="text-sm text-gray-700">You need to update your GSTIN for getting the order above 40 lakhs.</p>
+                         
+                         <div className="overflow-x-auto border border-gray-200 bg-white rounded-xl">
+                            <table className="w-full text-left text-sm min-w-[600px]">
                               <thead className="bg-gray-50 border-b border-gray-200">
                                  <tr>
                                     <th className="px-4 py-4 font-semibold text-gray-800 w-1/4">Office</th>
@@ -443,15 +447,15 @@ export default function SellerOnboarding() {
                      <button onClick={() => setBankTab('add')} className={`px-6 py-3 text-sm font-semibold ${bankTab === 'add' ? 'text-blue-600 border-t-2 border-l-2 border-r-2 border-gray-200 rounded-t-lg bg-white -mb-px' : 'text-gray-500 hover:text-gray-700'}`}>Add new Bank Account</button>
                    </div>
 
-                   {bankTab === 'manage' && (
-                     <div className="pt-4 space-y-6 animate-in fade-in">
-                        <div className="bg-blue-50/50 text-slate-700 p-5 rounded text-sm border border-blue-100">
-                           <p>Public Finance Management System (PFMS) verification is mandatory to receive payments from buyers using PFMS method of payment. Enter your PFMS verified account for better experience.</p>
-                           <p className="mt-4">Don't have a PFMS verification yet? Don't worry, you can proceed with a non-PFMS verified account now and come back to this section later.</p>
-                        </div>
-                        
-                        <div className="border border-gray-200 bg-white">
-                           <table className="w-full text-left text-sm whitespace-nowrap">
+                    {bankTab === 'manage' && (
+                      <div className="pt-4 space-y-6 animate-in fade-in">
+                         <div className="bg-blue-50/50 text-slate-700 p-5 rounded text-sm border border-blue-100">
+                            <p>Public Finance Management System (PFMS) verification is mandatory to receive payments from buyers using PFMS method of payment. Enter your PFMS verified account for better experience.</p>
+                            <p className="mt-4">Don't have a PFMS verification yet? Don't worry, you can proceed with a non-PFMS verified account now and come back to this section later.</p>
+                         </div>
+                         
+                         <div className="overflow-x-auto border border-gray-200 bg-white rounded-xl">
+                            <table className="w-full text-left text-sm min-w-[800px]">
                               <thead className="bg-gray-50 border-b border-gray-200">
                                  <tr>
                                     <th className="px-4 py-4 font-semibold text-gray-800">IFSC</th>

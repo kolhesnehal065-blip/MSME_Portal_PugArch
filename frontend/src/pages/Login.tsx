@@ -53,21 +53,21 @@ export default function Login() {
       <div className="absolute bottom-[-10%] right-[-10%] h-[40%] w-[40%] rounded-full bg-violet-200/40 blur-[120px] animate-pulse" />
       
       <Card className="animate-in relative z-10 w-full max-w-[400px] overflow-hidden rounded-[2.5rem] border border-white/40 bg-white/70 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] fade-in zoom-in duration-700">
-        <CardHeader className="relative bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 pb-6 pt-6 text-center text-white">
+        <CardHeader className="relative bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 pb-6 pt-8 text-center text-white">
           <div className="absolute top-0 right-0 p-6 opacity-5">
              <ShieldCheck className="h-32 w-32" />
           </div>
           <div className="relative mx-auto w-12 h-12 bg-white/10 backdrop-blur-xl border border-white/20 rounded-[1.25rem] flex items-center justify-center mb-4 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
             <Lock className="h-5 w-5 text-indigo-300" />
           </div>
-          <CardTitle className="text-2xl font-black uppercase tracking-tight sm:text-3xl lg:text-4xl text-white">
-            <span className="block text-indigo-400 text-xs tracking-[0.3em] mb-1 text-center">Secure Portal</span>
+          <CardTitle className="text-2xl font-black uppercase tracking-tight sm:text-3xl text-white">
+            <span className="block text-indigo-400 text-[10px] tracking-[0.3em] mb-1 text-center">Secure Portal</span>
             Stakeholder Access
           </CardTitle>
           <p className="text-[10px] font-bold text-slate-400 mt-3 uppercase tracking-[0.2em] italic opacity-80 text-center">PugArch Procurement Network</p>
         </CardHeader>
 
-        <CardContent className="p-4 sm:p-6">
+        <CardContent className="p-5 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
                <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] italic ml-1">Official Email</label>

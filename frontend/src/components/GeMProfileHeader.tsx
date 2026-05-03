@@ -5,19 +5,33 @@ interface GeMProfileHeaderProps {
   companyName: string;
   completionPercentage: number;
   warnings: string[];
+  onMenuClick?: () => void;
 }
 
 export const GeMProfileHeader: React.FC<GeMProfileHeaderProps> = ({
   companyName,
   completionPercentage,
-  warnings
+  warnings,
+  onMenuClick
 }) => {
   return (
     <div className="bg-white border-b border-gray-200 p-6 space-y-6 shadow-sm">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 uppercase italic tracking-tight">Seller Profile</h1>
-          <p className="text-gray-500 font-bold italic text-sm">{companyName || "Organization Name Not Set"}</p>
+        <div className="flex items-center gap-4">
+          {onMenuClick && (
+            <button 
+              onClick={onMenuClick}
+              className="lg:hidden p-2 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          )}
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-gray-900 uppercase italic tracking-tight">Seller Profile</h1>
+            <p className="text-gray-500 font-bold italic text-[10px] sm:text-sm line-clamp-1">{companyName || "Organization Name Not Set"}</p>
+          </div>
         </div>
         
         <div className="flex items-center gap-4">

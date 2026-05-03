@@ -44,12 +44,16 @@ interface GeMSellerSidebarProps {
   currentSection: string;
   onSectionChange: (id: string) => void;
   sectionStatus: Record<string, 'completed' | 'pending' | 'locked'>;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export const GeMSellerSidebar: React.FC<GeMSellerSidebarProps> = ({ 
   currentSection, 
   onSectionChange,
-  sectionStatus 
+  sectionStatus,
+  isOpen,
+  onClose
 }) => {
   const mandatoryItems = [
     { id: 'pan', label: '1. Business PAN Validation' },
@@ -68,50 +72,76 @@ export const GeMSellerSidebar: React.FC<GeMSellerSidebarProps> = ({
   ];
 
   return (
-    <div className="w-72 flex-shrink-0 bg-white border-r border-gray-200 min-h-screen shadow-sm overflow-y-auto">
-      <div className="p-6 border-b border-gray-100">
-        <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Business Profile</h3>
-      </div>
-      
-      <div className="py-2">
-        <div className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase">Mandatory</div>
-        {mandatoryItems.map(item => (
-          <SidebarItem
-            key={item.id}
-            id={item.id}
-            label={item.label}
-            status={sectionStatus[item.id] || 'pending'}
-            isActive={currentSection === item.id}
-            onClick={onSectionChange}
-          />
-        ))}
-      </div>
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      <div className="py-2 border-t border-gray-100">
-        <div className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase">Optional</div>
-        {optionalItems.map(item => (
-          <SidebarItem
-            key={item.id}
-            id={item.id}
-            label={item.label}
-            status={sectionStatus[item.id] || 'pending'}
-            isActive={currentSection === item.id}
-            onClick={onSectionChange}
-          />
-        ))}
-      </div>
+      <div className={cn(
+        "w-72 flex-shrink-0 bg-white border-r border-gray-200 min-h-screen shadow-sm overflow-y-auto transition-transform duration-300 lg:translate-x-0 fixed lg:static left-0 top-0 z-50 h-full",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Business Profile</h3>
+          {onClose && (
+            <button onClick={onClose} className="lg:hidden p-1 rounded-lg hover:bg-gray-100">
+              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        
+        <div className="py-2">
+          <div className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase">Mandatory</div>
+          {mandatoryItems.map(item => (
+            <SidebarItem
+              key={item.id}
+              id={item.id}
+              label={item.label}
+              status={sectionStatus[item.id] || 'pending'}
+              isActive={currentSection === item.id}
+              onClick={(id) => {
+                onSectionChange(id);
+                if (onClose) onClose();
+              }}
+            />
+          ))}
+        </div>
 
-      <div className="py-2 border-t border-gray-100 text-gray-500">
-        <div className="px-4 py-3 flex items-center gap-3 text-sm font-semibold opacity-60">
-           <Circle className="h-5 w-5" /> 11. Vendor Assessment
+        <div className="py-2 border-t border-gray-100">
+          <div className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase">Optional</div>
+          {optionalItems.map(item => (
+            <SidebarItem
+              key={item.id}
+              id={item.id}
+              label={item.label}
+              status={sectionStatus[item.id] || 'pending'}
+              isActive={currentSection === item.id}
+              onClick={(id) => {
+                onSectionChange(id);
+                if (onClose) onClose();
+              }}
+            />
+          ))}
         </div>
-        <div className="px-4 py-3 flex items-center gap-3 text-sm font-semibold opacity-60">
-           <Circle className="h-5 w-5" /> 12. Account Settings
-        </div>
-        <div className="px-4 py-3 flex items-center gap-3 text-sm font-semibold opacity-60">
-           <Circle className="h-5 w-5" /> 13. User Management
+
+        <div className="py-2 border-t border-gray-100 text-gray-500 pb-20 lg:pb-10">
+          <div className="px-4 py-3 flex items-center gap-3 text-sm font-semibold opacity-60">
+             <Circle className="h-5 w-5" /> 11. Vendor Assessment
+          </div>
+          <div className="px-4 py-3 flex items-center gap-3 text-sm font-semibold opacity-60">
+             <Circle className="h-5 w-5" /> 12. Account Settings
+          </div>
+          <div className="px-4 py-3 flex items-center gap-3 text-sm font-semibold opacity-60">
+             <Circle className="h-5 w-5" /> 13. User Management
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
