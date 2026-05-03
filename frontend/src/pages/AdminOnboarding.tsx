@@ -421,6 +421,9 @@ export default function AdminOnboarding() {
                            <div>
                               <div className="text-xl font-black text-slate-950 tracking-tight">{selectedItem.name}</div>
                               <div className="text-sm font-bold text-slate-400 italic">{selectedItem.email}</div>
+                              <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-1">
+                                ID: {selectedItem.registrationDetails?.userId || `MSME-${selectedItem.role?.charAt(0).toUpperCase()}-${String(selectedItem._id).padStart(5, '0')}`}
+                              </div>
                            </div>
                         </div>
                         <div className="pt-6 border-t border-slate-200">

@@ -269,6 +269,8 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
         email: formData.email || formData.userId,
         password: formData.password,
         role,
+        mobile: formData.mobile,
+        dob: formData.dob,
         registrationDetails: {
           businessType,
           businessName: formData.businessName,

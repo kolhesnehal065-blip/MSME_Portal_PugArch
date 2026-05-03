@@ -128,7 +128,12 @@ export default function Dashboard() {
            </div>
            <div className="pr-4">
              <p className="text-xs font-black text-slate-900 uppercase italic">{user?.name}</p>
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user?.role} Tier Account</p>
+             <div className="flex flex-col gap-0.5 mt-0.5">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user?.role} Tier Account</p>
+                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest italic">
+                  ID: {user?.registrationDetails?.userId || `MSME-${user?.role?.charAt(0).toUpperCase()}-${String(user?.id).padStart(5, '0')}`}
+                </p>
+             </div>
            </div>
         </div>
       </div>

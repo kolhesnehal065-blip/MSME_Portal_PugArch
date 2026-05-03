@@ -42,7 +42,10 @@ export default function SellerOnboarding() {
     ownershipVerified: false,
     
     offices: [],
-    bankAccounts: []
+    bankAccounts: [],
+    mobile: '',
+    dob: '',
+    roleInOrg: ''
   });
 
   useEffect(() => {
@@ -65,6 +68,9 @@ export default function SellerOnboarding() {
           nameAsInPan: profile.nameAsInPan || regDetails.businessName || data.user?.name || prev.nameAsInPan,
           dateAsInPan: profile.dateAsInPan ? new Date(profile.dateAsInPan).toISOString().split('T')[0] : '',
           dateOfIncorporation: profile.dateOfIncorporation ? new Date(profile.dateOfIncorporation).toISOString().split('T')[0] : '',
+          mobile: profile.mobile || data.user?.mobile || prev.mobile,
+          dob: profile.dob ? new Date(profile.dob).toISOString().split('T')[0] : (data.user?.dob ? new Date(data.user.dob).toISOString().split('T')[0] : prev.dob),
+          roleInOrg: profile.roleInOrg || prev.roleInOrg,
           offices: profile.offices || [],
           bankAccounts: profile.bankAccounts || []
         }));
@@ -421,6 +427,7 @@ export default function SellerOnboarding() {
                                state: (document.getElementById('new-office-state') as HTMLInputElement).value,
                                city: (document.getElementById('new-office-city') as HTMLInputElement).value,
                                address: fullAddress,
+                               contactNumber: contact,
                                isMandatory: type === 'Registered'
                              });
                              setOfficeTab('manage');
