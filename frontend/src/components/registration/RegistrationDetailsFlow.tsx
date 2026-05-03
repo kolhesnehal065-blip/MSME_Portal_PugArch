@@ -276,7 +276,14 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
           businessName: formData.businessName,
           userId: formData.userId,
           verificationMethod: formData.personalVerificationMethod,
-          isEmailVerified: true
+          isEmailVerified: true,
+          state: formData.state,
+          district: formData.district,
+          officeZoneName: formData.officeZoneName,
+          aadhaarNumber: formData.aadhaarNumber,
+          isAadhaarVerified: isAadhaarVerified,
+          pan: formData.panNumber,
+          roleInOrg: formData.roleInOrg
         }
       });
       

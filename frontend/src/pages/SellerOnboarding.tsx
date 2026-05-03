@@ -70,7 +70,8 @@ export default function SellerOnboarding() {
           dateOfIncorporation: profile.dateOfIncorporation ? new Date(profile.dateOfIncorporation).toISOString().split('T')[0] : '',
           mobile: profile.mobile || data.user?.mobile || prev.mobile,
           dob: profile.dob ? new Date(profile.dob).toISOString().split('T')[0] : (data.user?.dob ? new Date(data.user.dob).toISOString().split('T')[0] : prev.dob),
-          roleInOrg: profile.roleInOrg || prev.roleInOrg,
+          roleInOrg: profile.roleInOrg || regDetails.roleInOrg || prev.roleInOrg,
+          pan: profile.pan || regDetails.pan || prev.pan,
           offices: profile.offices || [],
           bankAccounts: profile.bankAccounts || []
         }));

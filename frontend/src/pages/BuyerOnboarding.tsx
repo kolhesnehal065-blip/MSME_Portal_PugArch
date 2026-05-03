@@ -185,7 +185,15 @@ export default function BuyerOnboarding() {
             department: hasDraftPresetDepartment ? storedDraft.formData.department : 'Others',
             customDepartment: !hasDraftPresetDepartment ? storedDraft.formData.department : (storedDraft.formData.customDepartment || '')
           } : {}),
-          email: storedDraft?.formData?.email || data.user?.email || prev.email
+          email: storedDraft?.formData?.email || data.user?.email || prev.email,
+          organizationName: data.profile?.organizationName || regDetails.businessName || data.user?.name || prev.organizationName,
+          mobile: data.profile?.mobile || data.user?.mobile || prev.mobile,
+          representativeName: data.profile?.representativeName || data.user?.name || prev.representativeName,
+          state: data.profile?.state || regDetails.state || prev.state,
+          district: data.profile?.district || regDetails.district || prev.district,
+          officeZoneName: data.profile?.officeZoneName || regDetails.officeZoneName || prev.officeZoneName,
+          aadhaarNumber: data.profile?.aadhaarNumber || regDetails.aadhaarNumber || prev.aadhaarNumber,
+          aadhaarVerified: data.profile?.aadhaarVerified || regDetails.isAadhaarVerified || prev.aadhaarVerified
         }));
         if (storedDraft?.activeSection && SIDEBAR_SECTIONS.some(section => section.id === storedDraft.activeSection)) {
           setActiveSection(storedDraft.activeSection);
@@ -704,11 +712,23 @@ export default function BuyerOnboarding() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <Input label="FULL NAME" name="representativeName" value={formData.representativeName} onChange={handleChange} onBlur={handleBlur} error={touched.representativeName ? errors.representativeName : ''} required className="h-12" />
                     <Input label="DESIGNATION" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Director" className="h-12" />
-                    <Select label="DEPARTMENT" name="department" value={formData.department} onChange={handleChange} className="h-12">
-                      {DEPARTMENT_OPTIONS.map((department) => (
-                        <option key={department} value={department}>{department}</option>
-                      ))}
-                    </Select>
+                    <div className="space-y-4">
+                      <Select label="DEPARTMENT" name="department" value={formData.department} onChange={handleChange} className="h-12">
+                        {DEPARTMENT_OPTIONS.map((department) => (
+                          <option key={department} value={department}>{department}</option>
+                        ))}
+                      </Select>
+                      {formData.department === 'Others' && (
+                        <Input 
+                          placeholder="Please specify your department" 
+                          name="customDepartment" 
+                          value={formData.customDepartment} 
+                          onChange={handleChange} 
+                          required 
+                          className="h-10 animate-in slide-in-from-top-2 duration-300" 
+                        />
+                      )}
+                    </div>
                     <Input label="OFFICIAL EMAIL ID" name="email" value={formData.email} onChange={handleChange} className="h-12" />
                     <Input label="MOBILE NUMBER" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleBlur} error={touched.mobile ? errors.mobile : ''} required className="h-12" />
                     <Input label="ALTERNATE NUMBER" name="alternateMobile" value={formData.alternateMobile} onChange={handleChange} className="h-12" />
