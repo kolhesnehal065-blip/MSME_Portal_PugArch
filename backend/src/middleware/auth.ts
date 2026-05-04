@@ -1,11 +1,11 @@
-import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 
 const getJwtSecret = () => process.env.JWT_SECRET || 'super-secret-procure-key';
 
-export interface AuthRequest extends Request {
+export interface AuthRequest extends Request<any, any, any, any> {
   user?: {
-    id: any; // Using any to handle transition from Mongo string IDs to Prisma numeric IDs
+    id: any;
     role: string;
   };
 }
