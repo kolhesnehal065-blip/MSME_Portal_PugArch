@@ -168,13 +168,6 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
   const handleVerifyAadhaarOtp = () => {
     if (aadhaarOtp === simulatedAadhaarOtp) {
       setIsAadhaarVerified(true);
-      if (role === 'buyer') {
-        setFormData(prev => ({
-          ...prev,
-          personalName: prev.personalName || 'Snehal',
-          roleInOrg: prev.roleInOrg || 'Hari Kolhe'
-        }));
-      }
       toast.success('Aadhaar Verified Successfully');
     } else {
       toast.error('Invalid OTP');
@@ -264,8 +257,9 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
     
     setIsLoading(true);
     try {
+      const accountName = formData.personalName.trim() || formData.userId.trim() || formData.businessName.trim();
       const res = await api.post('/api/auth/register', {
-        name: formData.personalName || formData.businessName,
+        name: accountName,
         email: formData.email || formData.userId,
         password: formData.password,
         role,
@@ -283,7 +277,8 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
           aadhaarNumber: formData.aadhaarNumber,
           isAadhaarVerified: isAadhaarVerified,
           pan: formData.panNumber,
-          roleInOrg: formData.roleInOrg
+          roleInOrg: formData.roleInOrg,
+          accountName
         }
       });
       

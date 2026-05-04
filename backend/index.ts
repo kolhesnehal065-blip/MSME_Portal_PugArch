@@ -304,8 +304,15 @@ async function startServer() {
 
   app.post('/api/auth/register', async (req, res) => {
     try {
-      const { name, password, role, registrationDetails, mobile, dob } = req.body;
+      const { password, role, registrationDetails, mobile, dob } = req.body;
       const email = String(req.body.email || '').trim().toLowerCase();
+      const name = String(
+        req.body.name ||
+        registrationDetails?.accountName ||
+        registrationDetails?.userId ||
+        registrationDetails?.businessName ||
+        email
+      ).trim();
       const otpRecord = await prisma.otp.findFirst({ where: { email, isVerified: true } });
       if (!otpRecord) return res.status(400).json({ message: 'Verify email first' });
       if (otpRecord.expiresAt < new Date()) {
