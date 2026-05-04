@@ -3,15 +3,22 @@ import jwt from 'jsonwebtoken';
 
 const getJwtSecret = () => process.env.JWT_SECRET || 'super-secret-procure-key';
 
-export interface AuthRequest extends Request<any, any, any, any> {
-  user?: {
-    id: any;
-    role: string;
-  };
+// Use Declaration Merging to extend the Express Request type globally
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: any;
+        role: string;
+      };
+    }
+  }
 }
 
+// Export AuthRequest as a type alias for the now-extended Request
+export type AuthRequest = Request;
 
-export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticate = (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'No token provided' });
 
@@ -25,7 +32,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 };
 
 export const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Authentication required' });
     }
@@ -38,7 +45,7 @@ export const authorize = (...roles: string[]) => {
   };
 };
 
-export const authorizeAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authorizeAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required' });
   }
