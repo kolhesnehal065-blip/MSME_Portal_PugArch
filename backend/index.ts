@@ -93,6 +93,18 @@ async function startServer() {
     next();
   });
 
+  const ensureOnboardingEditable = async (userId: number) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { onboardingStatus: true }
+    });
+    if (!user) return { editable: false, status: 404, message: 'User not found' };
+    if (user.onboardingStatus === 'approved_for_procurement') {
+      return { editable: false, status: 403, message: 'Approved onboarding profiles cannot be edited' };
+    }
+    return { editable: true };
+  };
+
   app.get("/", (req, res) => {
     res.json({
       message: "PugArch MSME Marketplace API (Prisma/PostgreSQL) is running",
@@ -392,6 +404,8 @@ async function startServer() {
   app.post('/api/seller/register', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
       const userId = Number(req.user?.id);
+      const editCheck = await ensureOnboardingEditable(userId);
+      if (!editCheck.editable) return res.status(editCheck.status || 403).json({ message: editCheck.message });
       const { password, ...rawData } = req.body;
 
       if (password || rawData.mobile || rawData.dob) {
@@ -450,6 +464,8 @@ async function startServer() {
   app.post('/api/seller/profile/offices', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
       const userId = Number(req.user?.id);
+      const editCheck = await ensureOnboardingEditable(userId);
+      if (!editCheck.editable) return res.status(editCheck.status || 403).json({ message: editCheck.message });
       const profile = await prisma.sellerProfile.findUnique({ where: { userId } });
       if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
@@ -465,6 +481,8 @@ async function startServer() {
   app.delete('/api/seller/profile/offices/:id', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
       const userId = Number(req.user?.id);
+      const editCheck = await ensureOnboardingEditable(userId);
+      if (!editCheck.editable) return res.status(editCheck.status || 403).json({ message: editCheck.message });
       const officeId = Number(req.params.id);
       const office = await prisma.sellerOffice.findUnique({
         where: { id: officeId },
@@ -484,6 +502,8 @@ async function startServer() {
   app.post('/api/seller/profile/bank', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
       const userId = Number(req.user?.id);
+      const editCheck = await ensureOnboardingEditable(userId);
+      if (!editCheck.editable) return res.status(editCheck.status || 403).json({ message: editCheck.message });
       const profile = await prisma.sellerProfile.findUnique({ where: { userId } });
       if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
@@ -499,6 +519,8 @@ async function startServer() {
   app.delete('/api/seller/profile/bank/:id', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
       const userId = Number(req.user?.id);
+      const editCheck = await ensureOnboardingEditable(userId);
+      if (!editCheck.editable) return res.status(editCheck.status || 403).json({ message: editCheck.message });
       const bankId = Number(req.params.id);
       const bank = await prisma.sellerBankAccount.findUnique({
         where: { id: bankId },
@@ -518,6 +540,8 @@ async function startServer() {
     try {
       if (req.user?.role !== 'buyer') return res.status(403).json({ message: 'Forbidden' });
       const userId = Number(req.user.id);
+      const editCheck = await ensureOnboardingEditable(userId);
+      if (!editCheck.editable) return res.status(editCheck.status || 403).json({ message: editCheck.message });
       const { password, ...rawData } = req.body;
       const existingUser = await prisma.user.findUnique({ where: { id: userId } });
       if (!existingUser) return res.status(404).json({ message: 'User not found' });

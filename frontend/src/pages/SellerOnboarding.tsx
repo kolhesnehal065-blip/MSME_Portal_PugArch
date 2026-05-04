@@ -18,6 +18,7 @@ export default function SellerOnboarding() {
   const [isFetching, setIsFetching] = useState(true);
   const [savedSections, setSavedSections] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileLocked, setIsProfileLocked] = useState(false);
   
   const [formData, setFormData] = useState<any>({
     organizationType: 'Proprietorship',
@@ -59,6 +60,7 @@ export default function SellerOnboarding() {
         
         const regDetails = data.user?.registrationDetails || {};
         const profile = data.profile || {};
+        setIsProfileLocked(data.user?.onboardingStatus === 'approved_for_procurement');
         
         setFormData((prev: any) => ({
           ...prev,
@@ -85,12 +87,17 @@ export default function SellerOnboarding() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (isProfileLocked) return;
     const { name, value, type } = e.target as any;
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
     setFormData((prev: any) => ({ ...prev, [name]: val }));
   };
 
   const handleSaveSection = async (nextSection?: string | React.MouseEvent) => {
+    if (isProfileLocked) {
+      toast.info('Approved profiles are locked');
+      return;
+    }
     setIsLoading(true);
     try {
       const res = await api.post('/api/seller/register', formData, {
@@ -113,6 +120,10 @@ export default function SellerOnboarding() {
   };
 
   const handleAddOffice = async (officeData: any) => {
+    if (isProfileLocked) {
+      toast.info('Approved profiles are locked');
+      return;
+    }
     setIsLoading(true);
     try {
       const res = await api.post('/api/seller/profile/offices', officeData, {
@@ -131,6 +142,10 @@ export default function SellerOnboarding() {
   };
 
   const handleDeleteOffice = async (id: number) => {
+    if (isProfileLocked) {
+      toast.info('Approved profiles are locked');
+      return;
+    }
     try {
       await api.delete(`/api/seller/profile/offices/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -143,6 +158,10 @@ export default function SellerOnboarding() {
   };
 
   const handleAddBank = async (bankData: any) => {
+    if (isProfileLocked) {
+      toast.info('Approved profiles are locked');
+      return;
+    }
     setIsLoading(true);
     try {
       const res = await api.post('/api/seller/profile/bank', bankData, {
@@ -215,9 +234,15 @@ export default function SellerOnboarding() {
                <h3 className="text-sm font-black uppercase tracking-tight text-gray-800 italic">
                  {currentSection.replace(/([A-Z])/g, ' $1').toUpperCase()}
                </h3>
+               {isProfileLocked && (
+                 <p className="mt-3 inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                   Approved profile locked
+                 </p>
+               )}
             </div>
             
             <CardContent className="p-8">
+              <fieldset disabled={isProfileLocked} className={isProfileLocked ? 'opacity-70' : ''}>
               {currentSection === 'pan' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -647,6 +672,7 @@ export default function SellerOnboarding() {
                    </div>
                 </div>
               )}
+              </fieldset>
             </CardContent>
           </Card>
 

@@ -127,6 +127,7 @@ export default function BuyerOnboarding() {
   const [isUploading, setIsUploading] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [isProfileLocked, setIsProfileLocked] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<{ label: string; url: string; mode: 'image' | 'pdf' | 'office' | 'google' } | null>(null);
   const navigate = useNavigate();
 
@@ -148,6 +149,8 @@ export default function BuyerOnboarding() {
         });
         const data = await res.json();
         const regDetails = data.user?.registrationDetails || {};
+        const profileLocked = data.user?.onboardingStatus === 'approved_for_procurement';
+        setIsProfileLocked(profileLocked);
         const profileDepartment = data.profile?.department || '';
         const hasPresetDepartment = DEPARTMENT_OPTIONS.includes(profileDepartment) && profileDepartment !== 'Others';
         const profileProcurementCategories = Array.isArray(data.profile?.procurementCategories) ? data.profile.procurementCategories : [];
@@ -157,7 +160,7 @@ export default function BuyerOnboarding() {
           ? [...savedPresetProcurementCategories, 'Others']
           : savedPresetProcurementCategories;
         const storedDraftRaw = localStorage.getItem(BUYER_ONBOARDING_DRAFT_KEY);
-        const storedDraft = storedDraftRaw ? JSON.parse(storedDraftRaw) : null;
+        const storedDraft = !profileLocked && storedDraftRaw ? JSON.parse(storedDraftRaw) : null;
         const draftDepartment = storedDraft?.formData?.department || '';
         const hasDraftPresetDepartment = DEPARTMENT_OPTIONS.includes(draftDepartment) && draftDepartment !== 'Others';
 
@@ -209,13 +212,13 @@ export default function BuyerOnboarding() {
   }, []);
 
   useEffect(() => {
-    if (isFetching) return;
+    if (isFetching || isProfileLocked) return;
 
     localStorage.setItem(BUYER_ONBOARDING_DRAFT_KEY, JSON.stringify({
       activeSection,
       formData
     }));
-  }, [activeSection, formData, isFetching]);
+  }, [activeSection, formData, isFetching, isProfileLocked]);
 
   const validate = (name: string, value: string) => {
     let fieldType: FieldType | null = null;
@@ -261,6 +264,7 @@ export default function BuyerOnboarding() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    if (isProfileLocked) return;
     const { name, value, type } = (e.target as any);
     let newValue = value;
 
@@ -300,6 +304,7 @@ export default function BuyerOnboarding() {
   };
 
   const toggleTag = (field: string, value: string) => {
+    if (isProfileLocked) return;
     const values = [...formData[field]];
     if (values.includes(value)) {
       setFormData({
@@ -318,6 +323,7 @@ export default function BuyerOnboarding() {
   };
 
   const handleProcurementCategorySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (isProfileLocked) return;
     const { value } = e.target;
     if (!value) return;
 
@@ -330,6 +336,7 @@ export default function BuyerOnboarding() {
   };
 
   const addCustomProcurementCategory = () => {
+    if (isProfileLocked) return;
     const category = formData.customProcurementCategoryInput.trim();
     if (!category) return;
 
@@ -354,6 +361,7 @@ export default function BuyerOnboarding() {
   };
 
   const removeCustomProcurementCategory = (categoryToRemove: string) => {
+    if (isProfileLocked) return;
     const updatedCustomProcurementCategories = formData.customProcurementCategories.filter((item: string) => item !== categoryToRemove);
     setFormData({
       ...formData,
@@ -366,6 +374,7 @@ export default function BuyerOnboarding() {
   };
 
   const handleProcurementMethodSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (isProfileLocked) return;
     const { value } = e.target;
     if (!value) return;
 
@@ -378,6 +387,7 @@ export default function BuyerOnboarding() {
   };
 
   const addCustomPreferredMethod = () => {
+    if (isProfileLocked) return;
     const method = formData.customProcurementMethodInput.trim();
     if (!method) return;
 
@@ -402,6 +412,7 @@ export default function BuyerOnboarding() {
   };
 
   const removeCustomPreferredMethod = (methodToRemove: string) => {
+    if (isProfileLocked) return;
     const updatedCustomPreferredMethods = formData.customPreferredMethods.filter((item: string) => item !== methodToRemove);
     setFormData({
       ...formData,
@@ -414,6 +425,7 @@ export default function BuyerOnboarding() {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    if (isProfileLocked) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -551,6 +563,10 @@ export default function BuyerOnboarding() {
   };
 
   const saveDraft = () => {
+    if (isProfileLocked) {
+      toast.info('Approved profiles are locked');
+      return;
+    }
     localStorage.setItem(BUYER_ONBOARDING_DRAFT_KEY, JSON.stringify({
       activeSection,
       formData
@@ -560,6 +576,10 @@ export default function BuyerOnboarding() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isProfileLocked) {
+      toast.info('Approved profiles are locked');
+      return;
+    }
 
     // Final Submission Logic
     if (activeSection === 'account') {
@@ -689,10 +709,15 @@ export default function BuyerOnboarding() {
                         activeSection === 'docs' ? 'Upload verification documents.' :
                           'Secure your account with a password.'}
               </p>
+              {isProfileLocked && (
+                <p className="mt-3 inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                  Approved profile locked
+                </p>
+              )}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="min-h-[400px]">
+              <fieldset disabled={isProfileLocked} className={cn("min-h-[400px]", isProfileLocked && "opacity-70")}>
                 {/* Section Content */}
                 {activeSection === 'org' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -930,7 +955,7 @@ export default function BuyerOnboarding() {
                     </div>
                   </div>
                 )}
-              </div>
+              </fieldset>
 
               {/* Action Buttons */}
               <div className="flex items-center justify-between pt-10 border-t border-slate-100">
@@ -946,11 +971,11 @@ export default function BuyerOnboarding() {
                   Previous Section
                 </button>
                 <div className="flex items-center gap-4">
-                  <Button type="button" variant="ghost" onClick={saveDraft} className="text-slate-600 font-bold border border-slate-200 px-6 rounded-lg h-10 text-sm">
+                  <Button type="button" variant="ghost" onClick={saveDraft} disabled={isProfileLocked} className="text-slate-600 font-bold border border-slate-200 px-6 rounded-lg h-10 text-sm">
                     Save Draft
                   </Button>
-                  <Button type="submit" disabled={isLoading} className="bg-teal-700 hover:bg-teal-800 text-white font-bold px-8 rounded-lg h-10 text-sm flex items-center gap-2">
-                    {isLoading ? 'Processing...' : activeSection === 'account' ? 'Finish Registration' : 'Continue'}
+                  <Button type="submit" disabled={isLoading || isProfileLocked} className="bg-teal-700 hover:bg-teal-800 text-white font-bold px-8 rounded-lg h-10 text-sm flex items-center gap-2">
+                    {isProfileLocked ? 'Locked' : isLoading ? 'Processing...' : activeSection === 'account' ? 'Finish Registration' : 'Continue'}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
