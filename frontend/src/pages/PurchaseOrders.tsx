@@ -13,7 +13,8 @@ import {
   ArrowUpRight,
   Download,
   Eye,
-  MoreVertical
+  MoreVertical,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -158,9 +159,9 @@ export default function PurchaseOrders() {
                     <div className="flex justify-center">
                       <span className={cn(
                         "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border",
-                        order.status === 'In transit' ? "bg-cyan-50 text-cyan-600 border-cyan-100" :
-                        order.status === 'Pending approval' ? "bg-amber-50 text-amber-600 border-amber-100" :
-                        order.status === 'Out for delivery' ? "bg-teal-50 text-teal-600 border-teal-100" :
+                        order.status === 'In transit' ? "bg-[#E6F3F2] text-[#008080] border-[#CCE7E6]" :
+                        order.status === 'Pending approval' ? "bg-[#FFF8E6] text-[#B28900] border-[#FFEBB3]" :
+                        order.status === 'Out for delivery' ? "bg-[#E6F3F2] text-[#008080] border-[#CCE7E6]" :
                         "bg-slate-50 text-slate-500 border-slate-100"
                       )}>
                         {order.status}
@@ -168,33 +169,34 @@ export default function PurchaseOrders() {
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-2">
                       {order.status === 'Pending approval' ? (
                         <>
                           <Button 
                             onClick={() => handleApprove(order.id)}
-                            className="bg-teal-700 hover:bg-teal-800 text-white text-[10px] font-black uppercase tracking-wider h-8 px-4 rounded-lg"
+                            className="bg-[#008080] hover:bg-[#006666] text-white text-[10px] font-black uppercase tracking-wider h-9 px-6 rounded-xl"
                           >
                             Approve
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 rounded-lg">
-                            <Download className="h-4 w-4" />
+                          <Button variant="outline" className="border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider h-9 px-4 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2">
+                            <Download className="h-3.5 w-3.5" />
+                            PDF
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 rounded-lg">
-                            <XCircle className="h-4 w-4" />
+                          <Button variant="outline" className="border-slate-200 text-red-500 text-[10px] font-black uppercase tracking-wider h-9 px-4 rounded-xl hover:bg-red-50 hover:border-red-100 transition-all flex items-center gap-2">
+                            <XCircle className="h-3.5 w-3.5" />
+                            Cancel
                           </Button>
                         </>
                       ) : (
                         <>
-                          <Button variant="outline" size="sm" className="border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider h-8 px-4 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 transition-all">
-                            <Truck className="h-4 w-4 mr-2" />
+                          <Button variant="outline" className="border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider h-9 px-4 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 group/btn">
+                            <Truck className="h-4 w-4 text-slate-400 group-hover/btn:text-indigo-600 transition-colors" />
                             Track
+                            <ChevronRight className="h-3.5 w-3.5 ml-1 opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 rounded-lg">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600 rounded-lg">
-                            <MoreVertical className="h-4 w-4" />
+                          <Button variant="outline" className="border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider h-9 px-4 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2">
+                            <Download className="h-3.5 w-3.5" />
+                            PDF
                           </Button>
                         </>
                       )}

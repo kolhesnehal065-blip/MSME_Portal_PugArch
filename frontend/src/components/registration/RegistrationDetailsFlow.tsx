@@ -90,6 +90,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
   const { login } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingGst, setIsFetchingGst] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -117,6 +118,38 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
     organisation: '',
     officeZoneName: ''
   });
+
+  const fetchGstDetails = async () => {
+    if (!formData.gstin || formData.gstin.length !== 15) {
+      toast.error('Please enter a valid 15-digit GSTIN');
+      return;
+    }
+
+    setIsFetchingGst(true);
+    try {
+      const res = await api.fetch(`/api/utils/gst-verify/${formData.gstin}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setFormData((prev: any) => ({
+          ...prev,
+          businessName: data.legalName || prev.businessName,
+          orgPan: data.pan || prev.orgPan,
+          state: data.state || prev.state,
+          district: data.city || prev.district,
+        }));
+        toast.success('Organization details fetched from GSTIN');
+      } else {
+        toast.error('Could not fetch GST details');
+      }
+    } catch (err) {
+      toast.error('Verification service unavailable');
+    } finally {
+      setIsFetchingGst(false);
+    }
+  };
 
   const [aadhaarOtp, setAadhaarOtp] = useState('');
   const [isAadhaarVerified, setIsAadhaarVerified] = useState(false);
@@ -443,6 +476,28 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                   </div>
                 ) : role === 'buyer' ? (
                   <>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <Input
+                            label="GSTIN (Optional)"
+                            placeholder="Enter GSTIN"
+                            value={formData.gstin}
+                            onChange={(e) => setFormData({...formData, gstin: e.target.value.toUpperCase()})}
+                            className="h-14 rounded-2xl border-slate-200"
+                          />
+                        </div>
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          onClick={fetchGstDetails}
+                          disabled={isFetchingGst || !formData.gstin}
+                          className="h-14 px-4 rounded-xl border-indigo-200 text-indigo-600 font-bold uppercase text-[10px] italic hover:bg-indigo-50"
+                        >
+                          {isFetchingGst ? 'Fetching...' : 'Fetch'}
+                        </Button>
+                      </div>
+                    </div>
                     <Input
                       label="Organization / Company Name *"
                       placeholder="Enter Registered Business Name"

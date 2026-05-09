@@ -35,6 +35,9 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
   });
+  console.log('--- Cloudinary configured successfully ---');
+} else {
+  console.warn('--- Cloudinary configuration missing ---');
 }
 
 // Multer Storage Configuration
@@ -141,6 +144,29 @@ async function startServer() {
       res.json(tenders);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
+    }
+  });
+
+  // GST Verification Utility
+  app.get('/api/utils/gst-verify/:gstin', authenticate, async (req, res) => {
+    const { gstin } = req.params;
+    // Note: The API key is stored in .env. We use a mock response logic for now
+    // which can be replaced with a real fetch to a provider like ApyHub or Cashfree.
+    try {
+      // Simulation of a GST API response
+      const mockData = {
+        legalName: "PugArch MSME Enterprise",
+        address: "7th Floor, Wing A, Software Technology Park",
+        state: "Maharashtra",
+        city: "Mumbai",
+        pincode: "400001",
+        pan: gstin.substring(2, 12),
+        status: "Active"
+      };
+
+      res.json(mockData);
+    } catch (err) {
+      res.status(500).json({ message: "GST Verification failed" });
     }
   });
 
@@ -283,6 +309,7 @@ async function startServer() {
   app.post('/api/upload', authenticate, upload.single('file'), async (req: any, res: any) => {
     try {
       if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+      console.log(`--- Uploading file: ${req.file.originalname} (${req.file.size} bytes) ---`);
       const b64 = Buffer.from(req.file.buffer).toString('base64');
       let dataURI = 'data:' + req.file.mimetype + ';base64,' + b64;
       const result = await cloudinary.uploader.upload(dataURI, {
@@ -291,7 +318,8 @@ async function startServer() {
       });
       res.json({ url: result.secure_url, publicId: result.public_id });
     } catch (err: any) {
-      res.status(500).json({ message: 'Upload failed' });
+      console.error('Cloudinary Upload Error:', err);
+      res.status(500).json({ message: 'Upload failed', error: err.message || 'Unknown server error' });
     }
   });
 

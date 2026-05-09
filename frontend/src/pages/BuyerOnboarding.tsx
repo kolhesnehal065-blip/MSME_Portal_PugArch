@@ -128,6 +128,7 @@ export default function BuyerOnboarding() {
   const [isFetching, setIsFetching] = useState(true);
   const [isProfileLocked, setIsProfileLocked] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<{ label: string; url: string; mode: 'image' | 'pdf' | 'office' | 'google' } | null>(null);
+  const [isFetchingGst, setIsFetchingGst] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -209,6 +210,40 @@ export default function BuyerOnboarding() {
     };
     fetchProfile();
   }, []);
+
+  const fetchGstDetails = async () => {
+    if (!formData.gst || formData.gst.length !== 15) {
+      toast.error('Please enter a valid 15-digit GSTIN');
+      return;
+    }
+
+    setIsFetchingGst(true);
+    try {
+      const res = await api.fetch(`/api/utils/gst-verify/${formData.gst}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setFormData((prev: any) => ({
+          ...prev,
+          organizationName: data.legalName || prev.organizationName,
+          registeredAddress: data.address || prev.registeredAddress,
+          state: data.state || prev.state,
+          city: data.city || prev.city,
+          pincode: data.pincode || prev.pincode,
+          pan: data.pan || prev.pan,
+        }));
+        toast.success('Organization details fetched successfully');
+      } else {
+        toast.error('Could not fetch GST details. Please enter manually.');
+      }
+    } catch (err) {
+      toast.error('Verification service unavailable');
+    } finally {
+      setIsFetchingGst(false);
+    }
+  };
 
   useEffect(() => {
     if (isFetching || isProfileLocked) return;
@@ -457,12 +492,17 @@ export default function BuyerOnboarding() {
         }
         toast.success('Document uploaded successfully');
       } else {
-        toast.error('Upload failed');
+        const errData = await res.json();
+        console.error('Upload failed:', errData);
+        toast.error(errData.message || 'Upload failed');
       }
-    } catch (err) {
-      toast.error('Upload error');
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      toast.error(`Upload error: ${err.message || 'Check network'}`);
     } finally {
       setIsUploading(null);
+      // Reset the file input so the same file can be selected again if needed
+      e.target.value = '';
     }
   };
 
@@ -740,7 +780,31 @@ export default function BuyerOnboarding() {
                     <Input label="Industry / Sector" name="industry" value={formData.industry} onChange={handleChange} onBlur={handleBlur} error={touched.industry ? errors.industry : ''} placeholder="e.g. Construction, IT, Healthcare" required className="h-12" />
                     <Input label="CIN / Registration Number (if applicable)" name="cin" value={formData.cin} onChange={handleChange} onBlur={handleBlur} error={touched.cin ? errors.cin : ''} placeholder="U12345KA2023PTC123456" className="h-12" />
                     <Input label="PAN of Organization" name="pan" value={formData.pan} onChange={handleChange} onBlur={handleBlur} error={touched.pan ? errors.pan : ''} placeholder="ABCDE1234F" required className="h-12" />
-                    <Input label="GSTIN (Optional)" name="gst" value={formData.gst} onChange={handleChange} onBlur={handleBlur} error={touched.gst ? errors.gst : ''} placeholder="22ABCDE1234F1Z5" className="h-12" />
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <Input 
+                            label="GSTIN (Optional)" 
+                            name="gst" 
+                            value={formData.gst} 
+                            onChange={handleChange} 
+                            onBlur={handleBlur} 
+                            error={touched.gst ? errors.gst : ''} 
+                            placeholder="22ABCDE1234F1Z5" 
+                            className="h-12" 
+                          />
+                        </div>
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          onClick={fetchGstDetails}
+                          disabled={isFetchingGst || !formData.gst}
+                          className="h-12 px-4 rounded-xl border-indigo-200 text-indigo-600 font-bold uppercase text-[10px] italic hover:bg-indigo-50"
+                        >
+                          {isFetchingGst ? 'Fetching...' : 'Fetch Details'}
+                        </Button>
+                      </div>
+                    </div>
                     <div className="md:col-span-2">
                       <Input label="Website URL (Optional)" name="website" value={formData.website} onChange={handleChange} onBlur={handleBlur} error={touched.website ? errors.website : ''} placeholder="https://www.company.com" className="h-12" />
                     </div>
