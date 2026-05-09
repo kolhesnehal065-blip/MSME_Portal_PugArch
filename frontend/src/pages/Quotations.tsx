@@ -43,21 +43,28 @@ interface Quotation {
   }
 }
 
+import { useAuth } from '../hooks/useAuth';
+
 export default function Quotations() {
+  const { user } = useAuth();
   const [quotes, setQuotes] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [tenders, setTenders] = useState<any[]>([]);
   const [selectedTenderId, setSelectedTenderId] = useState<string>('all');
 
   useEffect(() => {
-    fetchMyTenders();
-  }, []);
+    if (user?.role === 'buyer') {
+      fetchMyTenders();
+    } else if (user?.role === 'seller') {
+      fetchMyBids();
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (tenders.length > 0) {
-      fetchAllBids();
+    if (user?.role === 'buyer' && tenders.length > 0) {
+      fetchAllBidsForBuyer();
     }
-  }, [tenders, selectedTenderId]);
+  }, [tenders, selectedTenderId, user]);
 
   const fetchMyTenders = async () => {
     try {
@@ -73,7 +80,24 @@ export default function Quotations() {
     }
   };
 
-  const fetchAllBids = async () => {
+  const fetchMyBids = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/api/bids/my', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQuotes(data);
+      }
+    } catch (err) {
+      toast.error('Failed to load your bids');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllBidsForBuyer = async () => {
     setLoading(true);
     try {
       let allBids: Quotation[] = [];
@@ -113,7 +137,7 @@ export default function Quotations() {
       });
       if (res.ok) {
         toast.success(`Quotation ${status === 'accepted' ? 'accepted' : 'rejected'} successfully`);
-        fetchAllBids(); // Refresh
+        fetchAllBidsForBuyer(); // Refresh
       } else {
         const data = await res.json();
         toast.error(data.message || 'Update failed');
@@ -127,7 +151,14 @@ export default function Quotations() {
   const handleReject = (id: number) => handleStatusUpdate(id, 'rejected');
 
   if (loading && quotes.length === 0) {
-    return <div className="p-20 text-center">Loading quotations...</div>;
+    return (
+      <div className="flex min-h-[400px] items-center justify-center px-4 text-center">
+        <div className="space-y-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent mx-auto"></div>
+          <p className="text-sm font-bold text-slate-500 italic">Syncing market data...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -136,28 +167,36 @@ export default function Quotations() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
           <div className="space-y-1">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bid Evaluation</p>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quotations</h1>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              {user?.role === 'buyer' ? 'Bid Evaluation' : 'Market Participation'}
+            </p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+              {user?.role === 'buyer' ? 'Quotations' : 'My Bids'}
+            </h1>
             <p className="text-sm text-slate-500 font-medium">
-              Compare vendor bids side-by-side and award the tender to the best fit.
+              {user?.role === 'buyer' 
+                ? 'Compare vendor bids side-by-side and award the tender to the best fit.'
+                : 'Track the status and performance of your submitted tender quotations.'}
             </p>
           </div>
           
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64">
-              <select 
-                value={selectedTenderId}
-                onChange={(e) => setSelectedTenderId(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 pr-10 text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all shadow-sm"
-              >
-                <option value="all">All active tenders</option>
-                {tenders.map(t => (
-                  <option key={t.id} value={t.id}>{t.tenderId} - {t.title}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+          {user?.role === 'buyer' && (
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <select 
+                  value={selectedTenderId}
+                  onChange={(e) => setSelectedTenderId(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 pr-10 text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all shadow-sm"
+                >
+                  <option value="all">All active tenders</option>
+                  {tenders.map(t => (
+                    <option key={t.id} value={t.id}>{t.tenderId} - {t.title}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Quotes Grid */}
@@ -245,41 +284,57 @@ export default function Quotations() {
                   )}
 
                   {/* Actions */}
-                  {quote.status === 'pending' ? (
-                    <div className="grid grid-cols-2 gap-4">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => handleReject(quote.id)}
-                        className="border-slate-200 text-slate-600 font-bold h-12 rounded-xl hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all"
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Reject
-                      </Button>
-                      <Button 
-                        onClick={() => handleAccept(quote.id)}
-                        className="bg-teal-700 hover:bg-teal-800 text-white font-bold h-12 rounded-xl shadow-lg shadow-teal-700/10 transition-all"
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Accept
-                      </Button>
-                    </div>
-                  ) : quote.status === 'accepted' ? (
-                    <Button 
-                      disabled
-                      className="w-full bg-teal-50 text-teal-700 border border-teal-200 font-bold h-12 rounded-xl flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle2 className="h-5 w-5" />
-                      Accepted
-                      <ArrowRight className="h-4 w-4 ml-auto" />
-                    </Button>
+                  {user?.role === 'buyer' ? (
+                    <>
+                      {quote.status === 'pending' ? (
+                        <div className="grid grid-cols-2 gap-4">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => handleReject(quote.id)}
+                            className="border-slate-200 text-slate-600 font-bold h-12 rounded-xl hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all"
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Reject
+                          </Button>
+                          <Button 
+                            onClick={() => handleAccept(quote.id)}
+                            className="bg-teal-700 hover:bg-teal-800 text-white font-bold h-12 rounded-xl shadow-lg shadow-teal-700/10 transition-all"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Accept
+                          </Button>
+                        </div>
+                      ) : quote.status === 'accepted' ? (
+                        <Button 
+                          disabled
+                          className="w-full bg-teal-50 text-teal-700 border border-teal-200 font-bold h-12 rounded-xl flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle2 className="h-5 w-5" />
+                          Accepted
+                          <ArrowRight className="h-4 w-4 ml-auto" />
+                        </Button>
+                      ) : (
+                        <Button 
+                          disabled
+                          className="w-full bg-slate-100 text-slate-400 border border-slate-200 font-bold h-12 rounded-xl flex items-center justify-center gap-2"
+                        >
+                          <XCircle className="h-5 w-5" />
+                          Rejected
+                        </Button>
+                      )}
+                    </>
                   ) : (
-                    <Button 
-                      disabled
-                      className="w-full bg-slate-100 text-slate-400 border border-slate-200 font-bold h-12 rounded-xl flex items-center justify-center gap-2"
-                    >
-                      <XCircle className="h-5 w-5" />
-                      Rejected
-                    </Button>
+                    <div className={cn(
+                      "w-full h-12 rounded-xl flex items-center justify-center gap-2 font-bold",
+                      quote.status === 'pending' ? "bg-amber-50 text-amber-600 border border-amber-100" :
+                      quote.status === 'accepted' ? "bg-teal-50 text-teal-700 border border-teal-100" :
+                      "bg-slate-100 text-slate-400 border border-slate-200"
+                    )}>
+                      {quote.status === 'pending' && <Clock className="h-4 w-4" />}
+                      {quote.status === 'accepted' && <CheckCircle2 className="h-4 w-4" />}
+                      {quote.status === 'rejected' && <XCircle className="h-4 w-4" />}
+                      {quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}
+                    </div>
                   )}
                 </div>
               </CardContent>

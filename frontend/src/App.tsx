@@ -106,8 +106,8 @@ function AppRoutes() {
               </ProtectedRoute>
             } />
 
-            <Route path="/buyer/quotations" element={
-              <ProtectedRoute allowedRoles={['buyer']}>
+            <Route path="/quotations" element={
+              <ProtectedRoute allowedRoles={['buyer', 'seller']}>
                 <Quotations />
               </ProtectedRoute>
             } />

@@ -44,10 +44,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['seller', 'buyer', 'admin'] },
     { label: 'Seller Portal', path: '/seller/onboarding', icon: Store, roles: ['seller'] },
     { label: 'Tenders', path: '/seller/tenders', icon: FileText, roles: ['seller'] },
+    { label: 'Quotations', path: '/quotations', icon: ClipboardCheck, roles: ['seller', 'buyer'] },
     { label: 'Buyer Hub', path: '/buyer/onboarding', icon: Building2, roles: ['buyer'] },
     { label: 'Vendors', path: '/buyer/vendors', icon: Users, roles: ['buyer'] },
     { label: 'Tenders', path: '/buyer/tenders', icon: FileText, roles: ['buyer'] },
-    { label: 'Quotations', path: '/buyer/quotations', icon: ClipboardCheck, roles: ['buyer'] },
     { label: 'Purchase Orders', path: '/buyer/orders', icon: ShoppingCart, roles: ['buyer'] },
     { label: 'Parcel Tracking', path: '/buyer/tracking', icon: Truck, roles: ['buyer'] },
     { label: 'Profile', path: '/buyer/profile', icon: UserIcon, roles: ['buyer'] },
@@ -176,7 +176,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       case '/buyer/onboarding': return 'Buyer Onboarding';
       case '/buyer/vendors': return 'Vendor Discovery';
       case '/buyer/tenders': return 'Procurement ERP';
-      case '/buyer/quotations': return 'Bid Evaluation';
+      case '/quotations': return user.role === 'buyer' ? 'Bid Evaluation' : 'My Bids';
       case '/buyer/orders': return 'Order Management';
       case '/buyer/tracking': return 'Shipment Tracking';
       case '/seller/tenders': return 'Tender Marketplace';
