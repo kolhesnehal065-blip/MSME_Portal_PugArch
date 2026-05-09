@@ -463,6 +463,14 @@ export default function BuyerOnboarding() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // 10MB limit
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File is too large. Max limit is 10MB.');
+      e.target.value = '';
+      return;
+    }
+
+    console.log(`--- Starting upload for ${fieldName}: ${file.name} (${file.size} bytes) ---`);
     setIsUploading(fieldName);
     const formDataUpload = new FormData();
     formDataUpload.append('file', file);

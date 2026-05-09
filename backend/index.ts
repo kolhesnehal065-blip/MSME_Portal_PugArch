@@ -306,20 +306,34 @@ async function startServer() {
   }
 
   // --- File Upload ---
-  app.post('/api/upload', authenticate, upload.single('file'), async (req: any, res: any) => {
+  app.post('/api/upload', authenticate, upload.single('file'), (req: any, res: any) => {
     try {
-      if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-      console.log(`--- Uploading file: ${req.file.originalname} (${req.file.size} bytes) ---`);
-      const b64 = Buffer.from(req.file.buffer).toString('base64');
-      let dataURI = 'data:' + req.file.mimetype + ';base64,' + b64;
-      const result = await cloudinary.uploader.upload(dataURI, {
-        folder: 'msme_marketplace_docs',
-        resource_type: 'auto'
-      });
-      res.json({ url: result.secure_url, publicId: result.public_id });
+      console.log('--- Upload Request Headers:', req.headers['content-type']);
+      if (!req.file) {
+        console.error('--- No file found in request. Body:', req.body);
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      console.log(`--- Uploading file to Cloudinary: ${req.file.originalname} (${req.file.size} bytes) ---`);
+
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'msme_marketplace_docs',
+          resource_type: 'auto'
+        },
+        (error, result) => {
+          if (error) {
+            console.error('--- Cloudinary Stream Upload Error:', error);
+            return res.status(500).json({ message: 'Upload failed', error });
+          }
+          console.log('--- Cloudinary Upload Success:', result?.secure_url);
+          res.json({ url: result?.secure_url, publicId: result?.public_id });
+        }
+      );
+
+      stream.end(req.file.buffer);
     } catch (err: any) {
-      console.error('Cloudinary Upload Error:', err);
-      res.status(500).json({ message: 'Upload failed', error: err.message || 'Unknown server error' });
+      console.error('--- General Upload Error:', err);
+      res.status(500).json({ message: 'Upload failed', error: err.message });
     }
   });
 
