@@ -183,7 +183,7 @@ model Bid {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
-  @@unique([tenderId, sellerId], name: "tenderId_sellerId")
+  @@unique([tenderId, sellerId], name: "bidCompoundId")
 }
 
 model Otp {

@@ -188,8 +188,8 @@ async function startServer() {
       // Create or update bid
       const bid = await prisma.bid.upsert({
         where: {
-          tenderId_sellerId: { tenderId, sellerId }
-        },
+          bidCompoundId: { tenderId, sellerId }
+        } as any,
         update: {
           ...req.body,
           status: 'pending'
@@ -226,7 +226,7 @@ async function startServer() {
             } 
           } 
         },
-        orderBy: { unitPrice: 'asc' }
+        orderBy: { unitPrice: 'asc' } as any
       });
       res.json(bids);
     } catch (err: any) {
