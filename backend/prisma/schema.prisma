@@ -166,16 +166,24 @@ model Tender {
 }
 
 model Bid {
-  id        Int      @id @default(autoincrement())
-  tenderId  Int
-  sellerId  Int
-  amount    Float
-  message   String?
-  status    String   @default("pending")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  seller    User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  tenderId      Int
+  tender        Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  sellerId      Int
+  seller        User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  
+  unitPrice     Float
+  quantity      Int
+  deliveryDays  Int
+  warranty      String?
+  validTill     DateTime?
+  note          String?
+  status        String   @default("pending") // pending, accepted, rejected
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([tenderId, sellerId], name: "tenderId_sellerId")
 }
 
 model Otp {
