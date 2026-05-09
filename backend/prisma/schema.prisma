@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,6 +5,244 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      Int                @id @default(autoincrement())
+  name                    String
+  email                   String             @unique
+  password                String
+  role                    Role
+  registrationStatus      RegistrationStatus @default(incomplete)
+  onboardingStatus        OnboardingStatus   @default(pending)
+  sectionStatus           Json?
+  sectionRejectionReasons Json?
+  registrationDetails     Json?
+  adminFeedback           String?            @default("")
+  mobile                  String?
+  dob                     DateTime?
+  isDualRole              Boolean            @default(false)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  Approval                Approval[]
+  AuditLog                AuditLog[]
+  bids                    Bid[]
+  buyerProfile            BuyerProfile?
+  sentRequests            QuoteRequest[]     @relation("BuyerRequests")
+  receivedRequests        QuoteRequest[]     @relation("SellerRequests")
+  sellerProfile           SellerProfile?
+  tenders                 Tender[]
+}
+
+model BuyerProfile {
+  id                    Int      @id @default(autoincrement())
+  userId                Int      @unique
+  organizationName      String
+  businessType          String
+  industry              String?
+  cin                   String?
+  pan                   String?
+  gst                   String?
+  website               String?
+  state                 String?
+  district              String?
+  officeZoneName        String?
+  representativeName    String?
+  designation           String?
+  department            String?
+  email                 String?
+  mobile                String
+  alternateMobile       String?
+  aadhaarNumber         String?
+  aadhaarVerified       Boolean  @default(false)
+  country               String   @default("India")
+  city                  String?
+  pincode               String?
+  registeredAddress     String?
+  corporateAddress      String?
+  procurementCategories String[]
+  otherCategoryDetails  String?
+  annualBudget          String?
+  preferredMethods      String[]
+  otherMethodDetails    String?
+  declarationAccepted   Boolean  @default(false)
+  termsAccepted         Boolean  @default(false)
+  documents             Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SellerProfile {
+  id                           Int                 @id @default(autoincrement())
+  userId                       Int                 @unique
+  organizationType             String?
+  pan                          String              @unique
+  nameAsInPan                  String?
+  dateAsInPan                  DateTime?
+  panVerified                  Boolean             @default(false)
+  businessName                 String?
+  dateOfIncorporation          DateTime?
+  detailsUpdated               Boolean             @default(false)
+  isStartup                    Boolean             @default(false)
+  isUdyamCertified             Boolean             @default(false)
+  participateInBid             Boolean             @default(false)
+  optForSahay                  Boolean             @default(false)
+  turnoverMax3Yrs              String?
+  eInvoicingExcluded           Boolean             @default(false)
+  ownershipDeclarationAccepted Boolean             @default(false)
+  ownershipVerified            Boolean             @default(false)
+  mobile                       String?
+  dob                          DateTime?
+  roleInOrg                    String?
+  msmeCategory                 String?
+  productCategories            String[]
+  otherCategoryDetails         String?
+  productList                  String?
+  detailedProductName          String?
+  hsnCode                      String?
+  brand                        String?
+  specifications               String?
+  documents                    Json?
+  termsAccepted                Boolean             @default(false)
+  createdAt                    DateTime            @default(now())
+  updatedAt                    DateTime            @updatedAt
+  catalogType                  String?
+  bankAccounts                 SellerBankAccount[]
+  offices                      SellerOffice[]
+  user                         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SellerOffice {
+  id              Int           @id @default(autoincrement())
+  sellerProfileId Int
+  name            String
+  type            String
+  gstRegistered   Boolean       @default(false)
+  gstNumber       String?
+  declaringAs     String?
+  pincode         String
+  state           String
+  city            String
+  address         String
+  contactNumber   String?
+  isMandatory     Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+}
+
+model SellerBankAccount {
+  id              Int           @id @default(autoincrement())
+  sellerProfileId Int
+  ifsc            String
+  bankName        String
+  bankAddress     String
+  holderName      String
+  accountNumber   String
+  isPrimary       Boolean       @default(false)
+  isVerified      Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+}
+
+model Tender {
+  id          Int          @id @default(autoincrement())
+  buyerId     Int
+  tenderId    String       @unique
+  title       String
+  category    String
+  budget      Float
+  description String
+  status      TenderStatus @default(draft)
+  bidsCount   Int          @default(0)
+  closesAt    DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  Auction     Auction?
+  bids        Bid[]
+  buyer       User         @relation(fields: [buyerId], references: [id])
+}
+
+model Bid {
+  id        Int      @id @default(autoincrement())
+  tenderId  Int
+  sellerId  Int
+  amount    Float
+  message   String?
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  seller    User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+}
+
+model Otp {
+  id         Int      @id @default(autoincrement())
+  email      String
+  otp        String
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+}
+
+model QuoteRequest {
+  id        Int      @id @default(autoincrement())
+  buyerId   Int
+  sellerId  Int
+  subject   String
+  message   String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  buyer     User     @relation("BuyerRequests", fields: [buyerId], references: [id])
+  seller    User     @relation("SellerRequests", fields: [sellerId], references: [id])
+}
+
+model Approval {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  entityType String
+  entityId   Int
+  status     String   @default("approved")
+  remarks    String?
+  createdAt  DateTime @default(now())
+  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Auction {
+  id         Int      @id @default(autoincrement())
+  tenderId   Int      @unique
+  startPrice Float
+  currentBid Float?
+  startTime  DateTime
+  endTime    DateTime
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  Tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  action     String
+  entityType String?
+  entityId   Int?
+  details    Json?
+  createdAt  DateTime @default(now())
+  User       User?    @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 enum Role {
@@ -34,218 +269,4 @@ enum TenderStatus {
   draft
   active
   closed
-}
-
-model User {
-  id                      Int                @id @default(autoincrement())
-  name                    String
-  email                   String             @unique
-  password                String
-  role                    Role
-  registrationStatus      RegistrationStatus @default(incomplete)
-  onboardingStatus        OnboardingStatus   @default(pending)
-  sectionStatus           Json?              // Stores {basic, business, compliance, bank, documents}
-  sectionRejectionReasons Json?              // Stores rejection reasons for each section
-  registrationDetails     Json?              // Stores businessType, verificationMethod, isEmailVerified
-  adminFeedback           String?            @default("")
-  mobile                  String?            // Added for registration
-  dob                     DateTime?          // Added for registration
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
-
-  buyerProfile            BuyerProfile?
-  sellerProfile           SellerProfile?
-  tenders                 Tender[]
-  
-  // Quote Requests
-  sentRequests            QuoteRequest[]     @relation("BuyerRequests")
-  receivedRequests        QuoteRequest[]     @relation("SellerRequests")
-}
-
-model BuyerProfile {
-  id                 Int      @id @default(autoincrement())
-  userId             Int      @unique
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Organization Details
-  organizationName   String
-  businessType       String
-  industry           String?
-  cin                String?
-  pan                String?
-  gst                String?
-  website            String?
-  
-  // Registration Step 1 Specifics
-  state              String?
-  district           String?
-  officeZoneName     String?
-
-  // Authorized Representative
-  representativeName String?
-  designation        String?
-  department         String?
-  email              String?
-  mobile             String
-  alternateMobile    String?
-  
-  // Personal Verification (Step 2)
-  aadhaarNumber      String?
-  aadhaarVerified    Boolean  @default(false)
-
-  // Organization Address (Onboarding Step 3)
-  country            String   @default("India")
-  city               String?
-  pincode            String?
-  registeredAddress  String?
-  corporateAddress   String?
-  
-  // Procurement Profile (Onboarding Step 4)
-  procurementCategories String[]
-  otherCategoryDetails  String?
-  annualBudget          String?
-  preferredMethods      String[]
-  otherMethodDetails    String?
-  
-  // Agreements (Step 6)
-  declarationAccepted   Boolean  @default(false)
-  termsAccepted         Boolean  @default(false)
-
-  // Documents (Storage URLs - Step 5)
-  documents             Json?    // Stores URLs for panCard, gstCert, authLetter, etc.
-  
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-}
-
-model SellerProfile {
-  id                  Int      @id @default(autoincrement())
-  userId              Int      @unique
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Step 1: Business PAN Validation
-  organizationType    String?  // e.g., Proprietorship, Partnership, Pvt Ltd
-  pan                 String   @unique
-  nameAsInPan         String?
-  dateAsInPan         DateTime?
-  panVerified         Boolean  @default(false)
-
-  // Step 2: Business Details
-  businessName        String?
-  dateOfIncorporation DateTime?
-  detailsUpdated      Boolean  @default(false) // Logic: Editable only once
-
-  // Step 3: Additional Details
-  isStartup           Boolean  @default(false)
-  isUdyamCertified    Boolean  @default(false)
-  participateInBid    Boolean  @default(false)
-  optForSahay         Boolean  @default(false)
-
-  // Step 4: Office Locations (Managed via SellerOffice model)
-  offices             SellerOffice[]
-
-  // Step 5: Bank Accounts (Managed via SellerBankAccount model)
-  bankAccounts        SellerBankAccount[]
-
-  // Step 6: e-Invoicing
-  turnoverMax3Yrs     String?
-  eInvoicingExcluded  Boolean  @default(false)
-
-  // Step 7: Beneficial Ownership Compliance
-  ownershipDeclarationAccepted Boolean @default(false)
-  ownershipVerified            Boolean @default(false)
-  mobile                       String?   // Added to match registration
-  dob                          DateTime? // Added to match registration
-  roleInOrg                    String?   // Added to match registration
-
-  // Legacy / General Fields (kept for compatibility)
-  msmeCategory        String?
-  productCategories    String[]
-  otherCategoryDetails String?
-  productList          String?
-  detailedProductName  String?
-  hsnCode              String?
-  brand                String?
-  specifications       String?
-  documents            Json?    // Stores URLs for miscellaneous docs
-  termsAccepted        Boolean  @default(false)
-  
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-}
-
-model SellerOffice {
-  id              Int           @id @default(autoincrement())
-  sellerProfileId Int
-  sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
-  
-  name            String
-  type            String        // Registered, Branch, Warehouse
-  gstRegistered   Boolean       @default(false)
-  gstNumber       String?
-  declaringAs     String?
-  pincode         String
-  state           String
-  city            String
-  address         String
-  contactNumber   String?       // Added for onboarding
-  isMandatory     Boolean       @default(false) // Registered office is mandatory
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-}
-
-model SellerBankAccount {
-  id              Int           @id @default(autoincrement())
-  sellerProfileId Int
-  sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
-  
-  ifsc            String
-  bankName        String
-  bankAddress     String
-  holderName      String
-  accountNumber   String
-  isPrimary       Boolean       @default(false)
-  isVerified      Boolean       @default(false)
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-}
-
-model Tender {
-  id          Int          @id @default(autoincrement())
-  buyerId     Int
-  buyer       User         @relation(fields: [buyerId], references: [id])
-  tenderId    String       @unique
-  title       String
-  category    String
-  budget      Float
-  description String
-  status      TenderStatus @default(draft)
-  bidsCount   Int          @default(0)
-  closesAt    DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-}
-
-model Otp {
-  id         Int      @id @default(autoincrement())
-  email      String
-  otp        String
-  isVerified Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  expiresAt  DateTime
-}
-
-model QuoteRequest {
-  id          Int      @id @default(autoincrement())
-  buyerId     Int
-  buyer       User     @relation("BuyerRequests", fields: [buyerId], references: [id])
-  sellerId    Int
-  seller      User     @relation("SellerRequests", fields: [sellerId], references: [id])
-  subject     String
-  message     String
-  status      String   @default("pending") // pending, accepted, rejected
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }

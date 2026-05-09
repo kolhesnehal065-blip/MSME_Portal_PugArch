@@ -170,6 +170,116 @@ async function startServer() {
     }
   });
 
+  // --- Bid / Quotation APIs ---
+  app.post('/api/tenders/:id/bids', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
+    try {
+      const tenderId = Number(req.params.id);
+      const sellerId = Number(req.user?.id);
+
+      // Check if tender exists and is active
+      const tender = await prisma.tender.findUnique({
+        where: { id: tenderId }
+      });
+
+      if (!tender || tender.status !== 'active') {
+        return res.status(400).json({ message: 'Tender is not active or does not exist' });
+      }
+
+      // Create or update bid
+      const bid = await prisma.bid.upsert({
+        where: {
+          tenderId_sellerId: { tenderId, sellerId }
+        },
+        update: {
+          ...req.body,
+          status: 'pending'
+        },
+        create: {
+          ...req.body,
+          tenderId,
+          sellerId,
+          status: 'pending'
+        }
+      });
+
+      // Update tender bidsCount
+      await prisma.tender.update({
+        where: { id: tenderId },
+        data: { bidsCount: { increment: 1 } }
+      });
+
+      res.json(bid);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/tenders/:id/bids', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const tenderId = Number(req.params.id);
+      const bids = await prisma.bid.findMany({
+        where: { tenderId },
+        include: { 
+          seller: { 
+            include: { 
+              sellerProfile: true 
+            } 
+          } 
+        },
+        orderBy: { unitPrice: 'asc' }
+      });
+      res.json(bids);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/bids/my', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
+    try {
+      const bids = await prisma.bid.findMany({
+        where: { sellerId: Number(req.user?.id) },
+        include: { tender: true },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(bids);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/bids/:id/status', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const bidId = Number(req.params.id);
+      const { status } = req.body; // accepted, rejected
+
+      const bid = await prisma.bid.update({
+        where: { id: bidId },
+        data: { status }
+      });
+
+      // If accepted, reject all other bids for the same tender
+      if (status === 'accepted') {
+        await prisma.bid.updateMany({
+          where: { 
+            tenderId: bid.tenderId,
+            id: { not: bidId }
+          },
+          data: { status: 'rejected' }
+        });
+
+        // Close the tender
+        await prisma.tender.update({
+          where: { id: bid.tenderId },
+          data: { status: 'closed' }
+        });
+      }
+
+      res.json(bid);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post('/api/tenders', authenticate, authorize('buyer'), async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'buyer') {

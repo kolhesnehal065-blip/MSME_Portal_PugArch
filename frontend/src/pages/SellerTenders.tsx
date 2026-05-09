@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface PublicTender {
   id: number;
@@ -38,6 +39,7 @@ export default function SellerTenders() {
   const [tenders, setTenders] = useState<PublicTender[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPublicTenders();
@@ -170,7 +172,10 @@ export default function SellerTenders() {
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tender Budget</p>
                         <p className="text-2xl font-black text-slate-900">₹{tender.budget?.toLocaleString()}</p>
                       </div>
-                      <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-indigo-600/10 transition-all flex items-center justify-center gap-2">
+                      <Button 
+                        onClick={() => navigate(`/seller/tenders/${tender.id}/bid`)}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-indigo-600/10 transition-all flex items-center justify-center gap-2"
+                      >
                         Participate
                         <ChevronRight className="h-4 w-4" />
                       </Button>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '../lib/api';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { 
@@ -11,77 +12,123 @@ import {
   XCircle, 
   Trophy,
   ChevronDown,
-  ArrowRight
+  ArrowRight,
+  Building2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 
 interface Quotation {
-  id: string;
-  vendorName: string;
-  city: string;
-  category: string;
-  tenderId: string;
-  tenderTitle: string;
+  id: number;
+  sellerId: number;
+  tenderId: number;
   unitPrice: number;
   quantity: number;
   deliveryDays: number;
   warranty: string;
   validTill: string;
-  isLowest?: boolean;
-  status: 'received' | 'accepted' | 'rejected';
+  status: 'pending' | 'accepted' | 'rejected';
   note?: string;
+  isLowest?: boolean;
+  tender: {
+    tenderId: string;
+    title: string;
+  };
+  seller: {
+    name: string;
+    sellerProfile?: {
+      businessName: string;
+      offices: Array<{ city: string }>;
+    }
+  }
 }
 
-const SAMPLE_QUOTES: Quotation[] = [
-  {
-    id: 'Q-2026-0411',
-    vendorName: 'Bharat Office Solutions',
-    city: 'Bengaluru',
-    category: 'Furniture',
-    tenderId: 'T-2026-0142',
-    tenderTitle: 'Supply of 500 ergonomic office chairs',
-    unitPrice: 4800,
-    quantity: 500,
-    deliveryDays: 21,
-    warranty: '36 mo',
-    validTill: '20 May',
-    isLowest: true,
-    status: 'received',
-    note: 'Includes on-site assembly and 3-year warranty.'
-  },
-  {
-    id: 'Q-2026-0412',
-    vendorName: 'Heritage Furniture Co.',
-    city: 'Jaipur',
-    category: 'Furniture',
-    tenderId: 'T-2026-0142',
-    tenderTitle: 'Supply of 500 ergonomic office chairs',
-    unitPrice: 5200,
-    quantity: 500,
-    deliveryDays: 18,
-    warranty: '24 mo',
-    validTill: '17 May',
-    status: 'received'
-  }
-];
-
 export default function Quotations() {
-  const [quotes, setQuotes] = useState<Quotation[]>(SAMPLE_QUOTES);
+  const [quotes, setQuotes] = useState<Quotation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tenders, setTenders] = useState<any[]>([]);
+  const [selectedTenderId, setSelectedTenderId] = useState<string>('all');
 
-  const handleAccept = (id: string) => {
-    toast.success(`Quotation ${id} accepted. Purchase Order generated.`);
-    setQuotes(quotes.map(q => 
-      q.id === id ? { ...q, status: 'accepted' } : { ...q, status: 'rejected' }
-    ));
+  useEffect(() => {
+    fetchMyTenders();
+  }, []);
+
+  useEffect(() => {
+    if (tenders.length > 0) {
+      fetchAllBids();
+    }
+  }, [tenders, selectedTenderId]);
+
+  const fetchMyTenders = async () => {
+    try {
+      const res = await api.get('/api/tenders', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTenders(data);
+      }
+    } catch (err) {
+      toast.error('Failed to load your tenders');
+    }
   };
 
-  const handleReject = (id: string) => {
-    toast.error(`Quotation ${id} rejected.`);
-    setQuotes(quotes.map(q => 
-      q.id === id ? { ...q, status: 'rejected' } : q
-    ));
+  const fetchAllBids = async () => {
+    setLoading(true);
+    try {
+      let allBids: Quotation[] = [];
+      
+      const tenderIdsToFetch = selectedTenderId === 'all' 
+        ? tenders.map(t => t.id) 
+        : [Number(selectedTenderId)];
+
+      for (const id of tenderIdsToFetch) {
+        const res = await api.get(`/api/tenders/${id}/bids`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Find lowest unit price in this tender
+          const lowestPrice = Math.min(...data.map((b: any) => b.unitPrice));
+          const bidsWithMetadata = data.map((b: any) => ({
+            ...b,
+            isLowest: b.unitPrice === lowestPrice && data.length > 1,
+            tender: tenders.find(t => t.id === id)
+          }));
+          allBids = [...allBids, ...bidsWithMetadata];
+        }
+      }
+      setQuotes(allBids);
+    } catch (err) {
+      toast.error('Failed to load quotations');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleStatusUpdate = async (id: number, status: 'accepted' | 'rejected') => {
+    try {
+      const res = await api.post(`/api/bids/${id}/status`, { status }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        toast.success(`Quotation ${status === 'accepted' ? 'accepted' : 'rejected'} successfully`);
+        fetchAllBids(); // Refresh
+      } else {
+        const data = await res.json();
+        toast.error(data.message || 'Update failed');
+      }
+    } catch (err) {
+      toast.error('Network error');
+    }
+  };
+
+  const handleAccept = (id: number) => handleStatusUpdate(id, 'accepted');
+  const handleReject = (id: number) => handleStatusUpdate(id, 'rejected');
+
+  if (loading && quotes.length === 0) {
+    return <div className="p-20 text-center">Loading quotations...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-8">
@@ -98,10 +145,15 @@ export default function Quotations() {
           
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
-              <select className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 pr-10 text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all">
-                <option>All tenders</option>
-                <option>T-2026-0142 - Office Chairs</option>
-                <option>T-2026-0145 - Cloud Hosting</option>
+              <select 
+                value={selectedTenderId}
+                onChange={(e) => setSelectedTenderId(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 pr-10 text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all shadow-sm"
+              >
+                <option value="all">All active tenders</option>
+                {tenders.map(t => (
+                  <option key={t.id} value={t.id}>{t.tenderId} - {t.title}</option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
             </div>
@@ -130,15 +182,19 @@ export default function Quotations() {
                         )}
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-slate-900">{quote.vendorName}</h3>
+                        <h3 className="text-xl font-bold text-slate-900">
+                          {quote.seller.sellerProfile?.businessName || quote.seller.name}
+                        </h3>
                         <p className="text-xs font-semibold text-slate-500 flex items-center gap-1 mt-1">
-                          {quote.city} <span className="text-slate-300">•</span> {quote.category}
+                          {quote.seller.sellerProfile?.offices?.[0]?.city || 'N/A'} 
+                          <span className="text-slate-300">•</span> 
+                          {quote.tender.category}
                         </p>
                       </div>
                     </div>
                     <span className={cn(
                       "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                      quote.status === 'received' ? "bg-slate-50 text-slate-500 border-slate-100" :
+                      quote.status === 'pending' ? "bg-slate-50 text-slate-500 border-slate-100" :
                       quote.status === 'accepted' ? "bg-teal-50 text-teal-600 border-teal-100" :
                       "bg-red-50 text-red-600 border-red-100"
                     )}>
@@ -147,7 +203,7 @@ export default function Quotations() {
                   </div>
 
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">
-                    For {quote.tenderId} <span className="text-slate-300 mx-1">·</span> {quote.tenderTitle}
+                    For {quote.tender.tenderId} <span className="text-slate-300 mx-1">·</span> {quote.tender.title}
                   </p>
 
                   {/* Details Grid */}
@@ -175,7 +231,9 @@ export default function Quotations() {
                     </div>
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Valid Till</p>
-                      <p className="text-lg font-bold text-slate-900">{quote.validTill}</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {quote.validTill ? new Date(quote.validTill).toLocaleDateString() : 'N/A'}
+                      </p>
                     </div>
                   </div>
 
@@ -187,7 +245,7 @@ export default function Quotations() {
                   )}
 
                   {/* Actions */}
-                  {quote.status === 'received' ? (
+                  {quote.status === 'pending' ? (
                     <div className="grid grid-cols-2 gap-4">
                       <Button 
                         variant="outline" 

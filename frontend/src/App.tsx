@@ -21,6 +21,7 @@ import Quotations from './pages/Quotations';
 import PurchaseOrders from './pages/PurchaseOrders';
 import ParcelTracking from './pages/ParcelTracking';
 import SellerTenders from './pages/SellerTenders';
+import CreateQuotation from './pages/CreateQuotation';
 import Sidebar, { Header } from './components/layout/Navbar';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
@@ -72,6 +73,12 @@ function AppRoutes() {
             <Route path="/seller/tenders" element={
               <ProtectedRoute allowedRoles={['seller']}>
                 <SellerTenders />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/seller/tenders/:id/bid" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <CreateQuotation />
               </ProtectedRoute>
             } />
             
