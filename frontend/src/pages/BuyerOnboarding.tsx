@@ -7,7 +7,7 @@ import { Input, Select } from '../components/ui/input';
 import { Card, CardContent, Badge } from '../components/ui/card';
 import { Stepper, Step } from '../components/ui/stepper';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck, X, ExternalLink, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Upload, CheckCircle2, AlertTriangle, Clock, ShieldCheck, X, ExternalLink, Plus, MapPin } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { validateField, FieldType } from '../lib/validation';
 
@@ -15,7 +15,6 @@ import { validateField, FieldType } from '../lib/validation';
 const SIDEBAR_SECTIONS = [
   { id: 'org', label: 'Organisation Details' },
   { id: 'rep', label: 'Authorized Representative' },
-  { id: 'address', label: 'Address Details' },
   { id: 'procurement', label: 'Procurement Profile' },
   { id: 'docs', label: 'Document Upload' },
   { id: 'account', label: 'Account Setup' },
@@ -29,7 +28,7 @@ const BUYER_ONBOARDING_DRAFT_KEY = 'buyer-onboarding-draft';
 const DASHBOARD_SECTION_TO_BUYER_SECTION: Record<string, string> = {
   basic: 'org',
   business: 'rep',
-  compliance: 'address',
+  compliance: 'org',
   bank: 'procurement',
   documents: 'docs',
 };
@@ -469,9 +468,9 @@ export default function BuyerOnboarding() {
 
   const validateSection = (sectionId: string) => {
     let fields: string[] = [];
-    if (sectionId === 'org') fields = ['organizationName'];
+    if (sectionId === 'org') fields = ['organizationName', 'pan', 'state', 'city', 'pincode', 'registeredAddress'];
     if (sectionId === 'rep') fields = ['representativeName', 'email', 'mobile'];
-    if (sectionId === 'address') fields = ['state', 'city', 'pincode', 'registeredAddress'];
+
     if (sectionId === 'account') fields = ['password', 'confirmPassword'];
 
     let isValid = true;
@@ -491,7 +490,12 @@ export default function BuyerOnboarding() {
         hasValue(formData.organizationName) &&
         hasValue(formData.businessType) &&
         hasValue(formData.industry) &&
-        hasValue(formData.pan);
+        hasValue(formData.pan) &&
+        hasValue(formData.country) &&
+        hasValue(formData.state) &&
+        hasValue(formData.city) &&
+        !validateField('pincode', formData.pincode || '') &&
+        hasValue(formData.registeredAddress);
 
       const cinValid = !hasValue(formData.cin) || !validateField('cin', formData.cin);
       const gstValid = !hasValue(formData.gst) || !validateField('gst', formData.gst);
@@ -513,6 +517,7 @@ export default function BuyerOnboarding() {
 
     if (sectionId === 'address') {
       return (
+        hasValue(formData.country) &&
         hasValue(formData.state) &&
         hasValue(formData.city) &&
         !validateField('pincode', formData.pincode || '') &&
@@ -739,6 +744,24 @@ export default function BuyerOnboarding() {
                     <div className="md:col-span-2">
                       <Input label="Website URL (Optional)" name="website" value={formData.website} onChange={handleChange} onBlur={handleBlur} error={touched.website ? errors.website : ''} placeholder="https://www.company.com" className="h-12" />
                     </div>
+
+                    {/* Organization Address Fields */}
+                    <div className="md:col-span-2 pt-6 mt-2 border-t border-slate-100">
+                      <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-teal-600" />
+                        Organization Address
+                      </h3>
+                    </div>
+                    <Input label="COUNTRY" name="country" value={formData.country} onChange={handleChange} onBlur={handleBlur} required className="h-12" />
+                    <Input label="STATE" name="state" value={formData.state} onChange={handleChange} onBlur={handleBlur} error={touched.state ? errors.state : ''} required className="h-12" />
+                    <Input label="CITY" name="city" value={formData.city} onChange={handleChange} onBlur={handleBlur} error={touched.city ? errors.city : ''} required className="h-12" />
+                    <Input label="PIN CODE" name="pincode" value={formData.pincode} onChange={handleChange} onBlur={handleBlur} error={touched.pincode ? errors.pincode : ''} required className="h-12" />
+                    <div className="md:col-span-2">
+                      <Input label="REGISTERED OFFICE ADDRESS" name="registeredAddress" value={formData.registeredAddress} onChange={handleChange} onBlur={handleBlur} error={touched.registeredAddress ? errors.registeredAddress : ''} required className="h-12" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Input label="CORPORATE OFFICE ADDRESS (Optional - if different)" name="corporateAddress" value={formData.corporateAddress} onChange={handleChange} onBlur={handleBlur} placeholder="Enter corporate address if different from registered address" className="h-12" />
+                    </div>
                   </div>
                 )}
 
@@ -769,16 +792,7 @@ export default function BuyerOnboarding() {
                   </div>
                 )}
 
-                {activeSection === 'address' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Input label="STATE" name="state" value={formData.state} onChange={handleChange} onBlur={handleBlur} error={touched.state ? errors.state : ''} required className="h-12" />
-                    <Input label="CITY" name="city" value={formData.city} onChange={handleChange} onBlur={handleBlur} error={touched.city ? errors.city : ''} required className="h-12" />
-                    <Input label="PIN CODE" name="pincode" value={formData.pincode} onChange={handleChange} onBlur={handleBlur} error={touched.pincode ? errors.pincode : ''} required className="h-12" />
-                    <div className="md:col-span-2">
-                      <Input label="REGISTERED OFFICE ADDRESS" name="registeredAddress" value={formData.registeredAddress} onChange={handleChange} onBlur={handleBlur} error={touched.registeredAddress ? errors.registeredAddress : ''} required className="h-12" />
-                    </div>
-                  </div>
-                )}
+
 
                 {activeSection === 'procurement' && (
                   <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -914,28 +928,42 @@ export default function BuyerOnboarding() {
                 )}
 
                 {activeSection === 'docs' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    {[
-                      { label: 'PAN CARD (ORGANIZATION)', field: 'panCard' },
-                      { label: 'REGISTRATION CERTIFICATE', field: 'regCert' },
-                      { label: 'GST CERTIFICATE', field: 'gstCert' },
-                      { label: 'ADDRESS PROOF', field: 'addressProof' }
-                    ].map(doc => (
-                      <div key={doc.field} className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 flex flex-col gap-4">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{doc.label}</span>
-                        <div className="flex items-center justify-between gap-4">
-                          <input type="file" onChange={(e) => handleFileUpload(e, `documents.${doc.field}`)} id={`upload-${doc.field}`} className="hidden" />
-                          <label htmlFor={`upload-${doc.field}`} className="cursor-pointer text-xs font-bold text-teal-600 hover:text-teal-700 underline">
-                            {isUploading === `documents.${doc.field}` ? 'Uploading...' : formData.documents[doc.field] ? 'Change File' : 'Upload File'}
-                          </label>
-                          {formData.documents[doc.field] && (
-                            <button type="button" onClick={() => openDocumentPreview(doc.label, formData.documents[doc.field])} className="text-xs font-bold text-slate-500 hover:text-slate-700">
-                              View
-                            </button>
-                          )}
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-slate-100 p-4 rounded-xl text-xs text-slate-600 mb-6 border border-slate-200">
+                      <p className="font-bold mb-2">Required documents for verification:</p>
+                      <ul className="list-disc list-inside mb-2 space-y-1">
+                        <li>PAN Card of Organization</li>
+                        <li>Company Registration Certificate (CIN / Partnership Deed / Shop Act / Trust Registration)</li>
+                        <li>GST Certificate (if applicable)</li>
+                        <li>Address Proof</li>
+                        <li>Authorization Letter of Representative (Optional)</li>
+                      </ul>
+                      <p className="font-bold text-teal-700">Allowed formats: PDF / JPG / PNG</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {[
+                        { label: 'PAN Card of Organization', field: 'panCard' },
+                        { label: 'Company Registration Certificate (CIN / Partnership Deed / Shop Act / Trust Registration)', field: 'regCert' },
+                        { label: 'GST Certificate (if applicable)', field: 'gstCert' },
+                        { label: 'Address Proof', field: 'addressProof' },
+                        { label: 'Authorization Letter of Representative (Optional)', field: 'authLetter' }
+                      ].map(doc => (
+                        <div key={doc.field} className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 flex flex-col gap-4">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{doc.label}</span>
+                          <div className="flex items-center justify-between gap-4">
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload(e, `documents.${doc.field}`)} id={`upload-${doc.field}`} className="hidden" />
+                            <label htmlFor={`upload-${doc.field}`} className="cursor-pointer text-xs font-bold text-teal-600 hover:text-teal-700 underline">
+                              {isUploading === `documents.${doc.field}` ? 'Uploading...' : formData.documents[doc.field] ? 'Change File' : 'Upload File'}
+                            </label>
+                            {formData.documents[doc.field] && (
+                              <button type="button" onClick={() => openDocumentPreview(doc.label, formData.documents[doc.field])} className="text-xs font-bold text-slate-500 hover:text-slate-700">
+                                View
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
 

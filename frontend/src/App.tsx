@@ -17,6 +17,10 @@ import BuyerRegistrationFlow from './pages/BuyerRegistrationFlow';
 import BuyerProfile from './pages/BuyerProfile';
 import Tenders from './pages/Tenders';
 import Vendors from './pages/Vendors';
+import Quotations from './pages/Quotations';
+import PurchaseOrders from './pages/PurchaseOrders';
+import ParcelTracking from './pages/ParcelTracking';
+import SellerTenders from './pages/SellerTenders';
 import Sidebar, { Header } from './components/layout/Navbar';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
@@ -64,6 +68,12 @@ function AppRoutes() {
                 <SellerOnboarding />
               </ProtectedRoute>
             } />
+
+            <Route path="/seller/tenders" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <SellerTenders />
+              </ProtectedRoute>
+            } />
             
             <Route path="/buyer/onboarding" element={
               <ProtectedRoute allowedRoles={['buyer']}>
@@ -86,6 +96,24 @@ function AppRoutes() {
             <Route path="/buyer/vendors" element={
               <ProtectedRoute allowedRoles={['buyer']}>
                 <Vendors />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/quotations" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <Quotations />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/orders" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <PurchaseOrders />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/tracking" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <ParcelTracking />
               </ProtectedRoute>
             } />
             

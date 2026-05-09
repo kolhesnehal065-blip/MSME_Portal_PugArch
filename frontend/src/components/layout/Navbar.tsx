@@ -17,7 +17,11 @@ import {
   Search,
   Users,
   FileText,
-  User as UserIcon
+  User as UserIcon,
+  ClipboardCheck,
+  Package,
+  Truck,
+  Globe
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -39,9 +43,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['seller', 'buyer', 'admin'] },
     { label: 'Seller Portal', path: '/seller/onboarding', icon: Store, roles: ['seller'] },
+    { label: 'Tenders', path: '/seller/tenders', icon: FileText, roles: ['seller'] },
     { label: 'Buyer Hub', path: '/buyer/onboarding', icon: Building2, roles: ['buyer'] },
     { label: 'Vendors', path: '/buyer/vendors', icon: Users, roles: ['buyer'] },
     { label: 'Tenders', path: '/buyer/tenders', icon: FileText, roles: ['buyer'] },
+    { label: 'Quotations', path: '/buyer/quotations', icon: ClipboardCheck, roles: ['buyer'] },
+    { label: 'Purchase Orders', path: '/buyer/orders', icon: ShoppingCart, roles: ['buyer'] },
+    { label: 'Parcel Tracking', path: '/buyer/tracking', icon: Truck, roles: ['buyer'] },
     { label: 'Profile', path: '/buyer/profile', icon: UserIcon, roles: ['buyer'] },
     { label: 'Admin Console', path: '/admin/onboarding', icon: ShieldCheck, roles: ['admin'] },
   ];
@@ -167,6 +175,11 @@ export function Header({ onMenuClick }: HeaderProps) {
       case '/seller/onboarding': return 'Seller Onboarding';
       case '/buyer/onboarding': return 'Buyer Onboarding';
       case '/buyer/vendors': return 'Vendor Discovery';
+      case '/buyer/tenders': return 'Procurement ERP';
+      case '/buyer/quotations': return 'Bid Evaluation';
+      case '/buyer/orders': return 'Order Management';
+      case '/buyer/tracking': return 'Shipment Tracking';
+      case '/seller/tenders': return 'Tender Marketplace';
       case '/admin/onboarding': return 'Onboarding Verification';
       default: return 'Procurement ERP';
     }

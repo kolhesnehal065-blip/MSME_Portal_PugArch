@@ -71,6 +71,12 @@ export default function BuyerProfile() {
         { label: 'PAN of Organization', value: profile?.pan },
         { label: 'GSTIN (Optional)', value: profile?.gst || 'Not Provided' },
         { label: 'Website URL (Optional)', value: profile?.website || 'Not Provided' },
+        { label: 'COUNTRY', value: profile?.country },
+        { label: 'STATE', value: profile?.state },
+        { label: 'CITY', value: profile?.city },
+        { label: 'PINCODE', value: profile?.pincode },
+        { label: 'REGISTERED ADDRESS', value: profile?.registeredAddress },
+        { label: 'CORPORATE ADDRESS', value: profile?.corporateAddress || 'Same as Registered' },
       ]
     },
     {
@@ -85,19 +91,6 @@ export default function BuyerProfile() {
         { label: 'EMAIL', value: profile?.email || user?.email },
         { label: 'MOBILE', value: profile?.mobile },
         { label: 'ALTERNATE MOBILE', value: profile?.alternateMobile || 'Not Provided' },
-      ]
-    },
-    {
-      id: 'address',
-      title: 'Address Details',
-      icon: MapPin,
-      onEdit: () => navigate('/buyer/onboarding?section=compliance'),
-      fields: [
-        { label: 'STATE', value: profile?.state },
-        { label: 'CITY', value: profile?.city },
-        { label: 'PINCODE', value: profile?.pincode },
-        { label: 'REGISTERED ADDRESS', value: profile?.registeredAddress },
-        { label: 'CORPORATE ADDRESS', value: profile?.corporateAddress || 'Same as Registered' },
       ]
     },
     {

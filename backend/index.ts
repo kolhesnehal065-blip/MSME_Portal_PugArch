@@ -89,7 +89,11 @@ async function startServer() {
   app.use(express.json());
 
   app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      console.log(`${new Date().toISOString()} - ${req.method} ${req.url} [${res.statusCode}] - ${duration}ms`);
+    });
     next();
   });
 
@@ -127,6 +131,19 @@ async function startServer() {
     }
   });
 
+  app.get('/api/tenders/public', authenticate, authorize('seller', 'buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const tenders = await prisma.tender.findMany({
+        where: { status: 'active' },
+        include: { buyer: { include: { buyerProfile: true } } },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(tenders);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post('/api/tenders', authenticate, authorize('buyer'), async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'buyer') {
@@ -145,6 +162,30 @@ async function startServer() {
       });
 
       res.status(201).json(tender);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put('/api/tenders/:id/status', authenticate, authorize('buyer'), async (req: AuthRequest, res) => {
+    try {
+      const { status } = req.body;
+      const tenderId = Number(req.params.id);
+      
+      const tender = await prisma.tender.findUnique({
+        where: { id: tenderId }
+      });
+
+      if (!tender || tender.buyerId !== Number(req.user?.id)) {
+        return res.status(404).json({ message: 'Tender not found or unauthorized' });
+      }
+
+      const updatedTender = await prisma.tender.update({
+        where: { id: tenderId },
+        data: { status }
+      });
+
+      res.json(updatedTender);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

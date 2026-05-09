@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -20,7 +21,7 @@ import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 
 interface Tender {
-  _id: string;
+  id: number;
   tenderId: string;
   title: string;
   category: string;
@@ -32,6 +33,7 @@ interface Tender {
 }
 
 export default function Tenders() {
+  const navigate = useNavigate();
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'draft' | 'active' | 'closed'>('active');
@@ -43,6 +45,7 @@ export default function Tenders() {
     description: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [publishingId, setPublishingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTenders();
@@ -61,6 +64,32 @@ export default function Tenders() {
       console.error('Failed to fetch tenders', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePublish = async (tenderId: number) => {
+    setPublishingId(tenderId);
+    try {
+      const res = await api.put(`/api/tenders/${tenderId}/status`, {
+        status: 'active'
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+
+      if (res.ok) {
+        toast.success('Tender published successfully');
+        await fetchTenders();
+        setActiveTab('active');
+      } else {
+        const errorData = await res.json();
+        console.error('Publish Failed:', errorData);
+        toast.error(errorData.message || 'Failed to publish tender');
+      }
+    } catch (err: any) {
+      console.error('Network Error during Publish:', err);
+      toast.error(`Network error: ${err.message || 'Check connection'}`);
+    } finally {
+      setPublishingId(null);
     }
   };
 
@@ -113,15 +142,15 @@ export default function Tenders() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
           <div className="space-y-1">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Procurement</p>
-            <h1 className="text-3xl font-bold text-slate-900">Tenders</h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Procurement</p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Tenders</h1>
+            <p className="text-sm text-slate-500 font-medium">
               Manage drafts, monitor live bids, and review closed tenders.
             </p>
           </div>
           <Button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-teal-700 hover:bg-teal-800 text-white h-10 px-6 rounded-lg font-semibold text-sm flex items-center gap-2"
+            className="bg-[#008080] hover:bg-[#006666] text-white h-12 px-8 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg shadow-[#008080]/10 transition-all"
           >
             <Plus className="h-4 w-4" />
             Create Tender
@@ -129,22 +158,22 @@ export default function Tenders() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-2 mb-8 bg-slate-100/50 p-1.5 rounded-xl w-fit">
+        <div className="flex items-center gap-2 mb-10 bg-slate-100/50 p-1.5 rounded-2xl w-fit">
           {['Draft', 'Active', 'Closed'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase() as any)}
               className={cn(
-                "flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold transition-all",
+                "flex items-center gap-3 px-6 py-2.5 rounded-xl text-sm font-bold transition-all",
                 activeTab === tab.toLowerCase() 
-                  ? "bg-white text-slate-900 shadow-sm border border-slate-200" 
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-white text-slate-900 shadow-lg shadow-slate-200/50 border border-slate-200" 
+                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-100/50"
               )}
             >
               {tab}
               <span className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-bold",
-                activeTab === tab.toLowerCase() ? "bg-slate-100 text-slate-600" : "bg-slate-200/50 text-slate-400"
+                "px-2.5 py-1 rounded-lg text-[10px] font-black",
+                activeTab === tab.toLowerCase() ? "bg-slate-100 text-slate-600" : "bg-slate-200/40 text-slate-400"
               )}>
                 {tenders.filter(t => t.status === tab.toLowerCase()).length}
               </span>
@@ -164,6 +193,7 @@ export default function Tenders() {
                 <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Bids</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Closes</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Status</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -184,31 +214,61 @@ export default function Tenders() {
                 </tr>
               ) : (
                 filteredTenders.map((tender) => (
-                  <tr key={tender._id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-5 text-sm font-mono text-slate-400">
-                      {tender.tenderId || 'T-2026-0128'}
+                  <tr key={tender.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-6 py-5 text-xs font-mono text-slate-400">
+                      {tender.tenderId}
                     </td>
                     <td className="px-6 py-5">
                       <p className="text-sm font-bold text-slate-900 line-clamp-1">{tender.title}</p>
                     </td>
                     <td className="px-6 py-5">
-                      <span className="text-[10px] font-bold bg-slate-50 text-slate-600 px-2.5 py-1 rounded-md border border-slate-100 uppercase">
-                        {tender.category || 'IT Hardware'}
+                      <span className="text-[10px] font-bold bg-slate-50 text-slate-500 px-2.5 py-1 rounded-md border border-slate-100 uppercase">
+                        {tender.category}
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-sm font-bold text-slate-900 text-right">
-                      ₹{tender.budget?.toLocaleString() || '8,40,00,000'}
+                    <td className="px-6 py-5 text-sm font-black text-slate-900 text-right">
+                      ₹{tender.budget?.toLocaleString()}
                     </td>
-                    <td className="px-6 py-5 text-sm font-medium text-slate-900 text-center">
+                    <td className="px-6 py-5 text-sm font-bold text-slate-900 text-center">
                       {tender.bidsCount || 0}
                     </td>
-                    <td className="px-6 py-5 text-sm font-medium text-slate-500">
-                      {tender.closesAt ? new Date(tender.closesAt).toLocaleDateString() : '21d'}
+                    <td className="px-6 py-5 text-sm font-bold text-slate-400">
+                      {getDaysLeft(tender.closesAt)}
                     </td>
                     <td className="px-6 py-5 text-center">
-                      <span className="text-[10px] font-bold bg-slate-100 text-slate-400 px-2.5 py-1 rounded-md uppercase">
+                      <span className={cn(
+                        "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border",
+                        tender.status === 'active' ? "bg-teal-50 text-teal-600 border-teal-100" :
+                        tender.status === 'draft' ? "bg-slate-50 text-slate-500 border-slate-100" :
+                        "bg-red-50 text-red-600 border-red-100"
+                      )}>
                         {tender.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      {tender.status === 'draft' ? (
+                        <Button 
+                          variant="outline"
+                          className="border-slate-200 text-slate-900 text-[10px] font-black uppercase tracking-wider h-9 px-6 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all flex items-center gap-3 ml-auto group/btn shadow-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePublish(tender.id);
+                          }}
+                          disabled={publishingId === tender.id}
+                        >
+                          {publishingId === tender.id ? 'Publishing...' : 'Publish'}
+                          <ChevronRight className="h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform" />
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="outline"
+                          className="border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider h-9 px-4 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 ml-auto"
+                          onClick={() => navigate('/buyer/quotations')}
+                        >
+                          View bids
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))
