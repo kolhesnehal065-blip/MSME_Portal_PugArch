@@ -246,7 +246,7 @@ export default function Quotations() {
                   </p>
 
                   {/* Details Grid */}
-                  <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-6 grid grid-cols-2 gap-y-6 gap-x-12 mb-8">
+                  <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-y-4 sm:gap-y-6 gap-x-4 sm:gap-x-12 mb-8">
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Unit Price</p>
                       <p className="text-lg font-bold text-slate-900">₹{quote.unitPrice.toLocaleString()}</p>
@@ -287,7 +287,7 @@ export default function Quotations() {
                   {user?.role === 'buyer' ? (
                     <>
                       {quote.status === 'pending' ? (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                           <Button 
                             variant="outline" 
                             onClick={() => handleReject(quote.id)}

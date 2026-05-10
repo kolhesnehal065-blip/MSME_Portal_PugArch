@@ -727,7 +727,7 @@ export default function BuyerOnboarding() {
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={cn(
-                  "flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border",
+                  "flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap border",
                   isActive
                     ? "bg-teal-50 text-teal-700 border-teal-200 shadow-sm"
                     : isCompleted
@@ -749,7 +749,7 @@ export default function BuyerOnboarding() {
 
         {/* Form Card */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
-          <div className="p-5 sm:p-8 md:p-10">
+          <div className="p-4 sm:p-8 md:p-10">
             <div className="mb-8 md:mb-10">
               <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
                 {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}

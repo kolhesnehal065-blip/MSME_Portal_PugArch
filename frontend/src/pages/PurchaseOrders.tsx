@@ -85,10 +85,10 @@ export default function PurchaseOrders() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-10">
           {stats.map((stat) => (
             <Card key={stat.label} className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-8 flex justify-between items-center">
+              <CardContent className="p-5 sm:p-8 flex justify-between items-center">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
                   <p className="text-2xl font-black text-slate-900">{stat.value}</p>

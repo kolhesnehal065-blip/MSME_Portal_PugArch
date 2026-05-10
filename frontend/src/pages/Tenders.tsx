@@ -158,7 +158,7 @@ export default function Tenders() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-2 mb-10 bg-slate-100/50 p-1.5 rounded-2xl w-fit">
+        <div className="flex flex-wrap items-center gap-2 mb-10 bg-slate-100/50 p-1.5 rounded-2xl w-full sm:w-fit">
           {['Draft', 'Active', 'Closed'].map((tab) => (
             <button
               key={tab}
@@ -280,7 +280,7 @@ export default function Tenders() {
         {/* New Tender Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-xl bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="relative w-full max-w-xl max-h-[calc(100vh-2rem)] bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-y-auto animate-in zoom-in-95 duration-300">
             <button 
               onClick={() => setIsModalOpen(false)}
               className="absolute top-6 right-6 p-2 rounded-xl hover:bg-slate-50 transition-colors"

@@ -120,7 +120,7 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 border-b border-slate-100 pb-8">
         <div>
           <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] italic mb-1">MSME Procurement Portal</p>
-          <h1 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter">Dashboard</h1>
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 uppercase italic tracking-tighter">Dashboard</h1>
         </div>
         <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
            <div className="h-12 w-12 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-lg italic">
@@ -230,7 +230,7 @@ export default function Dashboard() {
                   <Link 
                     key={section} 
                     to={user?.role === 'seller' ? '/seller/onboarding' : '/buyer/onboarding'}
-                    className="block bg-red-50 border border-red-100 p-6 rounded-3xl space-y-3 transition-all hover:shadow-md group animate-in slide-in-from-right-4 duration-500"
+                    className="block bg-red-50 border border-red-100 p-4 sm:p-6 rounded-3xl space-y-3 transition-all hover:shadow-md group animate-in slide-in-from-right-4 duration-500"
                   >
                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">

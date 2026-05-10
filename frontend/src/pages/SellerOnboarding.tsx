@@ -230,7 +230,7 @@ export default function SellerOnboarding() {
         
         <main className="p-4 sm:p-8 max-w-4xl mx-auto w-full">
           <Card className="rounded-2xl border-none shadow-xl shadow-gray-200/50 bg-white overflow-hidden">
-            <div className="border-b border-gray-100 bg-gray-50/50 px-8 py-5">
+            <div className="border-b border-gray-100 bg-gray-50/50 px-4 sm:px-8 py-5">
                <h3 className="text-sm font-black uppercase tracking-tight text-gray-800 italic">
                  {currentSection.replace(/([A-Z])/g, ' $1').toUpperCase()}
                </h3>
@@ -241,7 +241,7 @@ export default function SellerOnboarding() {
                )}
             </div>
             
-            <CardContent className="p-8">
+            <CardContent className="p-4 sm:p-8">
               <fieldset disabled={isProfileLocked} className={isProfileLocked ? 'opacity-70' : ''}>
               {currentSection === 'pan' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
@@ -639,7 +639,7 @@ export default function SellerOnboarding() {
 
               {currentSection === 'ownership' && (
                 <div className="space-y-8 animate-in fade-in duration-300">
-                   <div className="relative overflow-hidden rounded-2xl bg-slate-900 p-8 text-white shadow-2xl">
+                   <div className="relative overflow-hidden rounded-2xl bg-slate-900 p-4 sm:p-8 text-white shadow-2xl">
                       <div className="absolute top-0 right-0 p-8 opacity-10">
                          <ShieldCheck className="h-32 w-32" />
                       </div>
