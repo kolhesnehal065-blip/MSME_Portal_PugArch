@@ -235,6 +235,13 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
       toast.error('Please verify your email address first');
       return;
     }
+
+    if (currentSubStep === 3 && isEmailVerified) {
+      if (!formData.userId && formData.email) {
+        const prefix = formData.email.split('@')[0];
+        setFormData(prev => ({ ...prev, userId: prefix }));
+      }
+    }
     
     if (currentSubStep < 4) setCurrentSubStep(currentSubStep + 1);
   };
@@ -937,39 +944,39 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
 
             {currentSubStep === 4 && (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                {role === 'buyer' ? (
-                  <>
-                    <h2 className="text-xl md:text-2xl font-black text-slate-800">User Credentials</h2>
-                    <div className="max-w-md">
-                      <Input
-                        label="User Id *"
-                        placeholder="Enter User id"
-                        value={formData.userId}
-                        onChange={(e) => setFormData({...formData, userId: e.target.value})}
-                        error={!formData.userId ? 'Please enter user id.' : undefined}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
-                      />
-                    </div>
+                <>
+                  <h2 className="text-xl md:text-2xl font-black text-slate-800">User Credentials</h2>
+                  <div className="max-w-md">
+                    <Input
+                      label="User Id *"
+                      placeholder="Enter unique user id"
+                      value={formData.userId}
+                      onChange={(e) => setFormData({...formData, userId: e.target.value})}
+                      error={!formData.userId ? 'Please enter user id.' : undefined}
+                      className="h-14 rounded-lg border-slate-200 bg-white"
+                    />
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <Input
-                        label="Password *"
-                        type="password"
-                        placeholder="Enter Password"
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
-                      />
-                      <Input
-                        label="Confirm Password*"
-                        type="password"
-                        placeholder="Confirm Password"
-                        value={formData.confirmPassword}
-                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Input
+                      label="Password *"
+                      type="password"
+                      placeholder="Enter Password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      className="h-14 rounded-lg border-slate-200 bg-white"
+                    />
+                    <Input
+                      label="Confirm Password*"
+                      type="password"
+                      placeholder="Confirm Password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                      className="h-14 rounded-lg border-slate-200 bg-white"
+                    />
+                  </div>
 
+                  {role === 'buyer' ? (
                     <div className="space-y-3 text-sm text-slate-400">
                       <p>Password must contain minimum of</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-16 gap-y-3 max-w-xl">
@@ -980,49 +987,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         <CredentialRule label="8 characters and maximum of 16 characters" valid={formData.password.length >= 8 && formData.password.length <= 16} />
                       </div>
                     </div>
-
-                    <div className="flex justify-end">
-                      <Button
-                        onClick={handleSubmit}
-                        disabled={isLoading || !formData.userId || !isPasswordStrong(formData.password) || formData.password !== formData.confirmPassword}
-                        className={cn(
-                          "h-14 w-full sm:w-64 rounded-lg font-black uppercase tracking-wide",
-                          !isLoading && formData.userId && isPasswordStrong(formData.password) && formData.password === formData.confirmPassword
-                            ? "bg-slate-900 text-white"
-                            : "bg-slate-200 text-slate-500"
-                        )}
-                      >
-                        {isLoading ? 'Creating Account...' : 'Create Account'}
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Input
-                      label="User ID"
-                      value={formData.email}
-                      disabled
-                      className="bg-slate-50 font-bold italic h-14 rounded-2xl"
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input
-                        label="Password"
-                        type="password"
-                        placeholder="Min. 8 characters"
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="h-14 rounded-2xl border-slate-200"
-                      />
-                      <Input
-                        label="Confirm Password"
-                        type="password"
-                        placeholder="Repeat password"
-                        value={formData.confirmPassword}
-                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                        className="h-14 rounded-2xl border-slate-200"
-                      />
-                    </div>
-
+                  ) : (
                     <div className="rounded-2xl bg-slate-50 p-4 sm:p-6 md:rounded-3xl">
                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">Password Security Checklist</h4>
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1034,8 +999,23 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                           <ValidationItem label="Passwords Match" valid={formData.password !== '' && formData.password === formData.confirmPassword} />
                        </div>
                     </div>
-                  </>
-                )}
+                  )}
+
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isLoading || !formData.userId || !isPasswordStrong(formData.password) || formData.password !== formData.confirmPassword}
+                      className={cn(
+                        "h-14 w-full sm:w-64 rounded-lg font-black uppercase tracking-wide",
+                        !isLoading && formData.userId && isPasswordStrong(formData.password) && formData.password === formData.confirmPassword
+                          ? "bg-slate-900 text-white"
+                          : "bg-slate-200 text-slate-500"
+                      )}
+                    >
+                      {isLoading ? 'Creating Account...' : 'Create Account'}
+                    </Button>
+                  </div>
+                </>
               </div>
         )}
 

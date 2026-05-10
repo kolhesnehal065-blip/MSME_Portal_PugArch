@@ -531,7 +531,10 @@ async function startServer() {
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await prisma.user.create({
         data: {
-          name, email, password: hashedPassword,
+          name, 
+          email, 
+          userId: registrationDetails?.userId || null,
+          password: hashedPassword,
           role: role as Role,
           mobile,
           dob: (dob && !isNaN(Date.parse(dob))) ? new Date(dob) : null,
@@ -553,8 +556,17 @@ async function startServer() {
   app.post('/api/auth/login', async (req, res) => {
     try {
       const { email, password } = req.body;
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) return res.status(400).json({ message: 'Not found' });
+      const loginId = String(email || '').trim().toLowerCase();
+      
+      const user = await prisma.user.findFirst({ 
+        where: { 
+          OR: [
+            { email: loginId },
+            { userId: loginId }
+          ]
+        } 
+      });
+      if (!user) return res.status(400).json({ message: 'User not found' });
 
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) return res.status(400).json({ message: 'Invalid' });
