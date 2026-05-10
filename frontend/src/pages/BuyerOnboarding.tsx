@@ -191,6 +191,7 @@ export default function BuyerOnboarding() {
           } : {}),
           email: storedDraft?.formData?.email || data.user?.email || prev.email,
           organizationName: data.profile?.organizationName || regDetails.businessName || data.user?.name || prev.organizationName,
+          businessType: data.profile?.businessType || regDetails.businessType || prev.businessType,
           mobile: data.profile?.mobile || data.user?.mobile || prev.mobile,
           representativeName: data.profile?.representativeName || data.user?.name || prev.representativeName,
           state: data.profile?.state || regDetails.state || prev.state,
@@ -775,7 +776,7 @@ export default function BuyerOnboarding() {
                 {activeSection === 'org' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <Input label="Organization / Company Name" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={touched.organizationName ? errors.organizationName : ''} required className="h-12" />
-                    <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} required className="h-12">
+                    <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} required disabled className="h-12 bg-slate-50">
                       <option value="Private Limited Company">Private Limited Company</option>
                       <option value="Public Limited Company">Public Limited Company</option>
                       <option value="Partnership Firm">Partnership Firm</option>

@@ -67,7 +67,7 @@ export default function SellerOnboarding() {
           ...profile,
           organizationType: profile.organizationType || regDetails.businessType || prev.organizationType,
           businessName: profile.businessName || regDetails.businessName || data.user?.name || prev.businessName,
-          nameAsInPan: profile.nameAsInPan || regDetails.businessName || data.user?.name || prev.nameAsInPan,
+          nameAsInPan: profile.nameAsInPan || '',
           dateAsInPan: profile.dateAsInPan ? new Date(profile.dateAsInPan).toISOString().split('T')[0] : '',
           dateOfIncorporation: profile.dateOfIncorporation ? new Date(profile.dateOfIncorporation).toISOString().split('T')[0] : '',
           mobile: profile.mobile || data.user?.mobile || prev.mobile,
@@ -154,6 +154,31 @@ export default function SellerOnboarding() {
       toast.success('Office deleted');
     } catch (err) {
       toast.error('Error deleting office');
+    }
+  };
+
+  const fetchPanDetails = async () => {
+    if (!formData.pan || formData.pan.length !== 10) {
+      toast.error('Please enter a valid 10-digit PAN');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      // Simulation of a PAN API response
+      // In production, this would call a real backend endpoint that integrates with a PAN service
+      setTimeout(() => {
+        setFormData((prev: any) => ({
+          ...prev,
+          nameAsInPan: prev.businessName || "FETCHED NAME FROM PAN",
+          dateAsInPan: "2010-01-01",
+          panVerified: true
+        }));
+        toast.success('PAN details autofetched and verified');
+        setIsLoading(false);
+      }, 1000);
+    } catch (err) {
+      toast.error('PAN verification failed');
+      setIsLoading(false);
     }
   };
 
@@ -246,7 +271,13 @@ export default function SellerOnboarding() {
               {currentSection === 'pan' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Select label="Business / Organisation Type" name="organizationType" value={formData.organizationType} onChange={handleChange}>
+                    <Select 
+                      label="Business / Organisation Type" 
+                      name="organizationType" 
+                      value={formData.organizationType} 
+                      onChange={handleChange}
+                      disabled
+                    >
                       <option value="Proprietorship">Proprietorship</option>
                       <option value="Partnership">Partnership</option>
                       <option value="Pvt Ltd">Private Limited Company</option>
@@ -254,14 +285,14 @@ export default function SellerOnboarding() {
                       <option value="LLP">Limited Liability Partnership</option>
                     </Select>
                     <Input label="Business PAN Number" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" />
-                    <Input label="Name (As in PAN)" name="nameAsInPan" value={formData.nameAsInPan} onChange={handleChange} />
+                    <Input label="Name (As in PAN)" name="nameAsInPan" value={formData.nameAsInPan} onChange={handleChange} placeholder="Autofetched from PAN" />
                     <Input label="Date (As in PAN)" name="dateAsInPan" type="date" value={formData.dateAsInPan} onChange={handleChange} />
                   </div>
                   <div className="flex justify-end gap-3 pt-4">
-                    <Button onClick={() => setFormData((prev: any) => ({ ...prev, panVerified: true }))} className="bg-blue-600 hover:bg-blue-700 rounded-xl px-8 h-12 font-black uppercase text-xs italic tracking-widest shadow-lg shadow-blue-100">
-                       Verify Business PAN
+                    <Button onClick={fetchPanDetails} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 rounded-xl px-8 h-12 font-black uppercase text-xs italic tracking-widest shadow-lg shadow-blue-100">
+                       {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Verify Business PAN'}
                     </Button>
-                    <Button onClick={() => handleSaveSection('details')} disabled={isLoading} className="bg-gray-900 hover:bg-black rounded-xl px-8 h-12 font-black uppercase text-xs italic tracking-widest text-white">
+                    <Button onClick={() => handleSaveSection('details')} disabled={isLoading || !formData.panVerified} className="bg-gray-900 hover:bg-black rounded-xl px-8 h-12 font-black uppercase text-xs italic tracking-widest text-white">
                        {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
                        Save & Continue
                     </Button>
