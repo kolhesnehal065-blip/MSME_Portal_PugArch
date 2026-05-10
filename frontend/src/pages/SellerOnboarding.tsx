@@ -19,6 +19,19 @@ export default function SellerOnboarding() {
   const [savedSections, setSavedSections] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileLocked, setIsProfileLocked] = useState(false);
+  const [editingOfficeId, setEditingOfficeId] = useState<number | null>(null);
+  const [officeForm, setOfficeForm] = useState({
+    name: '',
+    type: 'Registered',
+    pincode: '',
+    state: '',
+    city: '',
+    flat: '',
+    premises: '',
+    road: '',
+    area: '',
+    contact: ''
+  });
   
   const [formData, setFormData] = useState<any>({
     organizationType: 'Proprietorship',
@@ -119,26 +132,94 @@ export default function SellerOnboarding() {
     }
   };
 
-  const handleAddOffice = async (officeData: any) => {
+  const handleAddOffice = async () => {
     if (isProfileLocked) {
       toast.info('Approved profiles are locked');
       return;
     }
+
+    if (!officeForm.name) { toast.error("Please enter Office Name"); return; }
+    
+    const fullAddress = [officeForm.flat, officeForm.premises, officeForm.road, officeForm.area, `Contact: ${officeForm.contact}`].filter(Boolean).join(', ');
+    const officeData = {
+      name: officeForm.name,
+      type: officeForm.type,
+      pincode: officeForm.pincode,
+      state: officeForm.state,
+      city: officeForm.city,
+      address: fullAddress,
+      contactNumber: officeForm.contact,
+      isMandatory: officeForm.type === 'Registered'
+    };
+
     setIsLoading(true);
     try {
-      const res = await api.post('/api/seller/profile/offices', officeData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setFormData((prev: any) => ({ ...prev, offices: [...prev.offices, data.office] }));
-        toast.success('Office added');
+      if (editingOfficeId) {
+        const res = await api.put(`/api/seller/profile/offices/${editingOfficeId}`, officeData, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFormData((prev: any) => ({
+            ...prev,
+            offices: prev.offices.map((o: any) => o.id === editingOfficeId ? data.office : o)
+          }));
+          toast.success('Office updated');
+          setEditingOfficeId(null);
+          setOfficeTab('manage');
+          resetOfficeForm();
+        }
+      } else {
+        const res = await api.post('/api/seller/profile/offices', officeData, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFormData((prev: any) => ({ ...prev, offices: [...prev.offices, data.office] }));
+          toast.success('Office added');
+          setOfficeTab('manage');
+          resetOfficeForm();
+        }
       }
     } catch (err) {
-      toast.error('Error adding office');
+      toast.error(editingOfficeId ? 'Error updating office' : 'Error adding office');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEditOffice = (office: any) => {
+    setEditingOfficeId(office.id);
+    const parts = office.address.split(', ');
+    setOfficeForm({
+      name: office.name,
+      type: office.type,
+      pincode: office.pincode,
+      state: office.state,
+      city: office.city,
+      flat: parts[0] || '',
+      premises: parts[1] || '',
+      road: parts[2] || '',
+      area: parts[3] || '',
+      contact: office.contactNumber || (parts[4]?.replace('Contact: ', '') || '')
+    });
+    setOfficeTab('add');
+  };
+
+  const resetOfficeForm = () => {
+    setOfficeForm({
+      name: '',
+      type: 'Registered',
+      pincode: '',
+      state: '',
+      city: '',
+      flat: '',
+      premises: '',
+      road: '',
+      area: '',
+      contact: ''
+    });
+    setEditingOfficeId(null);
   };
 
   const handleDeleteOffice = async (id: number) => {
@@ -297,7 +378,13 @@ export default function SellerOnboarding() {
               {currentSection === 'details' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Input label="Business / Organisation Name" name="businessName" value={formData.businessName} onChange={handleChange} />
+                    <Input 
+                      label="Business / Organisation Name" 
+                      name="businessName" 
+                      value={formData.businessName} 
+                      disabled 
+                      className="bg-slate-50 border-slate-200" 
+                    />
                     <Input label="Date of Incorporation" name="dateOfIncorporation" type="date" value={formData.dateOfIncorporation} onChange={handleChange} />
                   </div>
                   <div className="flex justify-end gap-3 pt-4">
@@ -343,8 +430,8 @@ export default function SellerOnboarding() {
                    <p className="text-sm text-gray-600">You can add multiple office locations as per their function/type for your Business</p>
                    
                    <div className="flex border-b border-gray-200">
-                     <button onClick={() => setOfficeTab('manage')} className={`px-6 py-3 text-sm font-semibold ${officeTab === 'manage' ? 'text-blue-600 border-t-2 border-l-2 border-r-2 border-gray-200 rounded-t-lg bg-white -mb-px' : 'text-gray-500 hover:text-gray-700'}`}>Manage Offices</button>
-                     <button onClick={() => setOfficeTab('add')} className={`px-6 py-3 text-sm font-semibold ${officeTab === 'add' ? 'text-blue-600 border-t-2 border-l-2 border-r-2 border-gray-200 rounded-t-lg bg-white -mb-px' : 'text-gray-500 hover:text-gray-700'}`}>Add New Office</button>
+                     <button onClick={() => { setOfficeTab('manage'); setEditingOfficeId(null); }} className={`px-6 py-3 text-sm font-semibold ${officeTab === 'manage' ? 'text-blue-600 border-t-2 border-l-2 border-r-2 border-gray-200 rounded-t-lg bg-white -mb-px' : 'text-gray-500 hover:text-gray-700'}`}>Manage Offices</button>
+                     <button onClick={() => { setOfficeTab('add'); if(!editingOfficeId) resetOfficeForm(); }} className={`px-6 py-3 text-sm font-semibold ${officeTab === 'add' ? 'text-blue-600 border-t-2 border-l-2 border-r-2 border-gray-200 rounded-t-lg bg-white -mb-px' : 'text-gray-500 hover:text-gray-700'}`}>{editingOfficeId ? 'Edit Office' : 'Add New Office'}</button>
                    </div>
 
                     {officeTab === 'manage' && (
@@ -383,7 +470,7 @@ export default function SellerOnboarding() {
                                           </td>
                                           <td className="px-4 py-4 text-gray-600">-</td>
                                           <td className="px-4 py-4">
-                                             <button onClick={() => handleDeleteOffice(office.id)} className="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase mr-4">EDIT</button>
+                                             <button onClick={() => handleEditOffice(office)} className="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase mr-4">EDIT</button>
                                              <button onClick={() => handleDeleteOffice(office.id)} className="text-red-500 hover:text-red-700 font-bold text-xs uppercase">DELETE</button>
                                           </td>
                                        </tr>
@@ -406,11 +493,11 @@ export default function SellerOnboarding() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">Office Name*</label>
-                              <input id="new-office-name" placeholder="Enter Office Name" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <input value={officeForm.name} onChange={(e) => setOfficeForm({...officeForm, name: e.target.value})} placeholder="Enter Office Name" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">Type Of Office*</label>
-                              <select id="new-office-type" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-500">
+                              <select value={officeForm.type} onChange={(e) => setOfficeForm({...officeForm, type: e.target.value})} className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-500">
                                  <option value="Registered">Select type of address</option>
                                  <option value="Registered">Registered Office</option>
                                  <option value="Branch">Branch</option>
@@ -419,35 +506,35 @@ export default function SellerOnboarding() {
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">Pincode*</label>
-                              <input id="new-office-pincode" placeholder="Enter 6 digit pincode" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <input value={officeForm.pincode} onChange={(e) => setOfficeForm({...officeForm, pincode: e.target.value})} placeholder="Enter 6 digit pincode" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">State*</label>
-                              <input id="new-office-state" placeholder="State" className="w-full h-12 px-4 rounded border border-gray-300 bg-gray-50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <input value={officeForm.state} onChange={(e) => setOfficeForm({...officeForm, state: e.target.value})} placeholder="State" className="w-full h-12 px-4 rounded border border-gray-300 bg-gray-50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">Town/City/District*</label>
-                              <input id="new-office-city" placeholder="Town/City/District" className="w-full h-12 px-4 rounded border border-gray-300 bg-gray-50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <input value={officeForm.city} onChange={(e) => setOfficeForm({...officeForm, city: e.target.value})} placeholder="Town/City/District" className="w-full h-12 px-4 rounded border border-gray-300 bg-gray-50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">Flat/Door/Block No*</label>
-                              <input id="new-office-flat" placeholder="Enter Flat/Door/Block number" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <input value={officeForm.flat} onChange={(e) => setOfficeForm({...officeForm, flat: e.target.value})} placeholder="Enter Flat/Door/Block number" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">Name of Premises/ Building/ Village</label>
-                              <input id="new-office-premises" placeholder="Enter Building/Premises/Village" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <input value={officeForm.premises} onChange={(e) => setOfficeForm({...officeForm, premises: e.target.value})} placeholder="Enter Building/Premises/Village" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">Road/Street/Post Office</label>
-                              <input id="new-office-road" placeholder="Enter Road/Street/Post Office" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <input value={officeForm.road} onChange={(e) => setOfficeForm({...officeForm, road: e.target.value})} placeholder="Enter Road/Street/Post Office" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">Area/Locality*</label>
-                              <input id="new-office-area" placeholder="Enter Area/Locality" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <input value={officeForm.area} onChange={(e) => setOfficeForm({...officeForm, area: e.target.value})} placeholder="Enter Area/Locality" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">Contact Number* <span className="text-gray-400 font-normal ml-1">ⓘ</span></label>
-                              <input id="new-office-contact" placeholder="Enter Contact Number" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <input value={officeForm.contact} onChange={(e) => setOfficeForm({...officeForm, contact: e.target.value})} placeholder="Enter Contact Number" className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                               <p className="text-[10px] text-gray-500 mt-1 leading-tight">This number will be published on GeM Artifacts (such as Contract and Invoice) for helping the Buyer communicate with the Sellers post contract</p>
                            </div>
                            <div>
@@ -458,32 +545,8 @@ export default function SellerOnboarding() {
                            </div>
                         </div>
                         <div className="flex justify-end mt-6 pt-6 border-t border-gray-100">
-                           <Button onClick={() => {
-                             const name = (document.getElementById('new-office-name') as HTMLInputElement).value;
-                             const type = (document.getElementById('new-office-type') as HTMLSelectElement).value;
-                             const flat = (document.getElementById('new-office-flat') as HTMLInputElement).value;
-                             const premises = (document.getElementById('new-office-premises') as HTMLInputElement).value;
-                             const road = (document.getElementById('new-office-road') as HTMLInputElement).value;
-                             const area = (document.getElementById('new-office-area') as HTMLInputElement).value;
-                             const contact = (document.getElementById('new-office-contact') as HTMLInputElement).value;
-                             
-                             if (!name) { toast.error("Please enter Office Name"); return; }
-                             
-                             const fullAddress = [flat, premises, road, area, `Contact: ${contact}`].filter(Boolean).join(', ');
-                             
-                             handleAddOffice({
-                               name,
-                               type: type === 'Registered' ? 'Registered' : type,
-                               pincode: (document.getElementById('new-office-pincode') as HTMLInputElement).value,
-                               state: (document.getElementById('new-office-state') as HTMLInputElement).value,
-                               city: (document.getElementById('new-office-city') as HTMLInputElement).value,
-                               address: fullAddress,
-                               contactNumber: contact,
-                               isMandatory: type === 'Registered'
-                             });
-                             setOfficeTab('manage');
-                           }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 rounded transition-colors uppercase tracking-widest text-xs italic shadow-lg shadow-blue-100">
-                              <Plus className="mr-2 h-4 w-4" /> ADD OFFICE
+                           <Button onClick={handleAddOffice} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 rounded transition-colors uppercase tracking-widest text-xs italic shadow-lg shadow-blue-100">
+                               {editingOfficeId ? 'UPDATE OFFICE' : <><Plus className="mr-2 h-4 w-4" /> ADD OFFICE</>}
                            </Button>
                         </div>
                      </div>
