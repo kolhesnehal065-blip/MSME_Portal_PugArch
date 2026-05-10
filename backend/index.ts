@@ -101,14 +101,7 @@ async function startServer() {
   });
 
   const ensureOnboardingEditable = async (userId: number) => {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { onboardingStatus: true }
-    });
-    if (!user) return { editable: false, status: 404, message: 'User not found' };
-    if (user.onboardingStatus === 'approved_for_procurement') {
-      return { editable: false, status: 403, message: 'Approved onboarding profiles cannot be edited' };
-    }
+    // Force unlock for all statuses as requested by USER
     return { editable: true };
   };
 
@@ -137,7 +130,7 @@ async function startServer() {
   app.get('/api/tenders/public', authenticate, authorize('seller', 'buyer', 'admin'), async (req: AuthRequest, res) => {
     try {
       const tenders = await prisma.tender.findMany({
-        where: { status: 'active' },
+        where: { status: 'published' },
         include: { buyer: { include: { buyerProfile: true } } },
         orderBy: { createdAt: 'desc' }
       });
@@ -181,7 +174,7 @@ async function startServer() {
         where: { id: tenderId }
       });
 
-      if (!tender || tender.status !== 'active') {
+      if (!tender || tender.status !== 'published') {
         return res.status(400).json({ message: 'Tender is not active or does not exist' });
       }
 
@@ -925,6 +918,17 @@ async function startServer() {
           subject,
           message,
           status: 'pending'
+        },
+        include: { buyer: true }
+      });
+
+      // Create Notification for Seller
+      await prisma.notification.create({
+        data: {
+          userId: Number(sellerId),
+          title: 'New Quote Request',
+          message: `Buyer ${quote.buyer.name} has requested a quote for: ${subject}`,
+          type: 'quote_request'
         }
       });
 
@@ -1053,6 +1057,31 @@ async function startServer() {
         prisma.user.count({ where: { role: { in: ['seller', 'buyer'] } } })
       ]);
       res.json({ pendingApproval: pending, activeSellers: sellers, activeBuyers: buyers, totalNetwork: total });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/notifications', authenticate, async (req: AuthRequest, res) => {
+    try {
+      const notifications = await prisma.notification.findMany({
+        where: { userId: Number(req.user?.id) },
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      });
+      res.json(notifications);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/notifications/read-all', authenticate, async (req: AuthRequest, res) => {
+    try {
+      await prisma.notification.updateMany({
+        where: { userId: Number(req.user?.id), isRead: false },
+        data: { isRead: true }
+      });
+      res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

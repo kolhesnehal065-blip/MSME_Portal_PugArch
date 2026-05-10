@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui/card';
-import { AlertTriangle, CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck, Bell, Info } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck, Bell, Info, ShoppingBag, MessageSquare, Gavel, Briefcase, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function Dashboard() {
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [adminStats, setAdminStats] = useState<any>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,6 +41,13 @@ export default function Dashboard() {
             const statsData = await statsRes.json();
             setAdminStats(statsData);
           }
+        }
+
+        // Fetch Notifications
+        const notifRes = await api.fetch('/api/notifications', { headers });
+        if (notifRes.ok) {
+          const notifData = await notifRes.json();
+          setNotifications(notifData);
         }
       } catch (err) {
         console.error(err);
@@ -137,6 +145,40 @@ export default function Dashboard() {
            </div>
         </div>
       </div>
+      
+      {/* Procurement Method Selection - Only for Approved Buyers */}
+      {user?.role === 'buyer' && user?.onboardingStatus === 'approved_for_procurement' && (
+        <div className="space-y-6 animate-in slide-in-from-top-4 duration-700">
+           <div className="bg-emerald-600 px-8 py-3 rounded-2xl shadow-lg shadow-emerald-100 flex items-center justify-between">
+              <h2 className="text-white text-xs font-black uppercase tracking-[0.3em] italic">Procurement Method Selection</h2>
+              <Badge className="bg-white/20 text-white border-none rounded-lg px-3 py-1 font-black italic text-[9px]">OFFICIAL CHANNELS</Badge>
+           </div>
+           
+           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {[
+                { label: 'Direct Purchase', icon: ShoppingBag, color: 'bg-blue-50 text-blue-600', hover: 'hover:bg-blue-100', path: '/buyer/vendors' },
+                { label: 'Request for Quotation (RFQ)', icon: MessageSquare, color: 'bg-indigo-50 text-indigo-600', hover: 'hover:bg-indigo-100', path: '/buyer/quotations' },
+                { label: 'Tender Management', icon: FileText, color: 'bg-emerald-50 text-emerald-600', hover: 'hover:bg-emerald-100', path: '/buyer/tenders' },
+                { label: 'Reverse Auction', icon: Gavel, color: 'bg-amber-50 text-amber-600', hover: 'hover:bg-amber-100', path: '/buyer/auctions' },
+                { label: 'Service Procurement', icon: Briefcase, color: 'bg-orange-50 text-orange-600', hover: 'hover:bg-orange-100', path: '/buyer/services' }
+              ].map((method) => (
+                <Link 
+                  key={method.label} 
+                  to={method.path}
+                  className={cn(
+                    "flex flex-col items-center justify-center p-6 rounded-[2rem] border border-slate-100 bg-white transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group",
+                    method.hover
+                  )}
+                >
+                   <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 group-hover:rotate-3", method.color)}>
+                      <method.icon className="h-6 w-6" />
+                   </div>
+                   <p className="text-[10px] font-black text-slate-900 uppercase italic text-center leading-tight tracking-tight px-2">{method.label}</p>
+                </Link>
+              ))}
+           </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Onboarding Status Tracker */}
@@ -209,12 +251,37 @@ export default function Dashboard() {
                  <Bell className="h-4 w-4" />
                  Notifications
               </h3>
-              {sectionMessages.length > 0 && (
+              {(sectionMessages.length > 0 || notifications.some(n => !n.isRead)) && (
                 <span className="flex h-2 w-2 rounded-full bg-red-500 animate-ping" />
               )}
            </div>
 
            <div className="space-y-4">
+              {/* Dynamic Notifications */}
+              {notifications.map((notif) => (
+                <div 
+                  key={notif.id} 
+                  className={cn(
+                    "p-5 rounded-[2rem] border transition-all duration-300 animate-in slide-in-from-right-4",
+                    notif.isRead 
+                      ? "bg-white border-slate-100 opacity-60" 
+                      : "bg-indigo-50/50 border-indigo-100 shadow-sm"
+                  )}
+                >
+                   <div className="flex items-center gap-3 mb-2">
+                      <div className={cn(
+                        "h-8 w-8 rounded-xl flex items-center justify-center",
+                        notif.type === 'quote_request' ? "bg-teal-100 text-teal-700" : "bg-blue-100 text-blue-700"
+                      )}>
+                         {notif.type === 'quote_request' ? <FileText className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                      </div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{notif.title}</p>
+                   </div>
+                   <p className="text-xs font-bold text-slate-800 italic leading-relaxed">{notif.message}</p>
+                   <p className="text-[9px] font-black text-slate-400 uppercase mt-3 italic">{new Date(notif.createdAt).toLocaleString()}</p>
+                </div>
+              ))}
+
               {user?.adminFeedback && (
                 <div className="bg-amber-50 border border-amber-100 p-6 rounded-3xl space-y-3 animate-in slide-in-from-right-4 duration-500">
                    <div className="flex items-center gap-2">
@@ -225,7 +292,7 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {sectionMessages.length > 0 ? (
+              {sectionMessages.length > 0 && (
                 sectionMessages.map(([section, reason]) => (
                   <Link 
                     key={section} 
@@ -243,12 +310,14 @@ export default function Dashboard() {
                      <p className="text-sm font-semibold text-red-900 italic leading-relaxed">"{reason}"</p>
                   </Link>
                 ))
-              ) : !user?.adminFeedback ? (
+              )}
+
+              {notifications.length === 0 && sectionMessages.length === 0 && !user?.adminFeedback && (
                 <div className="bg-white border border-slate-100 p-12 rounded-3xl text-center space-y-3 italic opacity-60">
                    <Bell className="h-8 w-8 text-slate-300 mx-auto" />
                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No New Notifications</p>
                 </div>
-              ) : null}
+              )}
            </div>
         </div>
       </div>

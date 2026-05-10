@@ -149,7 +149,7 @@ export default function BuyerOnboarding() {
         });
         const data = await res.json();
         const regDetails = data.user?.registrationDetails || {};
-        const profileLocked = data.user?.onboardingStatus === 'approved_for_procurement';
+        const profileLocked = data.user?.onboardingStatus === 'approved_for_procurement' && false; // Force unlock as requested
         setIsProfileLocked(profileLocked);
         const profileDepartment = data.profile?.department || '';
         const hasPresetDepartment = DEPARTMENT_OPTIONS.includes(profileDepartment) && profileDepartment !== 'Others';
@@ -762,9 +762,9 @@ export default function BuyerOnboarding() {
                         activeSection === 'docs' ? 'Upload verification documents.' :
                           'Secure your account with a password.'}
               </p>
-              {isProfileLocked && (
-                <p className="mt-3 inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">
-                  Approved profile locked
+              {user?.onboardingStatus === 'approved_for_procurement' && (
+                <p className="mt-3 inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700 animate-pulse">
+                  Approved Profile: Unlocked for Manual Updates
                 </p>
               )}
             </div>

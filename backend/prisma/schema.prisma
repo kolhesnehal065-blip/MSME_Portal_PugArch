@@ -275,6 +275,15 @@ enum OnboardingStatus {
 
 enum TenderStatus {
   draft
-  active
+  approved
+  published
+  bid_submission
+  tech_bid_opening
+  tech_evaluation
+  financial_bid_opening
+  financial_opening
+  financial_evaluation
+  awarded
+  po_generated
   closed
 }
