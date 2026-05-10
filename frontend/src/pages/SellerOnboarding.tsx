@@ -271,19 +271,13 @@ export default function SellerOnboarding() {
               {currentSection === 'pan' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Select 
+                    <Input 
                       label="Business / Organisation Type" 
                       name="organizationType" 
                       value={formData.organizationType} 
-                      onChange={handleChange}
                       disabled
-                    >
-                      <option value="Proprietorship">Proprietorship</option>
-                      <option value="Partnership">Partnership</option>
-                      <option value="Pvt Ltd">Private Limited Company</option>
-                      <option value="Public Ltd">Public Limited Company</option>
-                      <option value="LLP">Limited Liability Partnership</option>
-                    </Select>
+                      className="bg-slate-50 border-slate-200"
+                    />
                     <Input label="Business PAN Number" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" />
                     <Input label="Name (As in PAN)" name="nameAsInPan" value={formData.nameAsInPan} onChange={handleChange} placeholder="Autofetched from PAN" />
                     <Input label="Date (As in PAN)" name="dateAsInPan" type="date" value={formData.dateAsInPan} onChange={handleChange} />
