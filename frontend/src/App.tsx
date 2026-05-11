@@ -22,6 +22,7 @@ import PurchaseOrders from './pages/PurchaseOrders';
 import ParcelTracking from './pages/ParcelTracking';
 import SellerTenders from './pages/SellerTenders';
 import CreateQuotation from './pages/CreateQuotation';
+import Profile from './pages/Profile';
 import Sidebar, { Header } from './components/layout/Navbar';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
@@ -39,20 +40,33 @@ function AppRoutes() {
   const { user } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const fixedAuthRoutes = ['/', '/login', '/seller/register', '/buyer/register', '/admin/register'];
   const isFixedAuthRoute = !user && fixedAuthRoutes.includes(location.pathname);
 
   return (
     <div className="flex min-h-dvh bg-slate-50 font-sans text-slate-900">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      <div className={cn("flex-1 flex flex-col min-w-0 transition-all duration-300", user && "lg:pl-64")}>
-        <Header onMenuClick={() => setIsSidebarOpen(true)} />
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+      />
+      <div className={cn(
+        "flex-1 flex flex-col min-w-0 transition-all duration-300",
+        user && (isSidebarCollapsed ? "lg:pl-20" : "lg:pl-64")
+      )}>
+        <Header
+          onMenuClick={() => setIsSidebarOpen(true)}
+          onSidebarToggle={() => setIsSidebarCollapsed(prev => !prev)}
+          isSidebarCollapsed={isSidebarCollapsed}
+        />
         <main className={cn(
-          "flex-1",
-          isFixedAuthRoute ? "min-h-dvh overflow-y-auto p-0" : "overflow-y-auto p-3 sm:p-4 md:p-8"
+          "flex-1 min-w-0",
+          isFixedAuthRoute ? "min-h-dvh overflow-y-auto p-0" : "overflow-y-auto p-3 sm:p-4 md:p-5"
         )}>
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
             <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
             <Route path="/seller/register" element={<SellerRegistrationFlow />} />
             <Route path="/buyer/register" element={<BuyerRegistrationFlow />} />
@@ -121,6 +135,12 @@ function AppRoutes() {
             <Route path="/buyer/tracking" element={
               <ProtectedRoute allowedRoles={['buyer']}>
                 <ParcelTracking />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             } />
             

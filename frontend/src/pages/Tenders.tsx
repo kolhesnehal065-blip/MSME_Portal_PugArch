@@ -48,8 +48,10 @@ const TENDER_STAGES = [
 
 export default function Tenders() {
   const navigate = useNavigate();
-  const [tenders, setTenders] = useState<Tender[]>([]);
-  const [loading, setLoading] = useState(true);
+  const authOptions = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
+  const cachedTenders = api.peek('/api/tenders', authOptions);
+  const [tenders, setTenders] = useState<Tender[]>(cachedTenders || []);
+  const [loading, setLoading] = useState(!cachedTenders);
   const [activeTab, setActiveTab] = useState<string>('published');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTender, setNewTender] = useState({
@@ -67,9 +69,7 @@ export default function Tenders() {
 
   const fetchTenders = async () => {
     try {
-      const res = await api.get('/api/tenders', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const res = await api.get('/api/tenders', authOptions);
       if (res.ok) {
         const data = await res.json();
         setTenders(data);
@@ -155,12 +155,12 @@ export default function Tenders() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 p-4 md:p-12">
-      <div className="max-w-6xl mx-auto space-y-10">
+    <div className="min-h-screen bg-white text-slate-900 p-3 md:p-5">
+      <div className="max-w-6xl mx-auto space-y-5">
         {/* Create Tender Button */}
         <Button 
           onClick={() => setIsModalOpen(true)}
-          className="w-full bg-[#00695c] hover:bg-[#004d40] text-white h-14 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-sm transition-all"
+          className="w-full bg-[#0f766e] hover:bg-[#0b5f59] text-white h-11 rounded-md font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all uppercase tracking-wide"
         >
           <Plus className="h-5 w-5" />
           Create Tender
@@ -168,7 +168,7 @@ export default function Tenders() {
 
         {/* Tab Selection */}
         <div className="flex justify-start">
-          <div className="flex items-center gap-1 bg-[#f1f3f4] p-1.5 rounded-xl border border-[#e8eaed]">
+          <div className="flex items-center gap-1 bg-[#f1f3f4] p-1 rounded-lg border border-[#e8eaed]">
             {[
               { id: 'draft', label: 'Draft', count: tenders.filter(t => t.status === 'draft').length },
               { id: 'published', label: 'Active', count: tenders.filter(t => t.status === 'published' || t.status === 'bid_submission' || t.status.startsWith('tech') || t.status.startsWith('fin')).length },
@@ -178,32 +178,32 @@ export default function Tenders() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex items-center gap-3 px-8 py-3 rounded-xl text-sm font-bold transition-all",
+                  "flex items-center gap-2 px-5 py-2 rounded-md text-sm font-bold transition-all",
                   activeTab === tab.id 
                     ? "bg-white text-slate-900 shadow-sm border border-[#dadce0]" 
                     : "text-slate-500 hover:text-slate-700"
                 )}
               >
                 {tab.label}
-                <span className="text-slate-400 font-medium ml-4">{tab.count}</span>
+                <span className="text-slate-400 font-medium ml-2">{tab.count}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Tenders Table */}
-        <div className="border border-[#dadce0] rounded-2xl overflow-hidden bg-white shadow-sm">
+        <div className="border border-[#dadce0] rounded-lg overflow-hidden bg-white shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead className="bg-white border-b border-[#dadce0]">
               <tr>
-                <th className="px-8 py-5 text-sm font-medium text-slate-500 w-32">Tender ID</th>
-                <th className="px-8 py-5 text-sm font-medium text-slate-500">Title</th>
-                <th className="px-8 py-5 text-sm font-medium text-slate-500">Category</th>
-                <th className="px-8 py-5 text-sm font-medium text-slate-500 text-right">Budget</th>
-                <th className="px-8 py-5 text-sm font-medium text-slate-500 text-center">Bids</th>
-                <th className="px-8 py-5 text-sm font-medium text-slate-500">Closes</th>
-                <th className="px-8 py-5 text-sm font-medium text-slate-500">Status</th>
-                <th className="px-8 py-5 text-sm font-medium text-slate-500 text-right pr-12">Actions</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500 w-32">Tender ID</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Title</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Category</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500 text-right">Budget</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500 text-center">Bids</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Closes</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Status</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#dadce0]">
@@ -225,39 +225,39 @@ export default function Tenders() {
               ) : (
                 currentTenders.map((tender) => (
                   <tr key={tender.id} className="hover:bg-slate-50/30 transition-colors">
-                    <td className="px-8 py-8 text-xs font-mono text-slate-400">
+                    <td className="px-4 py-4 text-xs font-mono text-slate-500">
                       {tender.tenderId || `T-2026-01${tender.id}`}
                     </td>
-                    <td className="px-8 py-8 w-64">
+                    <td className="px-4 py-4 w-64">
                       <p className="text-[15px] font-bold text-slate-900 leading-snug">{tender.title}</p>
                     </td>
-                    <td className="px-8 py-8">
-                      <span className="text-xs font-bold text-slate-900 px-4 py-2 rounded-xl border border-[#dadce0] whitespace-nowrap">
+                    <td className="px-4 py-4">
+                      <span className="text-xs font-bold text-slate-900 px-3 py-1.5 rounded-md border border-[#dadce0] whitespace-nowrap">
                         {tender.category}
                       </span>
                     </td>
-                    <td className="px-8 py-8 text-[15px] font-bold text-slate-900 text-right">
+                    <td className="px-4 py-4 text-[15px] font-bold text-slate-900 text-right">
                       ₹{tender.budget?.toLocaleString()}
                     </td>
-                    <td className="px-8 py-8 text-base font-medium text-slate-900 text-center">
+                    <td className="px-4 py-4 text-base font-medium text-slate-900 text-center">
                       {tender.bidsCount || 0}
                     </td>
-                    <td className="px-8 py-8 text-[15px] font-medium text-slate-500">
+                    <td className="px-4 py-4 text-[15px] font-medium text-slate-500">
                       {getDaysLeft(tender.closesAt)}
                     </td>
-                    <td className="px-8 py-8">
+                    <td className="px-4 py-4">
                       <span className={cn(
-                        "px-4 py-1.5 rounded-lg text-xs font-bold",
+                        "px-3 py-1.5 rounded-md text-xs font-bold",
                         tender.status === 'draft' ? "bg-slate-100 text-slate-600" :
                         "bg-[#e6f4ea] text-[#1e8e3e]"
                       )}>
                         {tender.status === 'draft' ? 'Draft' : 'Active'}
                       </span>
                     </td>
-                    <td className="px-8 py-8 text-right pr-10">
+                    <td className="px-4 py-4 text-right">
                       {tender.status === 'draft' ? (
                         <Button 
-                          className="bg-[#00695c] hover:bg-[#004d40] text-white text-sm font-bold h-11 px-8 rounded-xl shadow-md transition-all flex items-center gap-2 ml-auto"
+                          className="bg-[#0f766e] hover:bg-[#0b5f59] text-white text-sm font-bold h-10 px-5 rounded-md shadow-sm transition-all flex items-center gap-2 ml-auto"
                           onClick={() => handlePublish(tender.id)}
                           disabled={publishingId === tender.id}
                         >
@@ -267,8 +267,8 @@ export default function Tenders() {
                       ) : (
                         <Button 
                           variant="outline"
-                          className="bg-white border border-[#dadce0] text-slate-900 text-sm font-bold h-11 px-6 rounded-xl hover:bg-slate-50 flex items-center gap-2 ml-auto"
-                          onClick={() => navigate('/buyer/quotations')}
+                          className="bg-white border border-[#dadce0] text-slate-900 text-sm font-bold h-10 px-5 rounded-md hover:bg-slate-50 flex items-center gap-2 ml-auto"
+                          onClick={() => navigate('/quotations')}
                         >
                           View bids
                           <ChevronRight className="h-4 w-4" />
@@ -285,7 +285,7 @@ export default function Tenders() {
         {/* New Tender Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-xl max-h-[calc(100vh-2rem)] bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-y-auto animate-in zoom-in-95 duration-300">
+          <div className="relative w-full max-w-xl max-h-[calc(100vh-2rem)] bg-white rounded-lg border border-slate-200 shadow-2xl overflow-y-auto animate-in zoom-in-95 duration-300">
             <button 
               onClick={() => setIsModalOpen(false)}
               className="absolute top-6 right-6 p-2 rounded-xl hover:bg-slate-50 transition-colors"
@@ -293,32 +293,32 @@ export default function Tenders() {
               <X className="h-5 w-5 text-slate-400" />
             </button>
 
-            <form onSubmit={handleCreateTender} className="p-10 space-y-8">
+            <form onSubmit={handleCreateTender} className="p-6 space-y-5">
               <div className="space-y-2">
-                <h2 className="text-2xl font-black italic tracking-tight text-slate-900">New tender</h2>
-                <p className="text-xs text-slate-500 font-bold italic">Save as draft now. You can add line items and publish from the draft list.</p>
+                <h2 className="text-xl font-extrabold tracking-tight text-[#12335f]">New Tender</h2>
+                <p className="text-xs text-slate-500 font-medium">Save as draft now. You can add line items and publish from the draft list.</p>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Title</label>
+                  <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 ml-1">Title</label>
                   <input 
                     required
                     value={newTender.title}
                     onChange={(e) => setNewTender({...newTender, title: e.target.value})}
                     placeholder="Supply of 500 ergonomic office chairs"
-                    className="w-full bg-slate-50 border-slate-200 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/20 transition-all italic text-slate-900"
+                    className="w-full bg-slate-50 border-slate-200 border rounded-md py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0f766e]/20 transition-all text-slate-900"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Category</label>
+                    <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 ml-1">Category</label>
                     <select 
                       required
                       value={newTender.category}
                       onChange={(e) => setNewTender({...newTender, category: e.target.value})}
-                      className="w-full bg-slate-50 border-slate-200 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/20 transition-all italic appearance-none text-slate-900"
+                      className="w-full bg-slate-50 border-slate-200 border rounded-md py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0f766e]/20 transition-all appearance-none text-slate-900"
                     >
                       <option value="">Select Category</option>
                       <option value="Furniture">Furniture</option>
@@ -329,27 +329,27 @@ export default function Tenders() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Budget (₹)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 ml-1">Budget (Rs.)</label>
                     <input 
                       required
                       type="number"
                       value={newTender.budget}
                       onChange={(e) => setNewTender({...newTender, budget: e.target.value})}
                       placeholder="2500000"
-                      className="w-full bg-slate-50 border-slate-200 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/20 transition-all italic text-slate-900"
+                      className="w-full bg-slate-50 border-slate-200 border rounded-md py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0f766e]/20 transition-all text-slate-900"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Brief Description</label>
+                  <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 ml-1">Brief Description</label>
                   <textarea 
                     required
                     value={newTender.description}
                     onChange={(e) => setNewTender({...newTender, description: e.target.value})}
                     placeholder="Specifications, delivery timelines, etc."
                     rows={4}
-                    className="w-full bg-slate-50 border-slate-200 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-indigo-500/20 transition-all italic resize-none text-slate-900"
+                    className="w-full bg-slate-50 border-slate-200 border rounded-md py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0f766e]/20 transition-all resize-none text-slate-900"
                   />
                 </div>
               </div>
@@ -358,13 +358,13 @@ export default function Tenders() {
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors italic"
+                  className="px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors"
                 >
                   Cancel
                 </button>
                 <Button 
                   disabled={submitting}
-                  className="bg-[#00D1C1] hover:bg-[#00B8A9] text-white border-0 h-14 px-10 rounded-2xl font-black uppercase text-xs tracking-widest italic transition-all shadow-xl shadow-[#00D1C1]/10"
+                  className="bg-[#0f766e] hover:bg-[#0b5f59] text-white border-0 h-10 px-6 rounded-md font-bold uppercase text-xs tracking-wide transition-all"
                 >
                   {submitting ? 'Saving...' : 'Save as draft'}
                 </Button>

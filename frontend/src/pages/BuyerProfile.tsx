@@ -263,9 +263,9 @@ export default function BuyerProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Sidebar - Mobile Toggle */}
-      <div className="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between">
+      <div className="md:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between">
         <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 italic">Account Settings</h2>
         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-600 hover:bg-slate-50 rounded-xl">
           {isSidebarOpen ? <X /> : <Menu />}
@@ -274,12 +274,12 @@ export default function BuyerProfile() {
 
       {/* Sidebar Navigation */}
       <aside className={cn(
-        "w-full lg:w-72 bg-white border-r border-slate-200 shrink-0 transition-all lg:static fixed inset-0 z-50 lg:translate-x-0",
+        "w-full md:w-72 bg-white border-r border-slate-200 shrink-0 transition-all md:static fixed inset-0 z-50 md:translate-x-0",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="hidden lg:block text-xs font-black uppercase tracking-widest text-slate-400 italic">User Profile</h2>
-          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-400">
+          <h2 className="hidden md:block text-xs font-black uppercase tracking-widest text-slate-400 italic">User Profile</h2>
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-slate-400">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -307,16 +307,16 @@ export default function BuyerProfile() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 sm:p-8 md:p-12 max-w-5xl mx-auto w-full">
-        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <main className="flex-1 p-4 sm:p-6 md:p-6 max-w-5xl mx-auto w-full">
+        <div className="mb-4 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] italic mb-1">Buyer Settings</p>
-            <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter">
+            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">
               {SIDEBAR_NAV.find(s => s.id === activeSection)?.label}
             </h1>
           </div>
           <div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm">
-             <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-sm italic">
+             <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-sm">
                {user?.name?.charAt(0)}
              </div>
              <div className="pr-4">
@@ -327,10 +327,10 @@ export default function BuyerProfile() {
         </div>
 
         <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-slate-200/50 overflow-hidden bg-white">
-          <CardContent className="p-6 sm:p-10 md:p-12">
+          <CardContent className="p-5 sm:p-6 md:p-8">
             {activeSection === 'hierarchy' && (
-              <div className="space-y-10 animate-in fade-in duration-500">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-6">
+              <div className="space-y-4 animate-in fade-in duration-500">
+                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
                   <h3 className="text-lg font-black text-slate-900 uppercase italic">Organisation Hierarchy</h3>
                   <Badge className="bg-indigo-50 text-indigo-700 border-indigo-100 rounded-lg px-4 py-1 text-[9px] font-black italic">GE-M STRUCTURE</Badge>
                 </div>
@@ -397,8 +397,8 @@ export default function BuyerProfile() {
             )}
 
             {activeSection === 'team' && (
-              <div className="space-y-10 animate-in fade-in duration-500">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-6">
+              <div className="space-y-2 animate-in fade-in duration-500">
+                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
                   <h3 className="text-lg font-black text-slate-900 uppercase italic">Secondary Users / Roles</h3>
                   <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase italic text-[10px] tracking-widest h-10 px-6 rounded-xl shadow-lg shadow-indigo-100 flex items-center gap-2">
                     <Plus className="h-3.5 w-3.5" />
@@ -444,8 +444,8 @@ export default function BuyerProfile() {
             )}
 
             {activeSection === 'address' && (
-              <div className="space-y-10 animate-in fade-in duration-500">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-6">
+              <div className="space-y-2 animate-in fade-in duration-500">
+                <div className="flex items-center justify-between border-b border-slate-50 pb-0">
                   <h3 className="text-lg font-black text-slate-900 uppercase italic">Update Address</h3>
                   <Badge className="bg-blue-50 text-blue-700 border-blue-100 rounded-lg px-4 py-1 text-[9px] font-black italic">PRIMARY OFFICE</Badge>
                 </div>
@@ -1042,7 +1042,22 @@ export default function BuyerProfile() {
               </div>
             )}
 
-            {activeSection !== 'address' && activeSection !== 'bank' && activeSection !== 'personal' && activeSection !== 'referral' && activeSection !== 'mobile' && activeSection !== 'hierarchy' && activeSection !== 'email' && activeSection !== 'deactivate' && (
+            {activeSection === 'password' && (
+              <div className="space-y-4 animate-in fade-in duration-300 min-w-0 w-full">
+                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">Change Password</h3>
+                  <Badge className="bg-blue-50 text-blue-700 border-blue-100 rounded-lg px-4 py-1 text-[9px] font-black italic">SECURITY POLICIES</Badge>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-8 border-t border-gray-100 gap-4 mt-4">
+                  <p className="text-sm font-semibold text-slate-600 italic max-w-xl">Please complete OTP verification, by clicking the below button to proceed with change of password.</p>
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8 h-12 font-black uppercase italic text-xs tracking-widest whitespace-nowrap shadow-lg shadow-blue-100">
+                     Get OTP
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {activeSection !== 'address' && activeSection !== 'bank' && activeSection !== 'personal' && activeSection !== 'referral' && activeSection !== 'mobile' && activeSection !== 'hierarchy' && activeSection !== 'email' && activeSection !== 'deactivate' && activeSection !== 'password' && (
               <div className="flex flex-col items-center justify-center py-20 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="h-20 w-20 rounded-[2rem] bg-slate-50 flex items-center justify-center rotate-3 transition-transform hover:rotate-0">
                   {SIDEBAR_NAV.find(s => s.id === activeSection)?.icon && (
@@ -1065,26 +1080,7 @@ export default function BuyerProfile() {
           </CardContent>
         </Card>
 
-        {activeSection === 'address' && (
-          <div className="mt-12 bg-blue-600 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-blue-200 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
-              <Shield className="h-40 w-40" />
-            </div>
-            <div className="relative z-10 max-w-xl space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 italic">Compliance Check</p>
-              <h4 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter leading-none">Security of your profile is our priority</h4>
-              <p className="text-sm font-medium opacity-80 leading-relaxed italic">
-                Any changes to your organization address will be cross-referenced with your registered PAN/GST data. This ensures the integrity of the MSME Procurement Network.
-              </p>
-              <div className="pt-4">
-                <button className="flex items-center gap-2 text-xs font-black uppercase italic tracking-widest hover:underline">
-                  Read Compliance Guidelines
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+       
       </main>
 
       {/* Background Decorations */}

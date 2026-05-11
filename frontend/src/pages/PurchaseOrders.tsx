@@ -263,7 +263,7 @@ export default function PurchaseOrders() {
         <div className="bg-[#004d40] text-white p-12 flex justify-between items-start">
            <div className="space-y-1">
               <h1 className="text-4xl font-bold tracking-tight">PURCHASE ORDER</h1>
-              <p className="text-sm font-medium opacity-80">GeM Buyer Portal</p>
+              <p className="text-sm font-medium opacity-80">Buyer Portal</p>
            </div>
            <div className="text-right space-y-1">
               <p className="text-xl font-bold">PO-2026-0088</p>

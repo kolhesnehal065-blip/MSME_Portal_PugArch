@@ -25,6 +25,30 @@ const PROCUREMENT_CATEGORY_OPTIONS = ['IT Equipment', 'Office Supplies', 'Machin
 const ANNUAL_BUDGET_OPTIONS = ['< ₹10 Lakh', '₹10 Lakh – ₹1 Crore', '₹1 Crore – ₹10 Crore', '₹10 Crore+'];
 const PROCUREMENT_METHOD_OPTIONS = ['Direct Purchase', 'Quotation Based', 'Tender / Bidding', 'Reverse Auction', 'Others'];
 const BUYER_ONBOARDING_DRAFT_KEY = 'buyer-onboarding-draft';
+const INDUSTRY_OPTIONS = [
+  'Information Technology',
+  'Software Services',
+  'Government Services',
+  'Construction',
+  'Healthcare',
+  'Education',
+  'Finance',
+  'Manufacturing',
+  'Retail',
+  'Logistics',
+  'Agriculture',
+  'Telecommunications',
+  'Media & Entertainment',
+  'Energy',
+  'Real Estate',
+  'Hospitality',
+  'E-commerce',
+  'Consulting',
+  'Electronics',
+  'Automobile',
+  'Pharmaceuticals',
+  'Other'
+];
 const DASHBOARD_SECTION_TO_BUYER_SECTION: Record<string, string> = {
   basic: 'org',
   business: 'rep',
@@ -62,73 +86,146 @@ const getDocumentPreviewMode = (url: string) => {
   return 'google';
 };
 
+const DEFAULT_BUYER_FORM_DATA: any = {
+  // Organisation Details
+  organizationName: '',
+  businessType: 'Private Limited Company',
+  industry: '',
+  cin: '',
+  pan: '',
+  gst: '',
+  website: '',
+
+  // Authorized Representative
+  representativeName: '',
+  designation: '',
+  department: 'Procurement',
+  customDepartment: '',
+  email: '',
+  mobile: '',
+  alternateMobile: '',
+
+  // Address Details
+  country: 'India',
+  state: '',
+  city: '',
+  pincode: '',
+  registeredAddress: '',
+  corporateAddress: '',
+
+  // Procurement Profile
+  procurementCategories: [],
+  otherCategoryDetails: '',
+  customProcurementCategoryInput: '',
+  customProcurementCategories: [],
+  annualBudget: '< â‚¹10 Lakh',
+  preferredMethods: [],
+  otherMethodDetails: '',
+  customProcurementMethodInput: '',
+  customPreferredMethods: [],
+
+  // Document Upload
+  documents: {
+    panCard: '',
+    regCert: '',
+    gstCert: '',
+    addressProof: '',
+    authLetter: ''
+  },
+
+  // Account Setup
+  password: '',
+  confirmPassword: '',
+  declaration: false,
+  agreeTerms: false,
+};
+
+const readBuyerDraft = () => {
+  try {
+    const rawDraft = localStorage.getItem(BUYER_ONBOARDING_DRAFT_KEY);
+    return rawDraft ? JSON.parse(rawDraft) : null;
+  } catch {
+    localStorage.removeItem(BUYER_ONBOARDING_DRAFT_KEY);
+    return null;
+  }
+};
+
+const buildBuyerFormData = (data: any, storedDraft: any, fallback: any = DEFAULT_BUYER_FORM_DATA) => {
+  const regDetails = data?.user?.registrationDetails || {};
+  const profileDepartment = data?.profile?.department || '';
+  const hasPresetDepartment = DEPARTMENT_OPTIONS.includes(profileDepartment) && profileDepartment !== 'Others';
+  const draftDepartment = storedDraft?.formData?.department || '';
+  const hasDraftPresetDepartment = DEPARTMENT_OPTIONS.includes(draftDepartment) && draftDepartment !== 'Others';
+
+  const profileProcurementCategories = Array.isArray(data?.profile?.procurementCategories) ? data.profile.procurementCategories : [];
+  const savedPresetProcurementCategories = profileProcurementCategories.filter((category: string) => PROCUREMENT_CATEGORY_OPTIONS.includes(category) && category !== 'Others');
+  const savedCustomProcurementCategories = profileProcurementCategories.filter((category: string) => !PROCUREMENT_CATEGORY_OPTIONS.includes(category));
+  const normalizedProcurementCategories = savedCustomProcurementCategories.length > 0
+    ? [...savedPresetProcurementCategories, 'Others']
+    : savedPresetProcurementCategories;
+
+  const profilePreferredMethods = Array.isArray(data?.profile?.preferredMethods) ? data.profile.preferredMethods : [];
+  const savedPresetMethods = profilePreferredMethods.filter((method: string) => PROCUREMENT_METHOD_OPTIONS.includes(method) && method !== 'Others');
+  const savedCustomMethods = profilePreferredMethods.filter((method: string) => !PROCUREMENT_METHOD_OPTIONS.includes(method));
+  const normalizedMethods = savedCustomMethods.length > 0 ? [...savedPresetMethods, 'Others'] : savedPresetMethods;
+
+  return {
+    ...fallback,
+    ...(data?.profile || {}),
+    procurementCategories: normalizedProcurementCategories.length > 0 ? normalizedProcurementCategories : fallback.procurementCategories,
+    customProcurementCategories: savedCustomProcurementCategories,
+    otherCategoryDetails: savedCustomProcurementCategories.join(', '),
+    customProcurementCategoryInput: '',
+    preferredMethods: normalizedMethods.length > 0 ? normalizedMethods : fallback.preferredMethods,
+    customPreferredMethods: savedCustomMethods,
+    otherMethodDetails: savedCustomMethods.join(', '),
+    customProcurementMethodInput: '',
+    ...(storedDraft?.formData || {}),
+    department: profileDepartment ? (hasPresetDepartment ? profileDepartment : 'Others') : fallback.department,
+    customDepartment: profileDepartment && !hasPresetDepartment ? profileDepartment : (fallback.customDepartment || ''),
+    ...(storedDraft?.formData?.department ? {
+      department: hasDraftPresetDepartment ? storedDraft.formData.department : 'Others',
+      customDepartment: !hasDraftPresetDepartment ? storedDraft.formData.department : (storedDraft.formData.customDepartment || '')
+    } : {}),
+    email: storedDraft?.formData?.email || data?.user?.email || fallback.email,
+    organizationName: data?.profile?.organizationName || regDetails.businessName || data?.user?.name || fallback.organizationName,
+    mobile: data?.profile?.mobile || data?.user?.mobile || fallback.mobile,
+    representativeName: data?.profile?.representativeName || data?.user?.name || fallback.representativeName,
+    state: data?.profile?.state || regDetails.state || fallback.state,
+    district: data?.profile?.district || regDetails.district || fallback.district,
+    officeZoneName: data?.profile?.officeZoneName || regDetails.officeZoneName || fallback.officeZoneName,
+    aadhaarNumber: data?.profile?.aadhaarNumber || regDetails.aadhaarNumber || fallback.aadhaarNumber,
+    aadhaarVerified: data?.profile?.aadhaarVerified || regDetails.isAadhaarVerified || fallback.aadhaarVerified
+  };
+};
+
 export default function BuyerOnboarding() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
-  const [activeSection, setActiveSection] = useState('org');
+  const authHeaders = { headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } };
+  const cachedProfile = api.peek('/api/auth/me', authHeaders);
+  const initialDraft = readBuyerDraft();
+  const initialFormData = buildBuyerFormData(cachedProfile, initialDraft);
+  const [activeSection, setActiveSection] = useState(
+    initialDraft?.activeSection && SIDEBAR_SECTIONS.some(section => section.id === initialDraft.activeSection)
+      ? initialDraft.activeSection
+      : 'org'
+  );
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [formData, setFormData] = useState<any>({
-    // Organisation Details
-    organizationName: '',
-    businessType: 'Private Limited Company',
-    industry: '',
-    cin: '',
-    pan: '',
-    gst: '',
-    website: '',
-
-    // Authorized Representative
-    representativeName: '',
-    designation: '',
-    department: 'Procurement',
-    customDepartment: '',
-    email: '',
-    mobile: '',
-    alternateMobile: '',
-
-    // Address Details
-    country: 'India',
-    state: '',
-    city: '',
-    pincode: '',
-    registeredAddress: '',
-    corporateAddress: '',
-
-    // Procurement Profile
-    procurementCategories: [],
-    otherCategoryDetails: '',
-    customProcurementCategoryInput: '',
-    customProcurementCategories: [],
-    annualBudget: '< ₹10 Lakh',
-    preferredMethods: [],
-    otherMethodDetails: '',
-    customProcurementMethodInput: '',
-    customPreferredMethods: [],
-
-    // Document Upload
-    documents: {
-      panCard: '',
-      regCert: '',
-      gstCert: '',
-      addressProof: '',
-      authLetter: ''
-    },
-
-    // Account Setup
-    password: '',
-    confirmPassword: '',
-    declaration: false,
-    agreeTerms: false,
-  });
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [formData, setFormData] = useState<any>(initialFormData);
 
   const [isUploading, setIsUploading] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isFetching, setIsFetching] = useState(!cachedProfile && !initialDraft?.formData);
   const [isProfileLocked, setIsProfileLocked] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<{ label: string; url: string; mode: 'image' | 'pdf' | 'office' | 'google' } | null>(null);
   const [isFetchingGst, setIsFetchingGst] = useState(false);
+  const activeGstinLookupRef = React.useRef('');
+  const lastFetchedGstinRef = React.useRef('');
+  const gstFetchedFieldsRef = React.useRef<Record<string, string>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -143,62 +240,12 @@ export default function BuyerOnboarding() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        await refreshUser();
-        const res = await api.fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
+        const res = await api.fetch('/api/auth/me', authHeaders);
         const data = await res.json();
-        const regDetails = data.user?.registrationDetails || {};
         const profileLocked = data.user?.onboardingStatus === 'approved_for_procurement' && false; // Force unlock as requested
         setIsProfileLocked(profileLocked);
-        const profileDepartment = data.profile?.department || '';
-        const hasPresetDepartment = DEPARTMENT_OPTIONS.includes(profileDepartment) && profileDepartment !== 'Others';
-        const profileProcurementCategories = Array.isArray(data.profile?.procurementCategories) ? data.profile.procurementCategories : [];
-        const savedPresetProcurementCategories = profileProcurementCategories.filter((category: string) => PROCUREMENT_CATEGORY_OPTIONS.includes(category) && category !== 'Others');
-        const savedCustomProcurementCategories = profileProcurementCategories.filter((category: string) => !PROCUREMENT_CATEGORY_OPTIONS.includes(category));
-        const normalizedProcurementCategories = savedCustomProcurementCategories.length > 0
-          ? [...savedPresetProcurementCategories, 'Others']
-          : savedPresetProcurementCategories;
-        const storedDraftRaw = localStorage.getItem(BUYER_ONBOARDING_DRAFT_KEY);
-        const storedDraft = !profileLocked && storedDraftRaw ? JSON.parse(storedDraftRaw) : null;
-        const draftDepartment = storedDraft?.formData?.department || '';
-        const hasDraftPresetDepartment = DEPARTMENT_OPTIONS.includes(draftDepartment) && draftDepartment !== 'Others';
-
-        const profilePreferredMethods = Array.isArray(data.profile?.preferredMethods) ? data.profile.preferredMethods : [];
-        const savedPresetMethods = profilePreferredMethods.filter((method: string) => PROCUREMENT_METHOD_OPTIONS.includes(method) && method !== 'Others');
-        const savedCustomMethods = profilePreferredMethods.filter((method: string) => !PROCUREMENT_METHOD_OPTIONS.includes(method));
-        const normalizedMethods = savedCustomMethods.length > 0
-          ? [...savedPresetMethods, 'Others']
-          : savedPresetMethods;
-
-        setFormData((prev: any) => ({
-          ...prev,
-          ...(data.profile || {}),
-          procurementCategories: normalizedProcurementCategories.length > 0 ? normalizedProcurementCategories : prev.procurementCategories,
-          customProcurementCategories: savedCustomProcurementCategories,
-          otherCategoryDetails: savedCustomProcurementCategories.join(', '),
-          customProcurementCategoryInput: '',
-          preferredMethods: normalizedMethods.length > 0 ? normalizedMethods : prev.preferredMethods,
-          customPreferredMethods: savedCustomMethods,
-          otherMethodDetails: savedCustomMethods.join(', '),
-          customProcurementMethodInput: '',
-          ...(storedDraft?.formData || {}),
-          department: profileDepartment ? (hasPresetDepartment ? profileDepartment : 'Others') : prev.department,
-          customDepartment: profileDepartment && !hasPresetDepartment ? profileDepartment : (prev.customDepartment || ''),
-          ...(storedDraft?.formData?.department ? {
-            department: hasDraftPresetDepartment ? storedDraft.formData.department : 'Others',
-            customDepartment: !hasDraftPresetDepartment ? storedDraft.formData.department : (storedDraft.formData.customDepartment || '')
-          } : {}),
-          email: storedDraft?.formData?.email || data.user?.email || prev.email,
-          organizationName: data.profile?.organizationName || regDetails.businessName || data.user?.name || prev.organizationName,
-          mobile: data.profile?.mobile || data.user?.mobile || prev.mobile,
-          representativeName: data.profile?.representativeName || data.user?.name || prev.representativeName,
-          state: data.profile?.state || regDetails.state || prev.state,
-          district: data.profile?.district || regDetails.district || prev.district,
-          officeZoneName: data.profile?.officeZoneName || regDetails.officeZoneName || prev.officeZoneName,
-          aadhaarNumber: data.profile?.aadhaarNumber || regDetails.aadhaarNumber || prev.aadhaarNumber,
-          aadhaarVerified: data.profile?.aadhaarVerified || regDetails.isAadhaarVerified || prev.aadhaarVerified
-        }));
+        const storedDraft = !profileLocked ? readBuyerDraft() : null;
+        setFormData((prev: any) => buildBuyerFormData(data, storedDraft, prev));
         if (storedDraft?.activeSection && SIDEBAR_SECTIONS.some(section => section.id === storedDraft.activeSection)) {
           setActiveSection(storedDraft.activeSection);
         }
@@ -212,31 +259,83 @@ export default function BuyerOnboarding() {
   }, []);
 
   const fetchGstDetails = async () => {
-    if (!formData.gst || formData.gst.length !== 15) {
+    const gstin = String(formData.gst || '').trim().toUpperCase();
+    const gstError = validateField('gst', gstin);
+    if (gstError) {
+      setTouched(prev => ({ ...prev, gst: true }));
+      setErrors(prev => ({ ...prev, gst: gstError }));
       toast.error('Please enter a valid 15-digit GSTIN');
       return;
     }
 
     setIsFetchingGst(true);
-    try {
-      const res = await api.fetch(`/api/utils/gst-verify/${formData.gst}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    activeGstinLookupRef.current = gstin;
+    setErrors(prev => ({ ...prev, gst: '', registeredAddress: '' }));
+    setFormData((prev: any) => {
+      const cleared = { ...prev, gst: gstin };
+      cleared.country = 'India';
+      cleared.registeredAddress = '';
+      cleared.state = '';
+      cleared.city = '';
+      cleared.pincode = '';
+      if (!lastFetchedGstinRef.current || lastFetchedGstinRef.current === gstin) return cleared;
+      Object.entries(gstFetchedFieldsRef.current).forEach(([field, fetchedValue]) => {
+        if (cleared[field] === fetchedValue) cleared[field] = '';
       });
+      return cleared;
+    });
+
+    try {
+      const res = await api.fetch(`/api/utils/gst-verify/${gstin}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        skipCache: true
+      } as RequestInit & { skipCache: boolean });
       
       if (res.ok) {
         const data = await res.json();
-        setFormData((prev: any) => ({
-          ...prev,
-          organizationName: data.legalName || prev.organizationName,
-          registeredAddress: data.address || prev.registeredAddress,
-          state: data.state || prev.state,
-          city: data.city || prev.city,
-          pincode: data.pincode || prev.pincode,
-          pan: data.pan || prev.pan,
-        }));
-        toast.success('Organization details fetched successfully');
+        if (activeGstinLookupRef.current !== gstin) return;
+        if (data.requestedGstin && data.requestedGstin !== gstin) {
+          toast.error('GST API returned details for a different GSTIN. Please retry.');
+          return;
+        }
+
+        const nextFetchedValues: Record<string, string> = {
+          organizationName: data.organizationName || data.legalName || data.tradeName || '',
+          registeredAddress: data.registeredOfficeAddress || data.address || '',
+          country: data.country || 'India',
+          state: data.state || '',
+          city: data.city || data.district || '',
+          pincode: data.pincode || data.pinCode || '',
+          pan: data.pan || gstin.substring(2, 12),
+        };
+
+        setFormData((prev: any) => {
+          if (String(prev.gst || '').trim().toUpperCase() !== gstin) return prev;
+          const next = { ...prev, gst: gstin };
+          Object.entries(nextFetchedValues).forEach(([field, value]) => {
+            const cleanedValue = String(value || '').trim();
+            if (!cleanedValue) return;
+            const previousFetchedValue = gstFetchedFieldsRef.current[field];
+            if (!next[field] || next[field] === previousFetchedValue) {
+              next[field] = cleanedValue;
+            }
+          });
+          return next;
+        });
+
+        lastFetchedGstinRef.current = gstin;
+        gstFetchedFieldsRef.current = Object.fromEntries(
+          Object.entries(nextFetchedValues).filter(([, value]) => String(value || '').trim())
+        ) as Record<string, string>;
+
+        if (!nextFetchedValues.registeredAddress) {
+          toast.warning(data.message || 'Address not available from GST API. Please enter manually.');
+        } else {
+          toast.success('Organization details fetched successfully');
+        }
       } else {
-        toast.error('Could not fetch GST details. Please enter manually.');
+        const errorData = await res.json().catch(() => null);
+        toast.error(errorData?.message || 'Could not fetch GST details. Please enter manually.');
       }
     } catch (err) {
       toast.error('Verification service unavailable');
@@ -255,6 +354,22 @@ export default function BuyerOnboarding() {
   }, [activeSection, formData, isFetching, isProfileLocked]);
 
   const validate = (name: string, value: string) => {
+    const requiredFields: Record<string, string> = {
+      organizationName: 'Organization name is required',
+      businessType: 'Business type is required',
+      industry: 'Industry / Sector is required',
+      state: 'State is required',
+      city: 'City is required',
+      registeredAddress: 'Registered office address is required',
+      password: 'Password is required',
+      confirmPassword: 'Confirm password is required'
+    };
+
+    if (requiredFields[name] && !String(value || '').trim()) {
+      setErrors(prev => ({ ...prev, [name]: requiredFields[name] }));
+      return false;
+    }
+
     let fieldType: FieldType | null = null;
     if (name === 'pan') fieldType = 'pan';
     if (name === 'gst') fieldType = 'gst';
@@ -269,7 +384,23 @@ export default function BuyerOnboarding() {
       setErrors(prev => ({ ...prev, [name]: error || '' }));
       return !error;
     }
+    if (requiredFields[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
     return true;
+  };
+
+  const getFieldError = (name: string) => (touched[name] || submitAttempted ? errors[name] || '' : '');
+
+  const handleIndustryChange = (value: string) => {
+    if (isProfileLocked) return;
+    setFormData((prev: any) => ({ ...prev, industry: value }));
+    if (touched.industry || submitAttempted) validate('industry', value);
+  };
+
+  const handleIndustryBlur = () => {
+    setTouched(prev => ({ ...prev, industry: true }));
+    validate('industry', formData.industry || '');
   };
 
   const validateWebsite = (value: string) => {
@@ -292,6 +423,10 @@ export default function BuyerOnboarding() {
     setTouched(prev => ({ ...prev, [name]: true }));
     if (name === 'website') {
       validateWebsite(value);
+      return;
+    }
+    if (['cin', 'gst'].includes(name) && !value.trim()) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
       return;
     }
     validate(name, value);
@@ -330,10 +465,10 @@ export default function BuyerOnboarding() {
       });
     } else if (name === 'website') {
       setFormData({ ...formData, [name]: newValue.trim() });
-      if (touched[name]) validateWebsite(newValue);
+      if (touched[name] || submitAttempted) validateWebsite(newValue);
     } else {
       setFormData({ ...formData, [name]: newValue });
-      if (touched[name]) validate(name, newValue);
+      if (touched[name] || submitAttempted) validate(name, newValue);
     }
   };
 
@@ -516,14 +651,21 @@ export default function BuyerOnboarding() {
 
   const validateSection = (sectionId: string) => {
     let fields: string[] = [];
-    if (sectionId === 'org') fields = ['organizationName', 'pan', 'state', 'city', 'pincode', 'registeredAddress'];
+    if (sectionId === 'org') fields = ['organizationName', 'businessType', 'industry', 'cin', 'pan', 'gst', 'website', 'state', 'city', 'pincode', 'registeredAddress'];
     if (sectionId === 'rep') fields = ['representativeName', 'email', 'mobile'];
 
     if (sectionId === 'account') fields = ['password', 'confirmPassword'];
 
     let isValid = true;
+    setTouched(prev => fields.reduce((acc, field) => ({ ...acc, [field]: true }), { ...prev }));
     fields.forEach(field => {
-      const isFieldValid = validate(field, formData[field] || '');
+      if (['cin', 'gst'].includes(field) && !String(formData[field] || '').trim()) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+        return;
+      }
+      const isFieldValid = field === 'website'
+        ? validateWebsite(formData[field] || '')
+        : validate(field, formData[field] || '');
       if (!isFieldValid) isValid = false;
     });
 
@@ -629,6 +771,7 @@ export default function BuyerOnboarding() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitAttempted(true);
     if (isProfileLocked) {
       toast.info('Approved profiles are locked');
       return;
@@ -688,6 +831,7 @@ export default function BuyerOnboarding() {
       // Move to next sidebar section
       const currentIndex = SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection);
       if (validateSection(activeSection)) {
+        setSubmitAttempted(false);
         setActiveSection(SIDEBAR_SECTIONS[currentIndex + 1].id);
       } else {
         toast.error('Please fix validation errors');
@@ -725,7 +869,10 @@ export default function BuyerOnboarding() {
             return (
               <button
                 key={section.id}
-                onClick={() => setActiveSection(section.id)}
+                onClick={() => {
+                  setSubmitAttempted(false);
+                  setActiveSection(section.id);
+                }}
                 className={cn(
                   "flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap border",
                   isActive
@@ -774,8 +921,8 @@ export default function BuyerOnboarding() {
                 {/* Section Content */}
                 {activeSection === 'org' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Input label="Organization / Company Name" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={touched.organizationName ? errors.organizationName : ''} required className="h-12" />
-                    <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} required className="h-12">
+                    <Input label="Organization / Company Name" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={getFieldError('organizationName')} required className="h-12" />
+                    <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} onBlur={handleBlur} error={getFieldError('businessType')} required className="h-12">
                       <option value="Private Limited Company">Private Limited Company</option>
                       <option value="Public Limited Company">Public Limited Company</option>
                       <option value="Partnership Firm">Partnership Firm</option>
@@ -785,9 +932,19 @@ export default function BuyerOnboarding() {
                       <option value="NGO / Trust">NGO / Trust</option>
                       <option value="Educational Institution">Educational Institution</option>
                     </Select>
-                    <Input label="Industry / Sector" name="industry" value={formData.industry} onChange={handleChange} onBlur={handleBlur} error={touched.industry ? errors.industry : ''} placeholder="e.g. Construction, IT, Healthcare" required className="h-12" />
-                    <Input label="CIN / Registration Number (if applicable)" name="cin" value={formData.cin} onChange={handleChange} onBlur={handleBlur} error={touched.cin ? errors.cin : ''} placeholder="U12345KA2023PTC123456" className="h-12" />
-                    <Input label="PAN of Organization" name="pan" value={formData.pan} onChange={handleChange} onBlur={handleBlur} error={touched.pan ? errors.pan : ''} placeholder="ABCDE1234F" required className="h-12" />
+                    <SearchableSelect
+                      label="Industry / Sector"
+                      value={formData.industry}
+                      options={INDUSTRY_OPTIONS}
+                      onChange={handleIndustryChange}
+                      onBlur={handleIndustryBlur}
+                      error={getFieldError('industry')}
+                      placeholder="Search and select industry"
+                      required
+                      disabled={isProfileLocked}
+                    />
+                    <Input label="CIN / Registration Number (if applicable)" name="cin" value={formData.cin} onChange={handleChange} onBlur={handleBlur} error={getFieldError('cin')} placeholder="U12345KA2023PTC123456" className="h-12" />
+                    <Input label="PAN of Organization" name="pan" value={formData.pan} onChange={handleChange} onBlur={handleBlur} error={getFieldError('pan')} placeholder="ABCDE1234F" required className="h-12" />
                     <div className="flex flex-col gap-1">
                       <div className="flex items-end gap-2">
                         <div className="flex-1">
@@ -797,7 +954,7 @@ export default function BuyerOnboarding() {
                             value={formData.gst} 
                             onChange={handleChange} 
                             onBlur={handleBlur} 
-                            error={touched.gst ? errors.gst : ''} 
+                            error={getFieldError('gst')} 
                             placeholder="22ABCDE1234F1Z5" 
                             className="h-12" 
                           />
@@ -814,7 +971,7 @@ export default function BuyerOnboarding() {
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <Input label="Website URL (Optional)" name="website" value={formData.website} onChange={handleChange} onBlur={handleBlur} error={touched.website ? errors.website : ''} placeholder="https://www.company.com" className="h-12" />
+                      <Input label="Website URL (Optional)" name="website" value={formData.website} onChange={handleChange} onBlur={handleBlur} error={getFieldError('website')} placeholder="https://www.company.com" className="h-12" />
                     </div>
 
                     {/* Organization Address Fields */}
@@ -825,11 +982,11 @@ export default function BuyerOnboarding() {
                       </h3>
                     </div>
                     <Input label="COUNTRY" name="country" value={formData.country} onChange={handleChange} onBlur={handleBlur} required className="h-12" />
-                    <Input label="STATE" name="state" value={formData.state} onChange={handleChange} onBlur={handleBlur} error={touched.state ? errors.state : ''} required className="h-12" />
-                    <Input label="CITY" name="city" value={formData.city} onChange={handleChange} onBlur={handleBlur} error={touched.city ? errors.city : ''} required className="h-12" />
-                    <Input label="PIN CODE" name="pincode" value={formData.pincode} onChange={handleChange} onBlur={handleBlur} error={touched.pincode ? errors.pincode : ''} required className="h-12" />
+                    <Input label="STATE" name="state" value={formData.state} onChange={handleChange} onBlur={handleBlur} error={getFieldError('state')} required className="h-12" />
+                    <Input label="CITY" name="city" value={formData.city} onChange={handleChange} onBlur={handleBlur} error={getFieldError('city')} required className="h-12" />
+                    <Input label="PIN CODE" name="pincode" value={formData.pincode} onChange={handleChange} onBlur={handleBlur} error={getFieldError('pincode')} required className="h-12" />
                     <div className="md:col-span-2">
-                      <Input label="REGISTERED OFFICE ADDRESS" name="registeredAddress" value={formData.registeredAddress} onChange={handleChange} onBlur={handleBlur} error={touched.registeredAddress ? errors.registeredAddress : ''} required className="h-12" />
+                      <Input label="REGISTERED OFFICE ADDRESS" name="registeredAddress" value={formData.registeredAddress} onChange={handleChange} onBlur={handleBlur} error={getFieldError('registeredAddress')} required className="h-12" />
                     </div>
                     <div className="md:col-span-2">
                       <Input label="CORPORATE OFFICE ADDRESS (Optional - if different)" name="corporateAddress" value={formData.corporateAddress} onChange={handleChange} onBlur={handleBlur} placeholder="Enter corporate address if different from registered address" className="h-12" />
@@ -1152,6 +1309,186 @@ export default function BuyerOnboarding() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+type SearchableSelectProps = {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  error?: string;
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+};
+
+function SearchableSelect({
+  label,
+  value,
+  options,
+  onChange,
+  onBlur,
+  error,
+  placeholder = 'Select an option',
+  required,
+  disabled
+}: SearchableSelectProps) {
+  const id = React.useId();
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [query, setQuery] = React.useState('');
+  const [highlightedIndex, setHighlightedIndex] = React.useState(0);
+
+  const filteredOptions = React.useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return options;
+    return options.filter(option => option.toLowerCase().includes(normalizedQuery));
+  }, [options, query]);
+
+  React.useEffect(() => {
+    setHighlightedIndex(0);
+  }, [query]);
+
+  React.useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+        setQuery('');
+        onBlur?.();
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [onBlur]);
+
+  const selectOption = (option: string) => {
+    onChange(option);
+    setIsOpen(false);
+    setQuery('');
+    onBlur?.();
+  };
+
+  const clearSelection = () => {
+    onChange('');
+    setQuery('');
+    setIsOpen(false);
+    onBlur?.();
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (disabled) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setIsOpen(true);
+      setHighlightedIndex(current => Math.min(current + 1, Math.max(filteredOptions.length - 1, 0)));
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setHighlightedIndex(current => Math.max(current - 1, 0));
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (isOpen && filteredOptions[highlightedIndex]) {
+        selectOption(filteredOptions[highlightedIndex]);
+      }
+    }
+
+    if (event.key === 'Escape') {
+      setIsOpen(false);
+      setQuery('');
+    }
+  };
+
+  const displayValue = isOpen ? query : value;
+
+  return (
+    <div ref={containerRef} className="relative w-full min-w-0 space-y-1.5">
+      <label htmlFor={id} className="block break-words text-[11px] font-bold uppercase tracking-wide text-slate-500 leading-snug sm:text-xs sm:tracking-wider">
+        {label}{required ? ' *' : ''}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-controls={`${id}-options`}
+          aria-autocomplete="list"
+          disabled={disabled}
+          value={displayValue}
+          onFocus={() => {
+            setIsOpen(true);
+            setQuery('');
+          }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setIsOpen(true);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className={cn(
+            'flex h-12 w-full min-w-0 rounded-lg border border-slate-200 bg-slate-100/50 px-3 py-2 pr-16 text-xs ring-offset-white placeholder:text-slate-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 sm:text-xs',
+            error && 'border-red-500 bg-red-50/30 focus-visible:ring-red-500'
+          )}
+        />
+        {value && !disabled && (
+          <button
+            type="button"
+            aria-label="Clear industry selection"
+            onClick={clearSelection}
+            className="absolute right-9 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+        <button
+          type="button"
+          aria-label="Toggle industry options"
+          disabled={disabled}
+          onClick={() => {
+            setIsOpen(open => !open);
+            setQuery('');
+          }}
+          className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span className={cn('text-[10px] transition-transform', isOpen && 'rotate-180')}>v</span>
+        </button>
+      </div>
+      {isOpen && !disabled && (
+        <div
+          id={`${id}-options`}
+          role="listbox"
+          className="absolute z-40 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 text-xs shadow-lg"
+        >
+          {filteredOptions.length > 0 ? filteredOptions.map((option, index) => (
+            <button
+              key={option}
+              type="button"
+              role="option"
+              aria-selected={value === option}
+              onMouseEnter={() => setHighlightedIndex(index)}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => selectOption(option)}
+              className={cn(
+                'block w-full px-3 py-2 text-left font-semibold text-slate-700 transition-colors',
+                highlightedIndex === index && 'bg-indigo-50 text-indigo-700',
+                value === option && 'bg-teal-50 text-teal-700'
+              )}
+            >
+              {option}
+            </button>
+          )) : (
+            <div className="px-3 py-3 text-slate-400">No matching industry found</div>
+          )}
+        </div>
+      )}
+      {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
 }
