@@ -55,7 +55,9 @@ const transporter = nodemailer.createTransport({
   },
   tls: {
     rejectUnauthorized: false
-  }
+  },
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000,
 });
 
 async function startServer() {
@@ -444,10 +446,14 @@ async function startServer() {
   app.post('/api/auth/send-email-otp', async (req, res) => {
     try {
       const email = String(req.body.email || '').trim().toLowerCase();
+      console.log(`[Email OTP] Request for: ${email}`);
       if (!email) return res.status(400).json({ message: 'Email is required' });
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+      console.log(`[Email OTP] Deleting old records for: ${email}`);
       await prisma.otp.deleteMany({ where: { email } });
+      
+      console.log(`[Email OTP] Creating new record for: ${email}`);
       await prisma.otp.create({
         data: {
           email,
@@ -464,9 +470,11 @@ async function startServer() {
       };
 
       if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        console.log(`[Email OTP] Attempting to send email via ${process.env.SMTP_HOST || 'smtp.gmail.com'}...`);
         await transporter.sendMail(mailOptions);
+        console.log(`[Email OTP] Email sent successfully to: ${email}`);
       } else {
-        console.log('OTP:', otp);
+        console.log(`[Email OTP] No SMTP credentials, logging OTP: ${otp}`);
       }
       res.json({ success: true });
     } catch (err: any) {

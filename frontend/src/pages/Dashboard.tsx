@@ -7,6 +7,8 @@ import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/u
 import { AlertTriangle, CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck, Bell, Info, ShoppingBag, MessageSquare, Gavel, Briefcase, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 
+import ParcelTracking from './ParcelTracking';
+
 export default function Dashboard() {
   const { user, token, logout } = useAuth();
   const [profile, setProfile] = useState<any>(null);
@@ -176,6 +178,11 @@ export default function Dashboard() {
                    <p className="text-[10px] font-black text-slate-900 uppercase italic text-center leading-tight tracking-tight px-2">{method.label}</p>
                 </Link>
               ))}
+           </div>
+
+           {/* Parcel Tracking Section */}
+           <div className="mt-8">
+              <ParcelTracking />
            </div>
         </div>
       )}
