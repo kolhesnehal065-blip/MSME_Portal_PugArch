@@ -62,6 +62,21 @@ const getDocumentPreviewMode = (url: string) => {
   return 'google';
 };
 
+const isPlaceholderValue = (value: unknown) => {
+  if (typeof value !== 'string') return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === 'n/a' ||
+    normalized === 'na' ||
+    normalized === 'please verify and enter address manually'
+  );
+};
+
+const cleanPlaceholder = (value: unknown) => {
+  if (typeof value !== 'string') return value;
+  return isPlaceholderValue(value) ? '' : value;
+};
+
 export default function BuyerOnboarding() {
   const { user, refreshUser } = useAuth();
   const location = useLocation();
@@ -193,11 +208,14 @@ export default function BuyerOnboarding() {
           organizationName: data.profile?.organizationName || regDetails.businessName || data.user?.name || prev.organizationName,
           mobile: data.profile?.mobile || data.user?.mobile || prev.mobile,
           representativeName: data.profile?.representativeName || data.user?.name || prev.representativeName,
-          state: data.profile?.state || regDetails.state || prev.state,
-          district: data.profile?.district || regDetails.district || prev.district,
+          state: cleanPlaceholder(data.profile?.state) || regDetails.state || prev.state,
+          district: cleanPlaceholder(data.profile?.district) || regDetails.district || prev.district,
           officeZoneName: data.profile?.officeZoneName || regDetails.officeZoneName || prev.officeZoneName,
           aadhaarNumber: data.profile?.aadhaarNumber || regDetails.aadhaarNumber || prev.aadhaarNumber,
-          aadhaarVerified: data.profile?.aadhaarVerified || regDetails.isAadhaarVerified || prev.aadhaarVerified
+          aadhaarVerified: data.profile?.aadhaarVerified || regDetails.isAadhaarVerified || prev.aadhaarVerified,
+          city: cleanPlaceholder(storedDraft?.formData?.city || data.profile?.city || prev.city),
+          pincode: cleanPlaceholder(storedDraft?.formData?.pincode || data.profile?.pincode || prev.pincode),
+          registeredAddress: cleanPlaceholder(storedDraft?.formData?.registeredAddress || data.profile?.registeredAddress || prev.registeredAddress),
         }));
         if (storedDraft?.activeSection && SIDEBAR_SECTIONS.some(section => section.id === storedDraft.activeSection)) {
           setActiveSection(storedDraft.activeSection);
@@ -227,19 +245,24 @@ export default function BuyerOnboarding() {
         const data = await res.json();
         setFormData((prev: any) => ({
           ...prev,
-          organizationName: data.legalName || prev.organizationName,
-          registeredAddress: data.address || prev.registeredAddress,
-          state: data.state || prev.state,
-          city: data.city || prev.city,
-          pincode: data.pincode || prev.pincode,
+          organizationName: data.legalName?.trim() || prev.organizationName,
+          registeredAddress: data.address?.trim() || prev.registeredAddress,
+          state: data.state?.trim() || prev.state,
+          city: data.city?.trim() || prev.city,
+          pincode: String(data.pincode || '').replace(/\D/g, '').slice(0, 6) || prev.pincode,
           pan: data.pan || prev.pan,
         }));
-        toast.success('Organization details fetched successfully');
+        if (data.partial) {
+          toast.message(data.message || 'Partial GST details applied. Please verify manually.');
+        } else {
+          toast.success(`GST verified: ${data.status || 'Status available'}`);
+        }
       } else {
-        toast.error('Could not fetch GST details. Please enter manually.');
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.message || 'Could not fetch GST details. Please enter manually.');
       }
     } catch (err) {
-      toast.error('Verification service unavailable');
+      toast.error('Live GST service is currently unreachable. Please try later or enter details manually.');
     } finally {
       setIsFetchingGst(false);
     }
