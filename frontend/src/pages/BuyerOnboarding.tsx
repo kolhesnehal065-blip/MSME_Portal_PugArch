@@ -222,7 +222,7 @@ export default function BuyerOnboarding() {
       const res = await api.fetch(`/api/utils/gst-verify/${formData.gst}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setFormData((prev: any) => ({
@@ -791,18 +791,18 @@ export default function BuyerOnboarding() {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-end gap-2">
                         <div className="flex-1">
-                          <Input 
-                            label="GSTIN (Optional)" 
-                            name="gst" 
-                            value={formData.gst} 
-                            onChange={handleChange} 
-                            onBlur={handleBlur} 
-                            error={touched.gst ? errors.gst : ''} 
-                            placeholder="22ABCDE1234F1Z5" 
-                            className="h-12" 
+                          <Input
+                            label="GSTIN (Optional)"
+                            name="gst"
+                            value={formData.gst}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={touched.gst ? errors.gst : ''}
+                            placeholder="22ABCDE1234F1Z5"
+                            className="h-12"
                           />
                         </div>
-                        <Button 
+                        <Button
                           type="button"
                           variant="outline"
                           onClick={fetchGstDetails}

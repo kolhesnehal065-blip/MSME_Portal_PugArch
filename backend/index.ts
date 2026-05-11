@@ -70,9 +70,9 @@ async function startServer() {
     ...(process.env.FRONTEND_URL
       ? process.env.FRONTEND_URL.split(',').map(origin => origin.trim()).filter(Boolean)
       : [
-          "https://msme-portal-pug-arch-frontend.vercel.app",
-          "https://msme-portal-pug-arch-frontend-onet.vercel.app"
-        ])
+        "https://msme-portal-pug-arch-frontend.vercel.app",
+        "https://msme-portal-pug-arch-frontend-onet.vercel.app"
+      ])
   ];
 
   app.use(cors({
@@ -214,12 +214,12 @@ async function startServer() {
       const tenderId = Number(req.params.id);
       const bids = await prisma.bid.findMany({
         where: { tenderId },
-        include: { 
-          seller: { 
-            include: { 
-              sellerProfile: true 
-            } 
-          } 
+        include: {
+          seller: {
+            include: {
+              sellerProfile: true
+            }
+          }
         },
         orderBy: { unitPrice: 'asc' } as any
       });
@@ -255,7 +255,7 @@ async function startServer() {
       // If accepted, reject all other bids for the same tender
       if (status === 'accepted') {
         await prisma.bid.updateMany({
-          where: { 
+          where: {
             tenderId: bid.tenderId,
             id: { not: bidId }
           },
@@ -277,15 +277,19 @@ async function startServer() {
 
   app.post('/api/tenders', authenticate, authorize('buyer'), async (req: AuthRequest, res) => {
     try {
-      if (req.user?.role !== 'buyer') {
+      if (!req.user || req.user.role !== 'buyer') {
         return res.status(403).json({ message: 'Only buyers can create tenders' });
       }
 
       const tenderId = `T-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const { title, category, budget, description } = req.body;
 
       const tender = await prisma.tender.create({
         data: {
-          ...req.body,
+          title,
+          category,
+          budget: Number(budget),
+          description,
           buyerId: Number(req.user.id),
           tenderId,
           closesAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
@@ -302,7 +306,7 @@ async function startServer() {
     try {
       const { status } = req.body;
       const tenderId = Number(req.params.id);
-      
+
       const tender = await prisma.tender.findUnique({
         where: { id: tenderId }
       });
@@ -865,7 +869,7 @@ async function startServer() {
         const user = await prisma.user.findUnique({ where: { id: Number(userId) } });
         const buyerSections = { org: 'approved', rep: 'approved', address: 'approved', procurement: 'approved', docs: 'approved' };
         const sellerSections = { pan: 'approved', details: 'approved', additional: 'approved', offices: 'approved', bank: 'approved', einvoicing: 'approved', ownership: 'approved' };
-        
+
         updateData.sectionStatus = user?.role === 'buyer' ? buyerSections : sellerSections;
       }
 
@@ -1001,8 +1005,8 @@ async function startServer() {
       const currentStatus = (user.sectionStatus as Record<string, any>) || {};
       const currentReasons = (user.sectionRejectionReasons as Record<string, any>) || {};
 
-      const sectionStatus = { ...currentStatus, [section]: status };
-      const sectionRejectionReasons = { ...currentReasons };
+      const sectionStatus: Record<string, string> = { ...currentStatus, [section]: status };
+      const sectionRejectionReasons: Record<string, string> = { ...currentReasons };
 
       if (status === 'rejected' || status === 'resubmission_required') {
         sectionRejectionReasons[section] = rejectionReason || '';
@@ -1011,10 +1015,10 @@ async function startServer() {
       }
 
       // Calculate overall onboarding status based on all sections
-      const sections = user.role === 'buyer' 
-        ? ['org', 'rep', 'address', 'procurement', 'docs'] 
+      const sections = user.role === 'buyer'
+        ? ['org', 'rep', 'address', 'procurement', 'docs']
         : ['pan', 'details', 'additional', 'offices', 'bank', 'einvoicing', 'ownership'];
-        
+
       const statuses = sections.map(s => sectionStatus[s] || 'pending');
 
       let onboardingStatus = 'under_compliance_review';
