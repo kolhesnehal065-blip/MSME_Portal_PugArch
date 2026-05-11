@@ -86,6 +86,21 @@ const getDocumentPreviewMode = (url: string) => {
   return 'google';
 };
 
+const isPlaceholderValue = (value: unknown) => {
+  if (typeof value !== 'string') return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === 'n/a' ||
+    normalized === 'na' ||
+    normalized === 'please verify and enter address manually'
+  );
+};
+
+const cleanPlaceholder = (value: unknown) => {
+  if (typeof value !== 'string') return value;
+  return isPlaceholderValue(value) ? '' : value;
+};
+
 const DEFAULT_BUYER_FORM_DATA: any = {
   // Organisation Details
   organizationName: '',
@@ -118,7 +133,7 @@ const DEFAULT_BUYER_FORM_DATA: any = {
   otherCategoryDetails: '',
   customProcurementCategoryInput: '',
   customProcurementCategories: [],
-  annualBudget: '< â‚¹10 Lakh',
+  annualBudget: '< ₹10 Lakh',
   preferredMethods: [],
   otherMethodDetails: '',
   customProcurementMethodInput: '',
@@ -191,11 +206,15 @@ const buildBuyerFormData = (data: any, storedDraft: any, fallback: any = DEFAULT
     organizationName: data?.profile?.organizationName || regDetails.businessName || data?.user?.name || fallback.organizationName,
     mobile: data?.profile?.mobile || data?.user?.mobile || fallback.mobile,
     representativeName: data?.profile?.representativeName || data?.user?.name || fallback.representativeName,
-    state: data?.profile?.state || regDetails.state || fallback.state,
-    district: data?.profile?.district || regDetails.district || fallback.district,
     officeZoneName: data?.profile?.officeZoneName || regDetails.officeZoneName || fallback.officeZoneName,
     aadhaarNumber: data?.profile?.aadhaarNumber || regDetails.aadhaarNumber || fallback.aadhaarNumber,
-    aadhaarVerified: data?.profile?.aadhaarVerified || regDetails.isAadhaarVerified || fallback.aadhaarVerified
+    aadhaarVerified: data?.profile?.aadhaarVerified || regDetails.isAadhaarVerified || fallback.aadhaarVerified,
+    
+    state: cleanPlaceholder(data?.profile?.state) || regDetails.state || fallback.state,
+    district: cleanPlaceholder(data?.profile?.district) || regDetails.district || fallback.district,
+    city: cleanPlaceholder(storedDraft?.formData?.city || data?.profile?.city || fallback.city),
+    pincode: cleanPlaceholder(storedDraft?.formData?.pincode || data?.profile?.pincode || fallback.pincode),
+    registeredAddress: cleanPlaceholder(storedDraft?.formData?.registeredAddress || data?.profile?.registeredAddress || fallback.registeredAddress),
   };
 };
 
@@ -293,52 +312,26 @@ export default function BuyerOnboarding() {
       
       if (res.ok) {
         const data = await res.json();
-        if (activeGstinLookupRef.current !== gstin) return;
-        if (data.requestedGstin && data.requestedGstin !== gstin) {
-          toast.error('GST API returned details for a different GSTIN. Please retry.');
-          return;
-        }
-
-        const nextFetchedValues: Record<string, string> = {
-          organizationName: data.organizationName || data.legalName || data.tradeName || '',
-          registeredAddress: data.registeredOfficeAddress || data.address || '',
-          country: data.country || 'India',
-          state: data.state || '',
-          city: data.city || data.district || '',
-          pincode: data.pincode || data.pinCode || '',
-          pan: data.pan || gstin.substring(2, 12),
-        };
-
-        setFormData((prev: any) => {
-          if (String(prev.gst || '').trim().toUpperCase() !== gstin) return prev;
-          const next = { ...prev, gst: gstin };
-          Object.entries(nextFetchedValues).forEach(([field, value]) => {
-            const cleanedValue = String(value || '').trim();
-            if (!cleanedValue) return;
-            const previousFetchedValue = gstFetchedFieldsRef.current[field];
-            if (!next[field] || next[field] === previousFetchedValue) {
-              next[field] = cleanedValue;
-            }
-          });
-          return next;
-        });
-
-        lastFetchedGstinRef.current = gstin;
-        gstFetchedFieldsRef.current = Object.fromEntries(
-          Object.entries(nextFetchedValues).filter(([, value]) => String(value || '').trim())
-        ) as Record<string, string>;
-
-        if (!nextFetchedValues.registeredAddress) {
-          toast.warning(data.message || 'Address not available from GST API. Please enter manually.');
+        setFormData((prev: any) => ({
+          ...prev,
+          organizationName: data.legalName?.trim() || prev.organizationName,
+          registeredAddress: data.address?.trim() || prev.registeredAddress,
+          state: data.state?.trim() || prev.state,
+          city: data.city?.trim() || prev.city,
+          pincode: String(data.pincode || '').replace(/\D/g, '').slice(0, 6) || prev.pincode,
+          pan: data.pan || prev.pan,
+        }));
+        if (data.partial) {
+          toast.message(data.message || 'Partial GST details applied. Please verify manually.');
         } else {
-          toast.success('Organization details fetched successfully');
+          toast.success(`GST verified: ${data.status || 'Status available'}`);
         }
       } else {
-        const errorData = await res.json().catch(() => null);
-        toast.error(errorData?.message || 'Could not fetch GST details. Please enter manually.');
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.message || 'Could not fetch GST details. Please enter manually.');
       }
     } catch (err) {
-      toast.error('Verification service unavailable');
+      toast.error('Live GST service is currently unreachable. Please try later or enter details manually.');
     } finally {
       setIsFetchingGst(false);
     }

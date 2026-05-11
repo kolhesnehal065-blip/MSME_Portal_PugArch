@@ -139,16 +139,21 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
       
       if (res.ok) {
         const data = await res.json();
+        if (!data?.legalName || !data?.address) {
+          toast.error('Live GST details are incomplete. Please verify GSTIN and enter details manually.');
+          return;
+        }
         setFormData((prev: any) => ({
           ...prev,
-          businessName: data.legalName || prev.businessName,
+          businessName: data.legalName?.trim() || prev.businessName,
           orgPan: data.pan || prev.orgPan,
-          state: data.state || prev.state,
-          district: data.city || prev.district,
+          state: data.state?.trim() || prev.state,
+          district: data.city?.trim() || prev.district,
         }));
-        toast.success('Organization details fetched from GSTIN');
+        toast.success(`GST verified: ${data.status || 'Status available'}`);
       } else {
-        toast.error('Could not fetch GST details');
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.message || 'Could not fetch GST details');
       }
     } catch (err) {
       toast.error('Verification service unavailable');

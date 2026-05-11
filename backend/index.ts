@@ -102,7 +102,9 @@ async function startServer() {
     next();
   });
 
-  const ensureOnboardingEditable = async (userId: number): Promise<{ editable: boolean, status?: number, message?: string }> => {
+  const ensureOnboardingEditable = async (
+    userId: number
+  ): Promise<{ editable: boolean; status?: number; message?: string }> => {
     // Force unlock for all statuses as requested by USER
     return { editable: true };
   };
@@ -308,103 +310,138 @@ async function startServer() {
   });
 
   // GST Verification Utility
-  app.get('/api/utils/gst-verify/:gstin', authenticate, async (req: AuthRequest, res) => {
-    const gstin = String(req.params.gstin || '').trim().toUpperCase();
-    const apiKey = process.env.APIPSETU_API_KEY;
-    const clientId = process.env.APIPSETU_CLIENT_ID;
-    const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
-
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-
-    if (!gstinRegex.test(gstin)) {
+  app.get('/api/utils/gst-verify/:gstin', authenticate, async (req, res) => {
+    const rawGstin = String(req.params.gstin || '');
+    const gstin = rawGstin.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!/^[0-9]{2}[A-Z0-9]{10}[0-9A-Z]{1}[Zz]{1}[0-9A-Z]{1}$/.test(gstin)) {
       return res.status(400).json({ message: 'Invalid GSTIN format' });
     }
 
-    if (!apiKey || !clientId || clientId === 'PASTE_YOUR_CLIENT_ID_HERE') {
-      console.warn('[GST Verify] Missing active API Setu config. No mock GST address will be returned.');
-      return res.status(503).json({
-        message: 'GST API is not configured. Address not available from GST API. Please enter manually.'
-      });
-    }
+    const gstStateMap: Record<string, string> = {
+      '01': 'Jammu and Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh',
+      '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan', '09': 'Uttar Pradesh',
+      '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal Pradesh', '13': 'Nagaland', '14': 'Manipur',
+      '15': 'Mizoram', '16': 'Tripura', '17': 'Meghalaya', '18': 'Assam', '19': 'West Bengal',
+      '20': 'Jharkhand', '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '24': 'Gujarat',
+      '25': 'Daman and Diu', '26': 'Dadra and Nagar Haveli and Daman and Diu', '27': 'Maharashtra',
+      '28': 'Andhra Pradesh', '29': 'Karnataka', '30': 'Goa', '31': 'Lakshadweep', '32': 'Kerala',
+      '33': 'Tamil Nadu', '34': 'Puducherry', '35': 'Andaman and Nicobar Islands', '36': 'Telangana',
+      '37': 'Andhra Pradesh (New)', '38': 'Ladakh'
+    };
+
+    const derivedFallback = {
+      legalName: '',
+      tradeName: '',
+      address: '',
+      state: gstStateMap[gstin.substring(0, 2)] || '',
+      city: '',
+      pincode: '',
+      pan: gstin.substring(2, 12),
+      status: '',
+      isRegisteredDealer: false,
+      partial: true,
+      source: 'derived_from_gstin'
+    };
 
     try {
-      console.log(`[GST Verify] Initiating Live API Setu call for user ${req.user?.id}: ${gstin}`);
-      
-      const payload = {
-        txnId: `txn_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-        format: "json",
-        certificateParameters: {
-          GSTIN: gstin
-        },
-        consentArtifact: {
-          consent: {
-            consentId: `cns_${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            dataConsumerId: clientId,
-            purpose: { description: "Identity verification for MSME Portal registration" },
-            user: { idType: "GSTIN", idNumber: gstin },
-            permission: {
-              access: "view",
-              dateRange: { from: new Date().toISOString(), to: new Date().toISOString() },
-              frequency: { unit: "hour", value: 1, repeats: 1 }
-            }
-          },
-          signature: { signature: "" }
-        }
-      };
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
 
-      const response = await fetch("https://apisetu.gov.in/certificate/v3/gstn/gstrp", {
-        method: "POST",
+      const apiKey = process.env.GST_API_KEY?.replace(/['"]/g, '').trim();
+      const apiSetuUrlTemplate = (
+        process.env.GST_APISETU_URL ||
+        process.env.GST_API_URL ||
+        ''
+      ).replace(/['"]/g, '').trim();
+      console.log(`[GST Verify] Request for: ${gstin}`);
+      console.log(`[GST Verify] Using API Key: ${apiKey ? (apiKey.substring(0, 5) + '...') : 'MISSING'}`);
+
+      if (!apiKey) {
+        console.warn('[GST Verify] No API key found in .env.');
+        return res.status(500).json({
+          message: 'GST API key is not configured on server. Live GST fetch is unavailable.'
+        });
+      }
+
+      if (!apiSetuUrlTemplate) {
+        return res.status(500).json({
+          message: 'GST_APISETU_URL is not configured. Add API Setu GST endpoint URL in backend/.env'
+        });
+      }
+
+      // Supports either:
+      // 1) .../{gstin}
+      // 2) ...?gstin={gstin}
+      // 3) plain endpoint (we append ?gstin=...)
+      const apiUrl = apiSetuUrlTemplate.includes('{gstin}')
+        ? apiSetuUrlTemplate.replace('{gstin}', encodeURIComponent(gstin))
+        : apiSetuUrlTemplate.includes('gstin=')
+          ? apiSetuUrlTemplate.replace(/gstin=[^&]*/i, `gstin=${encodeURIComponent(gstin)}`)
+          : `${apiSetuUrlTemplate}${apiSetuUrlTemplate.includes('?') ? '&' : '?'}gstin=${encodeURIComponent(gstin)}`;
+
+      console.log(`[GST Verify] Calling API Setu endpoint: ${apiUrl}`);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
         headers: {
-          "Content-Type": "application/json",
-          "X-APISETU-APIKEY": apiKey,
-          "X-APISETU-CLIENTID": clientId
-        },
-        body: JSON.stringify(payload)
+          'apy-token': apiKey,
+          'x-api-key': apiKey,
+          'api-key': apiKey,
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
+
+      console.log(`[GST Verify] API Setu Response Status: ${response.status}`);
 
       if (!response.ok) {
-        const errText = await response.text();
-        console.error(`[API Setu Error] Status ${response.status}: ${errText}`);
-        throw new Error(`API Setu returned error status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log(`[GST Verify] Raw API Setu response for ${gstin}:`);
-      console.dir(data, { depth: null });
-
-      const normalized = normalizeGstDetails(data, gstin);
-      console.log(`[GST Verify] Mapped GST response for ${gstin}:`, {
-        requestedGstin: normalized.requestedGstin,
-        responseGstin: normalized.responseGstin,
-        organizationName: normalized.organizationName,
-        country: normalized.country,
-        state: normalized.state,
-        city: normalized.city,
-        district: normalized.district,
-        pincode: normalized.pincode,
-        address: normalized.address,
-        pan: normalized.pan,
-        status: normalized.status
-      });
-
-      if (normalized.responseGstin && normalized.responseGstin !== gstin) {
-        console.error(`[GST Verify] GSTIN mismatch. Requested ${gstin}, received ${normalized.responseGstin}`);
-        return res.status(409).json({ message: 'GST API returned details for a different GSTIN. Please retry.' });
-      }
-
-      if (!normalized.address) {
+        const errorText = await response.text();
+        console.error(`[GST Verify] API Setu Error: ${response.status} - ${errorText}`);
         return res.json({
-          ...normalized,
-          message: 'Address not available from GST API. Please enter manually.'
+          ...derivedFallback,
+          message: "Live GST verification unavailable right now. Derived basic details from GSTIN.",
+          providerStatus: response.status
+        });
+      }
+
+      const result: any = await response.json();
+      console.log(`[GST Verify] GST Data Received:`, JSON.stringify(result).substring(0, 120) + '...');
+      
+      const data = result?.data || result?.result || result;
+
+      // Map common GST provider fields to frontend expectations
+      const normalized = {
+        legalName: data.legal_name || data.legalName || data.lgnm || data.trade_name || data.tradeName || data.tnam || '',
+        tradeName: data.trade_name || data.tradeName || data.tnam || '',
+        address: data.address || data.pradr?.adr || data.pradr?.addr || '',
+        state: data.state || data.pradr?.stcd || data.stjCd || '',
+        city: data.city || data.pradr?.city || data.ctj || '',
+        pincode: data.pincode || data.pradr?.pncd || data.pradr?.pincode || '',
+        pan: data.pan || data.panNumber || data.ctb?.pan || gstin.substring(2, 12),
+        status: data.status || data.gstStatus || data.dty || data.sts || '',
+        isRegisteredDealer: Boolean(
+          ['active', 'registered', 'regular', 'composition'].includes(
+            String(data.status || data.gstStatus || data.dty || data.sts || '').toLowerCase()
+          )
+        ),
+      };
+
+      if (!normalized.legalName || !normalized.address) {
+        return res.json({
+          ...derivedFallback,
+          message: 'Provider returned incomplete GST data. Derived basic details from GSTIN.'
         });
       }
 
       res.json(normalized);
-
     } catch (err: any) {
-      console.error('[GST Verification Live Failed]', err);
-      res.status(500).json({ message: "Connection to API Setu failed. Verify your Client ID and Key configuration." });
+      console.error('[GST Verify] Critical Failure:', err);
+      res.json({
+        ...derivedFallback,
+        message: "Live GST verification failed due to provider/network issue. Derived basic details from GSTIN."
+      });
     }
   });
 
@@ -649,8 +686,13 @@ async function startServer() {
       }
       console.log('Seeding completed.');
     }
-  } catch (err) {
-    console.error('Seeding error:', err);
+  } catch (err: any) {
+    const message = String(err?.message || '');
+    if (message.includes("Can't reach database server")) {
+      console.warn('Seeding skipped: database server is unreachable.');
+    } else {
+      console.error('Seeding error:', err);
+    }
   }
 
   // --- File Upload ---
@@ -1488,7 +1530,23 @@ async function startServer() {
     }
   });
 
-  app.listen(PORT, () => console.log(`Server running on port ${PORT} (Prisma/PostgreSQL)`));
+  const startListening = (port: number) => {
+    const server = app.listen(port, () => {
+      console.log(`Server running on port ${port} (Prisma/PostgreSQL)`);
+    });
+
+    server.on('error', (err: any) => {
+      if (err?.code === 'EADDRINUSE') {
+        const nextPort = port + 1;
+        console.warn(`Port ${port} is in use. Retrying on port ${nextPort}...`);
+        startListening(nextPort);
+        return;
+      }
+      console.error('Server failed to start:', err);
+    });
+  };
+
+  startListening(PORT);
 }
 
 startServer().catch(err => {
