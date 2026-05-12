@@ -16,6 +16,8 @@
     "@tanstack/react-query": "^5.100.5",
     "@vitejs/plugin-react": "^5.0.4",
     "clsx": "^2.1.1",
+    "fast-png": "^8.0.0",
+    "fflate": "^0.8.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.546.0",
