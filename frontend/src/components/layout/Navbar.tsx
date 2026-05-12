@@ -1,9 +1,12 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/button';
+import { api } from '../../lib/api';
 import { 
   AlertTriangle,
+  CheckCircle2,
+  Clock,
   Building2, 
   Store, 
   LayoutDashboard, 
@@ -24,6 +27,16 @@ import {
   PanelLeftOpen
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+
+interface PortalNotification {
+  id: number | string;
+  title: string;
+  message: string;
+  type: string;
+  isRead?: boolean;
+  createdAt?: string;
+  route?: string;
+}
 
 interface SidebarProps {
   isOpen: boolean;
@@ -154,6 +167,13 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
   const location = useLocation();
   const navigate = useNavigate();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const token = localStorage.getItem('token') || '';
+  const authOptions = useMemo(() => ({
+    headers: { Authorization: `Bearer ${token}` }
+  }), [token]);
+  const cachedNotifications = token ? api.peek('/api/notifications', authOptions) : null;
+  const [notifications, setNotifications] = useState<PortalNotification[]>(cachedNotifications || []);
+  const [isNotificationLoading, setIsNotificationLoading] = useState(!cachedNotifications);
 
   const sectionLabels: Record<string, string> = {
     basic: 'Basic Details',
@@ -161,6 +181,17 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
     compliance: 'Compliance',
     bank: 'Bank Details',
     documents: 'Documents',
+    org: 'Organisation Details',
+    rep: 'Authorized Representative',
+    address: 'Address Details',
+    procurement: 'Procurement Profile',
+    docs: 'Documents',
+    pan: 'Business PAN Validation',
+    details: 'Business Details',
+    additional: 'Additional Details',
+    offices: 'Office Locations',
+    einvoicing: 'E-Invoicing',
+    ownership: 'Beneficial Ownership',
   };
 
   const sectionRouteMap: Record<string, { seller: string; buyer: string }> = {
@@ -169,20 +200,132 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
     compliance: { seller: '/seller/onboarding?section=compliance', buyer: '/buyer/onboarding?section=compliance' },
     bank: { seller: '/seller/onboarding?section=bank', buyer: '/buyer/onboarding?section=bank' },
     documents: { seller: '/seller/onboarding?section=documents', buyer: '/buyer/onboarding?section=documents' },
+    org: { seller: '/seller/onboarding', buyer: '/buyer/onboarding?section=org' },
+    rep: { seller: '/seller/onboarding', buyer: '/buyer/onboarding?section=rep' },
+    address: { seller: '/seller/onboarding', buyer: '/buyer/onboarding?section=address' },
+    procurement: { seller: '/seller/onboarding', buyer: '/buyer/onboarding?section=procurement' },
+    docs: { seller: '/seller/onboarding', buyer: '/buyer/onboarding?section=docs' },
+    pan: { seller: '/seller/onboarding?section=pan', buyer: '/buyer/onboarding' },
+    details: { seller: '/seller/onboarding?section=details', buyer: '/buyer/onboarding' },
+    additional: { seller: '/seller/onboarding?section=additional', buyer: '/buyer/onboarding' },
+    offices: { seller: '/seller/onboarding?section=offices', buyer: '/buyer/onboarding' },
+    einvoicing: { seller: '/seller/onboarding?section=einvoicing', buyer: '/buyer/onboarding' },
+    ownership: { seller: '/seller/onboarding?section=ownership', buyer: '/buyer/onboarding' },
   };
 
-  const rejectionNotifications = useMemo(() => {
+  const fetchNotifications = async (silent = false) => {
+    if (!token) {
+      setNotifications([]);
+      setIsNotificationLoading(false);
+      return;
+    }
+
+    if (!silent && notifications.length === 0) setIsNotificationLoading(true);
+    try {
+      const res = await api.fetch('/api/notifications', { ...authOptions, skipCache: silent });
+      if (!res.ok) return;
+      const data = await res.json();
+      setNotifications(data || []);
+    } catch (err) {
+      console.error('[Notifications] Failed to load:', err);
+    } finally {
+      setIsNotificationLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user || !token) {
+      setNotifications([]);
+      setIsNotificationLoading(false);
+      return;
+    }
+
+    fetchNotifications(true);
+    const refresh = () => fetchNotifications(true);
+    window.addEventListener('notifications:refresh', refresh);
+    const interval = window.setInterval(refresh, 30000);
+    return () => {
+      window.removeEventListener('notifications:refresh', refresh);
+      window.clearInterval(interval);
+    };
+  }, [user?.id, token]);
+
+  useEffect(() => {
+    if (!user || !token || typeof EventSource === 'undefined') return;
+    const rawBaseUrl = import.meta.env.VITE_API_URL || '';
+    const baseUrl = import.meta.env.DEV ? '' : rawBaseUrl.replace(/\/$/, '');
+    const source = new EventSource(`${baseUrl}/api/notifications/stream?token=${encodeURIComponent(token)}`);
+
+    source.addEventListener('notification', (event) => {
+      try {
+        const notification = JSON.parse((event as MessageEvent).data);
+        setNotifications(prev => [notification, ...prev.filter(item => item.id !== notification.id)].slice(0, 20));
+        api.invalidate('/api/notifications');
+        window.dispatchEvent(new CustomEvent('notifications:updated'));
+      } catch (err) {
+        console.error('[Notifications] Failed to parse live notification:', err);
+      }
+    });
+
+    source.onerror = () => {
+      source.close();
+    };
+
+    return () => source.close();
+  }, [user?.id, token]);
+
+  const sectionNotifications = useMemo<PortalNotification[]>(() => {
     if (!user?.sectionStatus || !['seller', 'buyer'].includes(user.role)) return [];
 
     return Object.entries(user.sectionStatus)
       .filter(([, status]) => ['rejected', 'resubmission_required'].includes(String(status)))
       .map(([section, status]) => ({
-        section,
-        status: String(status),
-        label: sectionLabels[section] || section,
+        id: `section-${section}`,
+        title: `${sectionLabels[section] || section} requires attention`,
+        type: `section_${status}`,
+        isRead: false,
+        route: sectionRouteMap[section]?.[user.role as 'seller' | 'buyer'] || (user.role === 'seller' ? '/seller/onboarding' : '/buyer/onboarding'),
         message: `Your ${sectionLabels[section] || section} section has been rejected by Admin. Please review and update.`,
       }));
   }, [user]);
+
+  const displayNotifications = useMemo(() => {
+    const fallbackSections = sectionNotifications.filter(item =>
+      !notifications.some(notification =>
+        notification.message?.toLowerCase().includes(item.title.replace(' requires attention', '').toLowerCase())
+      )
+    );
+    return [...fallbackSections, ...notifications].slice(0, 20);
+  }, [notifications, sectionNotifications]);
+
+  const unreadCount = displayNotifications.filter(item => !item.isRead).length;
+
+  const routeForNotification = (notification: PortalNotification) => {
+    if (notification.route) return notification.route;
+    if (user?.role === 'admin') return '/admin/onboarding';
+    if (notification.type === 'quote_request') return '/quotations';
+    return user?.role === 'seller' ? '/seller/onboarding' : '/buyer/onboarding';
+  };
+
+  const handleNotificationToggle = async () => {
+    const nextOpen = !isNotificationsOpen;
+    setIsNotificationsOpen(nextOpen);
+    if (!nextOpen) return;
+
+    fetchNotifications(true);
+    if (!notifications.some(item => !item.isRead)) return;
+
+    try {
+      const res = await api.post('/api/notifications/read-all', {}, authOptions);
+      if (res.ok) {
+        setNotifications(prev => prev.map(item => ({ ...item, isRead: true })));
+        api.invalidate('/api/notifications');
+        window.dispatchEvent(new CustomEvent('notifications:updated'));
+      }
+    } catch (err) {
+      console.error('[Notifications] Failed to mark as read:', err);
+    }
+  };
 
   if (!user) return null;
 
@@ -239,14 +382,14 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
         <div className="relative flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setIsNotificationsOpen(prev => !prev)}
+            onClick={handleNotificationToggle}
             className="w-9 h-9 rounded-md border border-slate-200 flex items-center justify-center cursor-pointer text-slate-500 hover:bg-slate-50 transition-colors relative"
             aria-label="Open notifications"
           >
             <Bell className="h-4 w-4" />
-            {rejectionNotifications.length > 0 && (
+            {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white border-2 border-white text-[10px] font-black flex items-center justify-center">
-                {rejectionNotifications.length}
+                {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
@@ -255,44 +398,71 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-slate-900">Notifications</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Seller portal alerts</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Portal alerts</p>
                 </div>
-                {rejectionNotifications.length > 0 && (
+                {unreadCount > 0 && (
                   <span className="rounded-full bg-red-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-red-600">
-                    Action Required
+                    {unreadCount} unread
                   </span>
                 )}
               </div>
 
               <div className="max-h-96 overflow-y-auto p-3">
-                {rejectionNotifications.length === 0 ? (
+                {isNotificationLoading && displayNotifications.length === 0 ? (
+                  <div className="px-4 py-8 text-center">
+                    <p className="text-sm font-bold text-slate-700">Loading alerts</p>
+                    <p className="mt-1 text-xs text-slate-400">Checking the latest portal updates.</p>
+                  </div>
+                ) : displayNotifications.length === 0 ? (
                   <div className="px-4 py-8 text-center">
                     <p className="text-sm font-bold text-slate-700">No new alerts</p>
                     <p className="mt-1 text-xs text-slate-400">Important onboarding updates will appear here.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {rejectionNotifications.map((item) => (
+                    {displayNotifications.map((item) => {
+                      const isSuccess = item.type?.includes('approved');
+                      const isWarning = item.type?.includes('rejected') || item.type?.includes('resubmission') || item.type?.includes('feedback');
+                      const Icon = isSuccess ? CheckCircle2 : isWarning ? AlertTriangle : Clock;
+                      return (
                       <button
-                        key={item.section}
+                        key={item.id}
                         type="button"
                         onClick={() => {
                           setIsNotificationsOpen(false);
-                          navigate(sectionRouteMap[item.section]?.[user.role as 'seller' | 'buyer'] || '/dashboard');
+                          navigate(routeForNotification(item));
                         }}
-                        className="w-full rounded-xl border border-red-100 bg-red-50/70 p-4 text-left transition-all hover:border-red-200 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
+                        className={cn(
+                          "w-full rounded-xl border p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-offset-2",
+                          isWarning
+                            ? "border-red-100 bg-red-50/70 hover:border-red-200 hover:bg-red-50 focus:ring-red-300"
+                            : isSuccess
+                              ? "border-emerald-100 bg-emerald-50/70 hover:border-emerald-200 hover:bg-emerald-50 focus:ring-emerald-300"
+                              : "border-slate-100 bg-slate-50/70 hover:border-slate-200 hover:bg-slate-50 focus:ring-[#0f766e]"
+                        )}
                       >
                         <div className="flex items-start gap-3">
-                          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-red-500 shadow-sm">
-                            <AlertTriangle className="h-4 w-4" />
+                          <div className={cn(
+                            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm",
+                            isWarning ? "text-red-500" : isSuccess ? "text-emerald-600" : "text-[#12335f]"
+                          )}>
+                            <Icon className="h-4 w-4" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-red-600">{item.label}</p>
-                            <p className="mt-1 text-sm font-semibold leading-relaxed text-red-950">{item.message}</p>
+                            <p className={cn(
+                              "text-[10px] font-black uppercase tracking-widest",
+                              isWarning ? "text-red-600" : isSuccess ? "text-emerald-700" : "text-[#12335f]"
+                            )}>{item.title}</p>
+                            <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-800">{item.message}</p>
+                            {item.createdAt && (
+                              <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                {new Date(item.createdAt).toLocaleString()}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </button>
-                    ))}
+                    )})}
                   </div>
                 )}
               </div>

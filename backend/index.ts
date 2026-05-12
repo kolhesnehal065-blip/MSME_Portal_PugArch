@@ -13,6 +13,7 @@ dotenv.config({
 });
 
 import express from 'express';
+import type { Response } from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -110,6 +111,80 @@ async function startServer() {
   };
 
   const normalizeSpaces = (value: unknown) => String(value || '').replace(/\s+/g, ' ').trim();
+  const notificationClients = new Map<number, Set<Response>>();
+
+  const emitNotification = (userId: number, notification: any) => {
+    const clients = notificationClients.get(userId);
+    if (!clients) return;
+    for (const client of clients) {
+      client.write('event: notification\n');
+      client.write(`data: ${JSON.stringify(notification)}\n\n`);
+    }
+  };
+
+  const createNotificationSafe = async (payload: { userId: number; title: string; message: string; type: string }) => {
+    try {
+      const notification = await prisma.notification.create({ data: payload });
+      emitNotification(payload.userId, notification);
+      return notification;
+    } catch (err) {
+      console.error('[Notification] Failed to create notification:', err);
+      return null;
+    }
+  };
+
+  const notifyAdminsOfApplication = async (applicant: any, organizationName: string, applicationType: 'buyer' | 'seller') => {
+    try {
+      const admins = await prisma.user.findMany({ where: { role: 'admin' }, select: { id: true } });
+      const timestamp = new Date().toLocaleString('en-IN');
+      await Promise.all(admins.map(admin => createNotificationSafe({
+        userId: admin.id,
+        title: `${applicationType === 'buyer' ? 'Buyer' : 'Seller'} application submitted`,
+        message: `${applicant.name} (${organizationName || 'Organization not provided'}) submitted a ${applicationType} application for review on ${timestamp}. Status: Under compliance review.`,
+        type: `${applicationType}_application_submitted`
+      })));
+    } catch (err) {
+      console.error('[Notification] Failed to notify admins:', err);
+    }
+  };
+
+  const profileOrganizationName = (user: any) =>
+    normalizeSpaces(
+      user?.sellerProfile?.businessName ||
+      user?.buyerProfile?.organizationName ||
+      user?.name ||
+      'Organization not provided'
+    );
+
+  const applicationTypeLabel = (role: unknown) => String(role) === 'seller' ? 'Seller' : 'Buyer';
+
+  const sectionLabel = (role: unknown, section: string) => {
+    const buyerLabels: Record<string, string> = {
+      org: 'Organisation Details',
+      rep: 'Authorized Representative',
+      address: 'Address Details',
+      procurement: 'Procurement Profile',
+      docs: 'Documents'
+    };
+    const sellerLabels: Record<string, string> = {
+      pan: 'Business PAN Validation',
+      details: 'Business Details',
+      additional: 'Additional Details',
+      offices: 'Office Locations',
+      bank: 'Bank Accounts',
+      einvoicing: 'E-Invoicing',
+      ownership: 'Beneficial Ownership'
+    };
+    return String(role) === 'buyer' ? (buyerLabels[section] || section) : (sellerLabels[section] || section);
+  };
+
+  const statusMessage = (status: string, reason?: string) => {
+    if (status === 'approved_for_procurement') return 'Your application has been approved for procurement access.';
+    if (status === 'rejected') return `Your application has been rejected.${reason ? ` Reason: ${reason}` : ''}`;
+    if (status === 'resubmission_required') return `Changes are required before approval.${reason ? ` Details: ${reason}` : ''}`;
+    if (status === 'under_compliance_review') return 'Your application is under compliance review.';
+    return `Your application status has been updated to ${status}.`;
+  };
 
   const validateSellerBankPayload = (body: any) => {
     const values = {
@@ -1107,6 +1182,12 @@ async function startServer() {
       const userId = Number(req.user?.id);
       const editCheck = await ensureOnboardingEditable(userId);
       if (!editCheck.editable) return res.status(editCheck.status || 403).json({ message: editCheck.message });
+
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { sellerProfile: true }
+      });
+      if (!existingUser) return res.status(404).json({ message: 'User not found' });
       
       const user = await prisma.user.update({
         where: { id: userId },
@@ -1115,6 +1196,11 @@ async function startServer() {
           registrationStatus: 'completed'
         }
       });
+
+      if (existingUser.onboardingStatus !== 'under_compliance_review') {
+        await notifyAdminsOfApplication(existingUser, profileOrganizationName(existingUser), 'seller');
+      }
+
       res.json({ success: true, user });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -1172,7 +1258,10 @@ async function startServer() {
       const editCheck = await ensureOnboardingEditable(userId);
       if (!editCheck.editable) return res.status(editCheck.status || 403).json({ message: editCheck.message });
       const { password, ...rawData } = req.body;
-      const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { buyerProfile: true }
+      });
       if (!existingUser) return res.status(404).json({ message: 'User not found' });
 
       const mobile = rawData.mobile || existingUser.mobile;
@@ -1246,6 +1335,14 @@ async function startServer() {
         })
       ]);
 
+      if (existingUser.onboardingStatus !== 'under_compliance_review') {
+        await notifyAdminsOfApplication(
+          existingUser,
+          normalizeSpaces(profile.organizationName || existingUser.buyerProfile?.organizationName || existingUser.name),
+          'buyer'
+        );
+      }
+
       res.json({ success: true, profile });
     } catch (err: any) {
       console.error('[Buyer Register] Failed:', err);
@@ -1293,18 +1390,39 @@ async function startServer() {
 
   app.post('/api/admin/status', authenticate, authorizeAdmin, async (req, res) => {
     try {
-      const { userId, status } = req.body;
+      const { userId, status, reason } = req.body;
       const updateData: any = { onboardingStatus: status };
+      const numericId = Number(userId);
+      const user = await prisma.user.findUnique({
+        where: { id: numericId },
+        include: { sellerProfile: true, buyerProfile: true }
+      });
+      if (!user) return res.status(404).json({ message: 'User not found' });
 
       if (status === 'approved_for_procurement') {
-        const user = await prisma.user.findUnique({ where: { id: Number(userId) } });
         const buyerSections = { org: 'approved', rep: 'approved', address: 'approved', procurement: 'approved', docs: 'approved' };
         const sellerSections = { pan: 'approved', details: 'approved', additional: 'approved', offices: 'approved', bank: 'approved', einvoicing: 'approved', ownership: 'approved' };
         
         updateData.sectionStatus = user?.role === 'buyer' ? buyerSections : sellerSections;
       }
 
-      await prisma.user.update({ where: { id: Number(userId) }, data: updateData });
+      await prisma.user.update({ where: { id: numericId }, data: updateData });
+
+      if (user.onboardingStatus !== status || ['approved_for_procurement', 'rejected', 'resubmission_required'].includes(status)) {
+        const typeLabel = applicationTypeLabel(user.role);
+        const actionLabel =
+          status === 'approved_for_procurement' ? 'approved' :
+          status === 'rejected' ? 'rejected' :
+          status === 'resubmission_required' ? 'requires changes' :
+          'updated';
+        await createNotificationSafe({
+          userId: numericId,
+          title: `${typeLabel} application ${actionLabel}`,
+          message: `${profileOrganizationName(user)}: ${statusMessage(status, normalizeSpaces(reason))}`,
+          type: `onboarding_${status}`
+        });
+      }
+
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -1365,14 +1483,11 @@ async function startServer() {
         include: { buyer: true }
       });
 
-      // Create Notification for Seller
-      await prisma.notification.create({
-        data: {
-          userId: Number(sellerId),
-          title: 'New Quote Request',
-          message: `Buyer ${quote.buyer.name} has requested a quote for: ${subject}`,
-          type: 'quote_request'
-        }
+      await createNotificationSafe({
+        userId: Number(sellerId),
+        title: 'New Quote Request',
+        message: `Buyer ${quote.buyer.name} has requested a quote for: ${subject}`,
+        type: 'quote_request'
       });
 
       res.status(201).json(quote);
@@ -1426,7 +1541,10 @@ async function startServer() {
         return res.status(400).json({ message: 'User ID must be a valid number' });
       }
 
-      const user = await prisma.user.findUnique({ where: { id: numericId } });
+      const user = await prisma.user.findUnique({
+        where: { id: numericId },
+        include: { sellerProfile: true, buyerProfile: true }
+      });
       if (!user) {
         console.error(`!!! USER NOT FOUND IN DATABASE !!!: ${numericId}`);
         return res.status(404).json({ message: 'User not found' });
@@ -1435,6 +1553,8 @@ async function startServer() {
       // Initialize status and reasons if they are null
       const currentStatus = (user.sectionStatus as Record<string, any>) || {};
       const currentReasons = (user.sectionRejectionReasons as Record<string, any>) || {};
+      const previousSectionStatus = String(currentStatus[section] || '');
+      const previousReason = normalizeSpaces(currentReasons[section]);
 
       const sectionStatus = { ...currentStatus, [section]: status };
       const sectionRejectionReasons = { ...currentReasons };
@@ -1468,6 +1588,27 @@ async function startServer() {
         }
       });
 
+      const label = sectionLabel(user.role, section);
+      const normalizedReason = normalizeSpaces(rejectionReason);
+      const sectionChanged = previousSectionStatus !== status || previousReason !== normalizedReason;
+      if (sectionChanged && ['rejected', 'resubmission_required'].includes(status)) {
+        await createNotificationSafe({
+          userId: user.id,
+          title: `${label} requires attention`,
+          message: `${profileOrganizationName(user)}: ${label} has been marked as ${status.replace(/_/g, ' ')}.${normalizedReason ? ` Admin remarks: ${normalizedReason}` : ''}`,
+          type: `section_${status}`
+        });
+      }
+
+      if (user.onboardingStatus !== onboardingStatus && onboardingStatus === 'approved_for_procurement') {
+        await createNotificationSafe({
+          userId: user.id,
+          title: `${applicationTypeLabel(user.role)} application approved`,
+          message: `${profileOrganizationName(user)}: ${statusMessage(onboardingStatus)}`,
+          type: 'onboarding_approved_for_procurement'
+        });
+      }
+
       res.json({ success: true, onboardingStatus: onboardingStatus });
     } catch (err: any) {
       console.error('--- SECTION STATUS ERROR ---');
@@ -1481,10 +1622,28 @@ async function startServer() {
   app.post('/api/admin/feedback', authenticate, authorizeAdmin, async (req, res) => {
     try {
       const { userId, feedback } = req.body;
+      const numericId = Number(userId);
+      const user = await prisma.user.findUnique({
+        where: { id: numericId },
+        include: { sellerProfile: true, buyerProfile: true }
+      });
+      if (!user) return res.status(404).json({ message: 'User not found' });
+
+      const normalizedFeedback = normalizeSpaces(feedback);
       await prisma.user.update({
-        where: { id: Number(userId) },
+        where: { id: numericId },
         data: { adminFeedback: feedback }
       });
+
+      if (normalizedFeedback && normalizeSpaces(user.adminFeedback) !== normalizedFeedback) {
+        await createNotificationSafe({
+          userId: numericId,
+          title: 'Admin feedback received',
+          message: `${profileOrganizationName(user)}: ${normalizedFeedback}`,
+          type: 'admin_feedback'
+        });
+      }
+
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -1502,6 +1661,43 @@ async function startServer() {
       res.json({ pendingApproval: pending, activeSellers: sellers, activeBuyers: buyers, totalNetwork: total });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/notifications/stream', async (req, res) => {
+    try {
+      const token = String(req.query.token || '');
+      if (!token) return res.status(401).json({ message: 'No token provided' });
+
+      const decoded = jwt.verify(token, JWT_SECRET) as { id?: string | number };
+      const userId = Number(decoded.id);
+      if (!userId) return res.status(401).json({ message: 'Invalid token' });
+
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no'
+      });
+      res.write('event: connected\n');
+      res.write('data: {"ok":true}\n\n');
+
+      const clients = notificationClients.get(userId) || new Set<Response>();
+      clients.add(res);
+      notificationClients.set(userId, clients);
+
+      const heartbeat = setInterval(() => {
+        res.write('event: heartbeat\n');
+        res.write('data: {}\n\n');
+      }, 25000);
+
+      req.on('close', () => {
+        clearInterval(heartbeat);
+        clients.delete(res);
+        if (clients.size === 0) notificationClients.delete(userId);
+      });
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
     }
   });
 

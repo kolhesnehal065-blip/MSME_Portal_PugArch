@@ -65,6 +65,23 @@ export default function Dashboard() {
     fetchData();
   }, [token, navigate, logout]);
 
+  useEffect(() => {
+    if (!token) return;
+    const refreshNotifications = async () => {
+      try {
+        const res = await api.fetch('/api/notifications', {
+          headers: { Authorization: `Bearer ${token}` },
+          skipCache: true
+        });
+        if (res.ok) setNotifications(await res.json());
+      } catch (err) {
+        console.error('[Notifications] Dashboard refresh failed:', err);
+      }
+    };
+    window.addEventListener('notifications:updated', refreshNotifications);
+    return () => window.removeEventListener('notifications:updated', refreshNotifications);
+  }, [token]);
+
   if (isLoading) return <div className="flex h-screen items-center justify-center font-black italic text-blue-600 animate-pulse text-xl">Loading MSME Portal...</div>;
 
   const getStatusIcon = (status: string) => {
