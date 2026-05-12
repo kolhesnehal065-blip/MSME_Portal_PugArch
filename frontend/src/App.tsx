@@ -22,11 +22,8 @@ import PurchaseOrders from './pages/PurchaseOrders';
 import ParcelTracking from './pages/ParcelTracking';
 import SellerTenders from './pages/SellerTenders';
 import CreateQuotation from './pages/CreateQuotation';
-<<<<<<< HEAD
 import SellerSettings from './pages/SellerSettings';
-=======
 import Profile from './pages/Profile';
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
 import Sidebar, { Header } from './components/layout/Navbar';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {

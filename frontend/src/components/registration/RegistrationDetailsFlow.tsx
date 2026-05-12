@@ -1248,18 +1248,8 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                   </>
                 ) : (
                   <>
-<<<<<<< HEAD
                     <h2 className="text-xl md:text-2xl font-black text-slate-800">User Credentials</h2>
                     <div className="max-w-md">
-=======
-                    <Input
-                      label="User ID"
-                      value={formData.email}
-                      disabled
-                      className="bg-slate-50 font-bold  h-11 rounded"
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
                       <Input
                         label="User Id *"
                         placeholder="Enter unique user id"
@@ -1277,11 +1267,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         placeholder="Enter Password"
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
-<<<<<<< HEAD
                         className="h-14 rounded-lg border-slate-200 bg-white"
-=======
-                        className="h-11 rounded border-slate-200"
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
                       />
                       <Input
                         label="Confirm Password*"
@@ -1289,11 +1275,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         placeholder="Confirm Password"
                         value={formData.confirmPassword}
                         onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-<<<<<<< HEAD
                         className="h-14 rounded-lg border-slate-200 bg-white"
-=======
-                        className="h-11 rounded border-slate-200"
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
                       />
                     </div>
 

@@ -24,8 +24,12 @@ export default function SellerOnboarding() {
   const [isFetching, setIsFetching] = useState(!cachedMe);
   const [savedSections, setSavedSections] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-<<<<<<< HEAD
-  const [isProfileLocked, setIsProfileLocked] = useState(false);
+  const lockedStatuses = ['approved_for_procurement', 'under_compliance_review', 'pending_validation'];
+  const cachedStatus = cachedMe?.user?.onboardingStatus;
+  const [isProfileLocked, setIsProfileLocked] = useState(lockedStatuses.includes(cachedStatus));
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(cachedStatus === 'under_compliance_review' || cachedStatus === 'approved_for_procurement');
+  const [selectedOfficeState, setSelectedOfficeState] = useState('');
+  const [selectedOfficeCity, setSelectedOfficeCity] = useState('');
   const [editingOfficeId, setEditingOfficeId] = useState<number | null>(null);
   const [officeForm, setOfficeForm] = useState({
     name: '',
@@ -39,13 +43,6 @@ export default function SellerOnboarding() {
     area: '',
     contact: ''
   });
-=======
-  const lockedStatuses = ['approved_for_procurement', 'under_compliance_review', 'pending_validation'];
-  const cachedStatus = cachedMe?.user?.onboardingStatus;
-  const [isProfileLocked, setIsProfileLocked] = useState(lockedStatuses.includes(cachedStatus));
-  const [showSuccessOverlay, setShowSuccessOverlay] = useState(cachedStatus === 'under_compliance_review' || cachedStatus === 'approved_for_procurement');
-  const [selectedOfficeState, setSelectedOfficeState] = useState('');
-  const [selectedOfficeCity, setSelectedOfficeCity] = useState('');
   const [newBank, setNewBank] = useState({
     ifsc: '',
     bankName: '',
@@ -56,7 +53,6 @@ export default function SellerOnboarding() {
     isPrimary: false
   });
   const [bankErrors, setBankErrors] = useState<Record<string, string>>({});
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
   
   const [aadhaarData, setAadhaarData] = useState({ number: '', mobile: '', consent: false });
   const [emailData, setEmailData] = useState({ newEmail: '', verifyEmail: '' });
@@ -177,9 +173,6 @@ export default function SellerOnboarding() {
     }
   };
 
-<<<<<<< HEAD
-  const handleAddOffice = async () => {
-=======
   const handleFinalSubmit = async () => {
     if (isProfileLocked) return;
     setIsLoading(true);
@@ -205,8 +198,7 @@ export default function SellerOnboarding() {
     }
   };
 
-  const handleAddOffice = async (officeData: any) => {
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
+  const handleAddOffice = async (officeDataArg?: any) => {
     if (isProfileLocked) {
       toast.info('Approved profiles are locked');
       return;
@@ -590,21 +582,12 @@ export default function SellerOnboarding() {
                     <Input label="Name (As in PAN)" name="nameAsInPan" value={formData.nameAsInPan} onChange={handleChange} placeholder="Autofetched from PAN" />
                     <Input label="Date (As in PAN)" name="dateAsInPan" type="date" value={formData.dateAsInPan} onChange={handleChange} />
                   </div>
-<<<<<<< HEAD
                   <div className="flex justify-end gap-3 pt-4">
                     <Button onClick={fetchPanDetails} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 rounded-xl px-8 h-12 font-black uppercase text-xs italic tracking-widest shadow-lg shadow-blue-100">
                        {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Verify Business PAN'}
                     </Button>
                     <Button onClick={() => handleSaveSection('details')} disabled={isLoading || !formData.panVerified} className="bg-gray-900 hover:bg-black rounded-xl px-8 h-12 font-black uppercase text-xs italic tracking-widest text-white">
                        {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-=======
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button onClick={() => setFormData((prev: any) => ({ ...prev, panVerified: true }))} className="bg-blue-600 hover:bg-blue-700 rounded px-6 h-9 font-bold uppercase text-xs tracking-wide shadow-sm">
-                       Verify Business PAN
-                    </Button>
-                    <Button onClick={() => handleSaveSection('details')} disabled={isLoading} className="bg-gray-900 hover:bg-black rounded px-6 h-9 font-bold uppercase text-xs tracking-wide text-white">
-                       {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <Save className="mr-2 h-3.5 w-3.5" />}
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
                        Save & Continue
                     </Button>
                   </div>
@@ -746,19 +729,13 @@ export default function SellerOnboarding() {
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">State*</label>
-<<<<<<< HEAD
-                              <input value={officeForm.state} onChange={(e) => setOfficeForm({...officeForm, state: e.target.value})} placeholder="State" className="w-full h-12 px-4 rounded border border-gray-300 bg-gray-50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                           </div>
-                           <div>
-                              <label className="block text-xs font-bold text-gray-700 mb-1">Town/City/District*</label>
-                              <input value={officeForm.city} onChange={(e) => setOfficeForm({...officeForm, city: e.target.value})} placeholder="Town/City/District" className="w-full h-12 px-4 rounded border border-gray-300 bg-gray-50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
-=======
                               <select 
                                 id="new-office-state" 
                                 value={selectedOfficeState}
                                 onChange={(e) => {
                                   setSelectedOfficeState(e.target.value);
                                   setSelectedOfficeCity('');
+                                  setOfficeForm({...officeForm, state: e.target.value});
                                 }}
                                 className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                               >
@@ -774,7 +751,10 @@ export default function SellerOnboarding() {
                                 id="new-office-city"
                                 value={selectedOfficeCity}
                                 disabled={!selectedOfficeState}
-                                onChange={(e) => setSelectedOfficeCity(e.target.value)}
+                                onChange={(e) => {
+                                  setSelectedOfficeCity(e.target.value);
+                                  setOfficeForm({...officeForm, city: e.target.value});
+                                }}
                                 className="w-full h-12 px-4 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:bg-gray-50"
                               >
                                 <option value="">Select District</option>
@@ -782,7 +762,6 @@ export default function SellerOnboarding() {
                                   <option key={dist} value={dist}>{dist}</option>
                                 ))}
                               </select>
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
                            </div>
                            <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">Flat/Door/Block No*</label>
@@ -813,18 +792,15 @@ export default function SellerOnboarding() {
                            </div>
                         </div>
                         <div className="flex justify-end mt-6 pt-6 border-t border-gray-100">
-<<<<<<< HEAD
-                           <Button onClick={handleAddOffice} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 rounded transition-colors uppercase tracking-widest text-xs italic shadow-lg shadow-blue-100">
-                               {editingOfficeId ? 'UPDATE OFFICE' : <><Plus className="mr-2 h-4 w-4" /> ADD OFFICE</>}
-=======
                            <Button onClick={() => {
-                             const name = (document.getElementById('new-office-name') as HTMLInputElement).value;
-                             const type = (document.getElementById('new-office-type') as HTMLSelectElement).value;
-                             const flat = (document.getElementById('new-office-flat') as HTMLInputElement).value;
-                             const premises = (document.getElementById('new-office-premises') as HTMLInputElement).value;
-                             const road = (document.getElementById('new-office-road') as HTMLInputElement).value;
-                             const area = (document.getElementById('new-office-area') as HTMLInputElement).value;
-                             const contact = (document.getElementById('new-office-contact') as HTMLInputElement).value;
+                             const name = officeForm.name;
+                             const type = officeForm.type;
+                             const flat = officeForm.flat;
+                             const premises = officeForm.premises;
+                             const road = officeForm.road;
+                             const area = officeForm.area;
+                             const contact = officeForm.contact;
+                             const pincode = officeForm.pincode;
                              
                              if (!name) { toast.error("Please enter Office Name"); return; }
                              
@@ -833,17 +809,15 @@ export default function SellerOnboarding() {
                              handleAddOffice({
                                name,
                                type: type === 'Registered' ? 'Registered' : type,
-                               pincode: (document.getElementById('new-office-pincode') as HTMLInputElement).value,
+                               pincode: pincode,
                                state: selectedOfficeState,
                                city: selectedOfficeCity,
                                address: fullAddress,
                                contactNumber: contact,
                                isMandatory: type === 'Registered'
                              });
-                             setOfficeTab('manage');
-                           }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 h-9 rounded transition-colors uppercase tracking-wide text-xs">
-                              <Plus className="mr-2 h-4 w-4" /> ADD OFFICE
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
+                           }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 rounded transition-colors uppercase tracking-widest text-xs italic shadow-lg shadow-blue-100">
+                               {editingOfficeId ? 'UPDATE OFFICE' : <><Plus className="mr-2 h-4 w-4" /> ADD OFFICE</>}
                            </Button>
                         </div>
                      </div>

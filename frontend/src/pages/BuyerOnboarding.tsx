@@ -297,13 +297,6 @@ export default function BuyerOnboarding() {
       cleared.state = '';
       cleared.city = '';
       cleared.pincode = '';
-      if (!lastFetchedGstinRef.current || lastFetchedGstinRef.current === gstin) return cleared;
-      Object.entries(gstFetchedFieldsRef.current).forEach(([field, fetchedValue]) => {
-        if (cleared[field] === fetchedValue) cleared[field] = '';
-      });
-<<<<<<< HEAD
-
-=======
       return cleared;
     });
 
@@ -313,7 +306,6 @@ export default function BuyerOnboarding() {
         skipCache: true
       } as RequestInit & { skipCache: boolean });
       
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
       if (res.ok) {
         const data = await res.json();
         setFormData((prev: any) => ({
@@ -945,17 +937,6 @@ export default function BuyerOnboarding() {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-end gap-2">
                         <div className="flex-1">
-<<<<<<< HEAD
-                          <Input
-                            label="GSTIN (Optional)"
-                            name="gst"
-                            value={formData.gst}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            error={touched.gst ? errors.gst : ''}
-                            placeholder="22ABCDE1234F1Z5"
-                            className="h-12"
-=======
                           <Input 
                             label="GSTIN (Optional)" 
                             name="gst" 
@@ -965,7 +946,6 @@ export default function BuyerOnboarding() {
                             error={getFieldError('gst')} 
                             placeholder="22ABCDE1234F1Z5" 
                             className="h-12" 
->>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
                           />
                         </div>
                         <Button
