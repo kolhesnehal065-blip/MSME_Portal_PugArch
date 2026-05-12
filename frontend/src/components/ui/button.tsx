@@ -4,7 +4,7 @@ import { cn } from "../../lib/utils";
 const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost', size?: 'sm' | 'md' | 'lg' | 'icon' }>(
   ({ className, variant = 'primary', size = 'md', ...props }, ref) => {
     const variants = {
-      primary: 'bg-[#0f766e] text-white hover:bg-[#0b5f59] shadow-sm',
+      primary: 'bg-[#12335f] text-white hover:bg-[#0b2445] shadow-sm',
       secondary: 'bg-[#12335f] text-white hover:bg-[#0b2445] shadow-sm',
       outline: 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-sm',
       danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
@@ -23,7 +23,7 @@ const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HT
         ref={ref}
         className={cn(
           "inline-flex items-center justify-center rounded-lg font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50 active:scale-95",
-          "focus-visible:ring-[#0f766e]",
+          "focus-visible:ring-[#12335f]",
           variants[variant],
           sizes[size],
           className

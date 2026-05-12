@@ -203,7 +203,7 @@ const Vendors = () => {
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none group-hover:text-teal-600 transition-colors" />
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none group-hover:text-[#12335f] transition-colors" />
           </div>
 
           <div className="relative group flex-1 sm:flex-none sm:min-w-[140px]">
@@ -216,13 +216,13 @@ const Vendors = () => {
                 <option key={size} value={size}>{size}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none group-hover:text-teal-600 transition-colors" />
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none group-hover:text-[#12335f] transition-colors" />
           </div>
 
           <Button
             variant="outline"
             onClick={() => setVerifiedOnly(prev => !prev)}
-            className={`h-11 bg-white border-slate-200 rounded-lg px-6 gap-2 font-medium hover:bg-slate-50 transition-all flex justify-center items-center ${verifiedOnly ? 'text-[#0f766e] border-[#0f766e]/40' : 'text-slate-700'}`}
+            className={`h-11 bg-white border-slate-200 rounded-lg px-6 gap-2 font-medium hover:bg-slate-50 transition-all flex justify-center items-center ${verifiedOnly ? 'text-[#12335f] border-[#12335f]/40' : 'text-slate-700'}`}
           >
             <CheckCircle2 className="h-4 w-4 shrink-0 text-slate-400" />
             <span>{verifiedOnly ? 'Verified only' : 'All vendors'}</span>
@@ -249,13 +249,13 @@ const Vendors = () => {
               <div key={vendor._id} className="group relative bg-white border border-slate-200 rounded-2xl p-6 transition-all hover:shadow-lg hover:shadow-slate-200/50">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex gap-4">
-                    <div className="h-12 w-12 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 font-bold text-lg border border-slate-100 group-hover:border-teal-100 group-hover:bg-teal-50 group-hover:text-teal-600 transition-all">
+                    <div className="h-12 w-12 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 font-bold text-lg border border-slate-100 group-hover:border-slate-200 group-hover:bg-slate-50 group-hover:text-[#12335f] transition-all">
                       {vendor.sellerProfile?.businessName?.charAt(0) || vendor.name?.charAt(0) || 'V'}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
                         <h3 className="font-bold text-slate-900 group-hover:text-teal-900 transition-colors">{vendor.sellerProfile?.businessName || vendor.name}</h3>
-                        <span className="flex items-center gap-1 text-[11px] text-teal-600 font-semibold">
+                        <span className="flex items-center gap-1 text-[11px] text-[#12335f] font-semibold">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           Verified
                         </span>
@@ -307,7 +307,7 @@ const Vendors = () => {
                   </Button>
                   <Button 
                     onClick={() => handleOpenQuoteModal(vendor)}
-                    className="h-10 bg-teal-700 hover:bg-teal-800 text-white rounded-lg font-semibold text-xs transition-all"
+                    className="h-10 bg-[#12335f] hover:bg-[#0b2445] text-white rounded-lg font-semibold text-xs transition-all"
                   >
                     Request quote
                   </Button>
@@ -331,18 +331,18 @@ const Vendors = () => {
       {/* Vendor Profile Modal */}
       {isProfileModalOpen && selectedVendor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-4">
-                 <div className="h-14 w-14 rounded-2xl bg-teal-600 flex items-center justify-center text-white font-black text-2xl italic shadow-lg shadow-teal-600/20">
+          <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                 <div className="h-11 w-11 rounded-xl bg-[#12335f] flex items-center justify-center text-white font-black text-xl shadow shadow-slate-900/10">
                    {selectedVendor.sellerProfile?.businessName?.charAt(0) || selectedVendor.name?.charAt(0)}
                  </div>
                  <div>
-                   <h2 className="text-xl font-black text-slate-900 uppercase italic tracking-tight flex items-center gap-2">
+                   <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
                      {selectedVendor.sellerProfile?.businessName || selectedVendor.name}
-                     <CheckCircle2 className="h-5 w-5 text-teal-600" />
+                     <CheckCircle2 className="h-4 w-4 text-[#12335f]" />
                    </h2>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{selectedVendor.sellerProfile?.organizationType || 'Private Limited'} · {selectedVendor.sellerProfile?.msmeCategory || 'Medium'} Enterprise</p>
+                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{selectedVendor.sellerProfile?.organizationType || 'Private Limited'} · {selectedVendor.sellerProfile?.msmeCategory || 'Medium'} Enterprise</p>
                  </div>
               </div>
               <button 
@@ -353,54 +353,54 @@ const Vendors = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-10">
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
                {/* Quick Stats */}
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { label: 'Rating', value: '4.6 / 5', icon: Star, color: 'text-amber-500' },
                     { label: 'City', value: selectedVendor.sellerProfile?.city || 'Bangalore', icon: MapPin, color: 'text-blue-500' },
                     { label: 'Established', value: selectedVendor.sellerProfile?.dateOfIncorporation ? new Date(selectedVendor.sellerProfile.dateOfIncorporation).getFullYear() : '2018', icon: Building2, color: 'text-teal-500' },
                     { label: 'PAN Verified', value: 'Yes', icon: ShieldCheck, color: 'text-emerald-500' }
                   ].map(stat => (
-                    <div key={stat.label} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div key={stat.label} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-2 mb-1">
-                        <stat.icon className={`h-3.5 w-3.5 ${stat.color}`} />
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{stat.label}</span>
+                        <stat.icon className={`h-3 w-3 ${stat.color}`} />
+                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">{stat.label}</span>
                       </div>
-                      <div className="text-sm font-black text-slate-900 italic uppercase">{stat.value}</div>
+                      <div className="text-xs font-black text-slate-900 uppercase">{stat.value}</div>
                     </div>
                   ))}
                </div>
 
                {/* Bio/Info */}
-               <div className="space-y-4">
-                  <h3 className="text-[11px] font-black uppercase text-indigo-600 tracking-[0.2em] italic flex items-center gap-2">
-                    <Info className="h-4 w-4" />
+               <div className="space-y-2">
+                  <h3 className="text-[10px] font-black uppercase text-[#12335f] tracking-[0.1em] flex items-center gap-2">
+                    <Info className="h-3.5 w-3.5" />
                     Business Overview
                   </h3>
-                  <p className="text-sm font-medium text-slate-600 leading-relaxed italic border-l-4 border-teal-100 pl-6 py-1">
+                  <p className="text-xs font-medium text-slate-600 leading-relaxed border-l-2 border-slate-200 pl-4 py-0.5">
                     {selectedVendor.sellerProfile?.businessName || selectedVendor.name} is a leading provider in the {selectedVendor.sellerProfile?.productCategories?.[0] || 'MSME'} sector, specializing in high-quality deliverables for enterprise-grade procurement. With a focus on compliance and efficiency, we ensure seamless supply chain integration for our buyer partners.
                   </p>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Left Column: Business Details */}
-                  <div className="space-y-6">
-                     <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] italic">Business Details</h3>
-                     <div className="space-y-4">
+                  <div className="space-y-4">
+                     <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.1em]">Business Details</h3>
+                     <div className="space-y-3">
                         {[
                           { label: 'GST Number', value: selectedVendor.sellerProfile?.gst, icon: FileText },
                           { label: 'Business PAN', value: selectedVendor.sellerProfile?.pan, icon: Briefcase },
                           { label: 'Email Address', value: selectedVendor.email, icon: Mail },
                           { label: 'Incorporation', value: selectedVendor.sellerProfile?.dateOfIncorporation ? new Date(selectedVendor.sellerProfile.dateOfIncorporation).toLocaleDateString() : 'N/A', icon: Clock }
                         ].map(item => (
-                          <div key={item.label} className="flex items-center gap-4 group">
-                             <div className="h-10 w-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-colors">
-                                <item.icon className="h-4 w-4" />
+                          <div key={item.label} className="flex items-center gap-3 group">
+                             <div className="h-8 w-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-[#12335f] transition-colors">
+                                <item.icon className="h-3.5 w-3.5" />
                              </div>
                              <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{item.label}</p>
-                                <p className="text-xs font-bold text-slate-900">{item.value || 'Verified'}</p>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">{item.label}</p>
+                                <p className="text-xs font-bold text-slate-800">{item.value || 'Verified'}</p>
                              </div>
                           </div>
                         ))}
@@ -408,35 +408,35 @@ const Vendors = () => {
                   </div>
 
                   {/* Right Column: Categories & Offices */}
-                  <div className="space-y-6">
-                     <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] italic">Categories & Reach</h3>
-                     <div className="space-y-4">
-                        <div className="flex flex-wrap gap-2">
+                  <div className="space-y-4">
+                     <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.1em]">Categories & Reach</h3>
+                     <div className="space-y-3">
+                        <div className="flex flex-wrap gap-1.5">
                            {selectedVendor.sellerProfile?.productCategories?.map(cat => (
-                             <span key={cat} className="px-3 py-1.5 rounded-lg bg-teal-50 text-teal-700 text-[11px] font-black uppercase italic border border-teal-100">
+                             <span key={cat} className="px-2 py-1 rounded-md bg-slate-50 text-[#12335f] text-[10px] font-black uppercase border border-slate-200">
                                {cat}
                              </span>
                            ))}
                         </div>
                         
-                        <div className="mt-6 pt-6 border-t border-slate-100">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Registered Offices</p>
+                        <div className="mt-4 pt-4 border-t border-slate-100">
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Registered Offices</p>
                            {selectedVendor.sellerProfile?.offices && selectedVendor.sellerProfile.offices.length > 0 ? (
-                             <div className="space-y-3">
+                             <div className="space-y-2">
                                 {selectedVendor.sellerProfile.offices.map((office: any) => (
-                                  <div key={office.id} className="flex gap-3">
-                                     <MapPin className="h-4 w-4 text-teal-600 mt-1 shrink-0" />
+                                  <div key={office.id} className="flex gap-2">
+                                     <MapPin className="h-3.5 w-3.5 text-[#12335f] mt-0.5 shrink-0" />
                                      <div>
-                                        <p className="text-xs font-bold text-slate-900">{office.name}</p>
-                                        <p className="text-[11px] text-slate-500 italic">{office.address}, {office.city}, {office.state}</p>
+                                        <p className="text-xs font-bold text-slate-800">{office.name}</p>
+                                        <p className="text-[10px] text-slate-500">{office.address}, {office.city}, {office.state}</p>
                                      </div>
                                   </div>
                                 ))}
                              </div>
                            ) : (
-                             <div className="flex items-center gap-3 text-slate-400 italic">
-                                <MapPin className="h-4 w-4" />
-                                <span className="text-xs font-medium">{selectedVendor.sellerProfile?.city}, {selectedVendor.sellerProfile?.state}</span>
+                             <div className="flex items-center gap-2 text-slate-400">
+                                <MapPin className="h-3.5 w-3.5" />
+                                <span className="text-[11px] font-medium">{selectedVendor.sellerProfile?.city}, {selectedVendor.sellerProfile?.state}</span>
                              </div>
                            )}
                         </div>
@@ -445,11 +445,11 @@ const Vendors = () => {
                </div>
             </div>
 
-            <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-4">
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
                <Button 
                 variant="outline" 
                 onClick={() => setIsProfileModalOpen(false)}
-                className="rounded-2xl h-12 px-8 font-black uppercase italic text-xs tracking-widest text-slate-400 hover:text-slate-900 border-slate-200"
+                className="rounded-lg h-9 px-5 font-bold uppercase text-[11px] tracking-wider text-slate-600 hover:text-slate-900 border-slate-200"
                >
                  Close
                </Button>
@@ -458,7 +458,7 @@ const Vendors = () => {
                   setIsProfileModalOpen(false);
                   setIsQuoteModalOpen(true);
                 }}
-                className="bg-teal-700 hover:bg-teal-800 text-white rounded-2xl h-12 px-8 font-black uppercase italic text-xs tracking-widest shadow-lg shadow-teal-100"
+                className="bg-[#12335f] hover:bg-[#0b2445] text-white rounded-lg h-9 px-5 font-bold uppercase text-[11px] tracking-wider shadow shadow-slate-200"
                >
                  Request Quote
                </Button>
@@ -470,53 +470,53 @@ const Vendors = () => {
       {/* Request Quote Modal */}
       {isQuoteModalOpen && selectedVendor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-10 space-y-8">
-              <div className="space-y-2">
-                 <div className="h-10 w-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center mb-4">
-                    <Send className="h-5 w-5" />
+          <div className="relative w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 space-y-5">
+              <div className="space-y-1">
+                 <div className="h-9 w-9 rounded-lg bg-slate-50 text-[#12335f] flex items-center justify-center mb-2">
+                    <Send className="h-4 w-4" />
                  </div>
-                 <h2 className="text-2xl font-black italic tracking-tight text-slate-900 uppercase">Send Request</h2>
-                 <p className="text-xs text-slate-500 font-bold italic">Requesting a quote from <span className="text-teal-600">{selectedVendor.sellerProfile?.businessName || selectedVendor.name}</span></p>
+                 <h2 className="text-lg font-black tracking-tight text-slate-900 uppercase">Send Request</h2>
+                 <p className="text-[11px] text-slate-500 font-bold">Requesting a quote from <span className="text-[#12335f]">{selectedVendor.sellerProfile?.businessName || selectedVendor.name}</span></p>
               </div>
 
-              <form onSubmit={handleSubmitQuote} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Subject</label>
+              <form onSubmit={handleSubmitQuote} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 ml-1">Subject</label>
                   <input 
                     required
                     value={quoteForm.subject}
                     onChange={(e) => setQuoteForm({...quoteForm, subject: e.target.value})}
                     placeholder="e.g. Bulk Procurement for IT Hardware"
-                    className="w-full bg-slate-50 border-slate-200 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-teal-500/20 transition-all italic text-slate-900"
+                    className="w-full bg-slate-50 border-slate-200 border rounded-lg py-2 px-3 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#12335f] transition-all text-slate-900"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Message Details</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 ml-1">Message Details</label>
                   <textarea 
                     required
                     value={quoteForm.message}
                     onChange={(e) => setQuoteForm({...quoteForm, message: e.target.value})}
-                    placeholder="Describe your requirements, quantity, and timelines..."
-                    rows={4}
-                    className="w-full bg-slate-50 border-slate-200 border rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-teal-500/20 transition-all italic resize-none text-slate-900"
+                    placeholder="Describe your requirements..."
+                    rows={3}
+                    className="w-full bg-slate-50 border-slate-200 border rounded-lg py-2 px-3 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#12335f] transition-all resize-none text-slate-900"
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-4 pt-4">
+                <div className="flex items-center justify-end gap-3 pt-2">
                   <button 
                     type="button"
                     onClick={() => setIsQuoteModalOpen(false)}
-                    className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors italic"
+                    className="px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 hover:text-slate-900 transition-colors"
                   >
                     Cancel
                   </button>
                   <Button 
                     disabled={submittingQuote}
-                    className="bg-teal-700 hover:bg-teal-800 text-white border-0 h-14 px-10 rounded-2xl font-black uppercase text-xs tracking-widest italic transition-all shadow-xl shadow-teal-100"
+                    className="bg-[#12335f] hover:bg-[#0b2445] text-white border-0 h-9 px-6 rounded-lg font-bold uppercase text-[11px] tracking-wide transition-all shadow shadow-slate-200"
                   >
-                    {submittingQuote ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send Request'}
+                    {submittingQuote ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Send Request'}
                   </Button>
                 </div>
               </form>

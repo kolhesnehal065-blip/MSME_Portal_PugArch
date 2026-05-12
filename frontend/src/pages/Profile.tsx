@@ -118,19 +118,19 @@ export default function Profile() {
             <h3 className="text-sm font-bold text-slate-900 mb-3">Profile Actions</h3>
             <div className="space-y-2">
               {user.role === 'buyer' && (
-                <Link to="/buyer/profile" className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-[#0f766e]/40 hover:text-[#0f766e]">
+                <Link to="/buyer/profile" className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-[#12335f]/40 hover:text-[#12335f]">
                   Buyer profile details
                   <ExternalLink className="h-4 w-4" />
                 </Link>
               )}
               {user.role === 'seller' && (
-                <Link to="/seller/onboarding" className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-[#0f766e]/40 hover:text-[#0f766e]">
+                <Link to="/seller/onboarding" className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-[#12335f]/40 hover:text-[#12335f]">
                   Seller profile details
                   <ExternalLink className="h-4 w-4" />
                 </Link>
               )}
               {user.role === 'admin' && (
-                <Link to="/admin/onboarding" className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-[#0f766e]/40 hover:text-[#0f766e]">
+                <Link to="/admin/onboarding" className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-[#12335f]/40 hover:text-[#12335f]">
                   Admin console
                   <ExternalLink className="h-4 w-4" />
                 </Link>

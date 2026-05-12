@@ -447,7 +447,7 @@ export default function AdminOnboarding() {
                          <span className="text-xs font-extrabold text-[#12335f]">{getProgress(selectedItem)}%</span>
                       </div>
                       <div className="mt-3 h-2 w-full overflow-hidden rounded-full border border-slate-200 bg-slate-100">
-                         <div className="h-full rounded-full bg-[#0f766e] transition-all duration-700" style={{ width: `${getProgress(selectedItem)}%` }} />
+                         <div className="h-full rounded-full bg-[#12335f] transition-all duration-700" style={{ width: `${getProgress(selectedItem)}%` }} />
                       </div>
                    </div>
 
@@ -456,7 +456,7 @@ export default function AdminOnboarding() {
                       <Button 
                         onClick={() => handleUpdateStatus(selectedItem._id, 'approved_for_procurement')}
                         disabled={selectedItem.status === 'approved_for_procurement'}
-                        className="h-12 w-full rounded-md bg-[#0f766e] font-bold uppercase tracking-wide text-white hover:bg-[#0b5f59]"
+                        className="h-12 w-full rounded-md bg-[#12335f] font-bold uppercase tracking-wide text-white hover:bg-[#0b2445]"
                       >
                          <CheckCircle className="h-5 w-5" />
                          <span>Approve Organization</span>

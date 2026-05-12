@@ -397,7 +397,7 @@ function QuotationCard({
                   <XCircle className="mr-2 h-4 w-4" />
                   Reject
                 </Button>
-                <Button onClick={onAccept} className="h-10 rounded-md bg-[#0f766e] font-bold text-white hover:bg-[#0b5f59]">
+                <Button onClick={onAccept} className="h-10 rounded-md bg-[#12335f] font-bold text-white hover:bg-[#0b2445]">
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Accept
                 </Button>

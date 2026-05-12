@@ -16,9 +16,9 @@ export default function ParcelTracking({ trackingNumber = "PKG-92837465-IN" }: {
       <div className="bg-slate-900 px-6 py-4 text-white flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Truck className="h-5 w-5 text-indigo-400" />
-          <h3 className="font-black uppercase italic text-xs tracking-widest">Live Logistics Tracker</h3>
+          <h3 className="font-black uppercase text-xs tracking-widest">Live Logistics Tracker</h3>
         </div>
-        <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30 text-[9px] font-black italic">ON THE WAY</Badge>
+        <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30 text-[9px] font-black ">ON THE WAY</Badge>
       </div>
       
       <div className="p-6 bg-white">

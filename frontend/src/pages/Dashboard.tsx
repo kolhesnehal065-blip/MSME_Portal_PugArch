@@ -120,7 +120,7 @@ export default function Dashboard() {
             { label: 'Active Sellers', value: adminStats?.activeSellers, path: '/admin/onboarding' },
             { label: 'Active Buyers', value: adminStats?.activeBuyers, path: '/admin/onboarding' }
           ].map(stat => (
-            <Link key={stat.label} to={stat.path} className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-[#0f766e]/40 focus:outline-none focus:ring-2 focus:ring-[#0f766e]">
+            <Link key={stat.label} to={stat.path} className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-[#12335f]/40 focus:outline-none focus:ring-2 focus:ring-[#12335f]">
               <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">{stat.label}</div>
               <div className="text-3xl font-extrabold tracking-tight text-slate-900">{stat.value ?? '0'}</div>
             </Link>
@@ -151,13 +151,13 @@ export default function Dashboard() {
     <div className="space-y-5 animate-in fade-in duration-500 max-w-6xl mx-auto pb-10">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-slate-200 pb-4">
         <div>
-          <p className="text-[10px] font-bold text-[#0f766e] uppercase tracking-[0.18em] mb-1">MSME Procurement Portal</p>
+          <p className="text-[10px] font-bold text-[#12335f] uppercase tracking-[0.18em] mb-1">MSME Procurement Portal</p>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#12335f] uppercase tracking-tight">Dashboard</h1>
         </div>
         <button
           type="button"
           onClick={() => navigate('/profile')}
-          className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-200 shadow-sm text-left hover:border-[#0f766e]/40 focus:outline-none focus:ring-2 focus:ring-[#0f766e]"
+          className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-200 shadow-sm text-left hover:border-[#12335f]/40 focus:outline-none focus:ring-2 focus:ring-[#12335f]"
         >
            <div className="h-10 w-10 rounded-md bg-[#12335f] flex items-center justify-center text-white font-black text-base">
              {user?.name?.charAt(0)}
@@ -166,7 +166,7 @@ export default function Dashboard() {
              <p className="text-xs font-bold text-slate-900 uppercase">{user?.name}</p>
              <div className="flex flex-col gap-0.5 mt-0.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user?.role} Tier Account</p>
-                <p className="text-[10px] font-bold text-[#0f766e] uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-[#12335f] uppercase tracking-widest">
                   ID: {user?.registrationDetails?.userId || `MSME-${user?.role?.charAt(0).toUpperCase()}-${String(user?.id).padStart(5, '0')}`}
                 </p>
              </div>
@@ -194,7 +194,7 @@ export default function Dashboard() {
                   key={method.label} 
                   to={method.path}
                   className={cn(
-                    "flex flex-col items-center justify-center p-4 rounded-lg border border-slate-200 bg-white transition-all duration-300 hover:shadow-md group focus:outline-none focus:ring-2 focus:ring-[#0f766e]",
+                    "flex flex-col items-center justify-center p-4 rounded-lg border border-slate-200 bg-white transition-all duration-300 hover:shadow-md group focus:outline-none focus:ring-2 focus:ring-[#12335f]",
                     method.hover
                   )}
                 >
@@ -219,10 +219,10 @@ export default function Dashboard() {
           <Card className="rounded-lg border-slate-200 shadow-sm overflow-hidden bg-white">
             <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
                <h3 className="text-sm font-bold uppercase text-slate-900 tracking-tight flex items-center gap-2">
-                 <ShieldCheck className="h-5 w-5 text-[#0f766e]" />
+                 <ShieldCheck className="h-5 w-5 text-[#12335f]" />
                  Verification Status Tracker
                </h3>
-               <Badge className="bg-white text-[#0f766e] border border-teal-100 px-3 py-1 rounded text-[10px] font-bold uppercase">
+               <Badge className="bg-white text-[#12335f] border border-teal-100 px-3 py-1 rounded text-[10px] font-bold uppercase">
                  Live Monitoring
                </Badge>
             </div>
@@ -246,7 +246,7 @@ export default function Dashboard() {
                         </p>
                      </div>
                      <Link to={user?.role === 'seller' ? '/seller/onboarding' : '/buyer/onboarding'}>
-                       <Button className="bg-[#0f766e] hover:bg-[#0b5f59] text-white rounded-md h-10 px-5 font-bold uppercase text-xs tracking-wide transition-all">
+                       <Button className="bg-[#12335f] hover:bg-[#0b2445] text-white rounded-md h-10 px-5 font-bold uppercase text-xs tracking-wide transition-all">
                           {user?.onboardingStatus === 'approved_for_procurement' ? 'View Full Profile' : 'Complete Profile'}
                           <ArrowRight className="ml-2 h-4 w-4" />
                        </Button>
@@ -267,7 +267,7 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   onClick={() => toast.info('Support desk request noted. Please email support@msme-portal.gov.in for urgent help.')}
-                  className="text-[#0f766e] font-bold uppercase text-[10px] p-0 h-auto hover:bg-transparent"
+                  className="text-[#12335f] font-bold uppercase text-[10px] p-0 h-auto hover:bg-transparent"
                 >
                   Contact Support
                 </Button>
