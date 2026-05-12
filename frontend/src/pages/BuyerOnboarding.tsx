@@ -297,10 +297,6 @@ export default function BuyerOnboarding() {
       cleared.state = '';
       cleared.city = '';
       cleared.pincode = '';
-      if (!lastFetchedGstinRef.current || lastFetchedGstinRef.current === gstin) return cleared;
-      Object.entries(gstFetchedFieldsRef.current).forEach(([field, fetchedValue]) => {
-        if (cleared[field] === fetchedValue) cleared[field] = '';
-      });
       return cleared;
     });
 
@@ -952,7 +948,7 @@ export default function BuyerOnboarding() {
                             className="h-12" 
                           />
                         </div>
-                        <Button 
+                        <Button
                           type="button"
                           variant="outline"
                           onClick={fetchGstDetails}

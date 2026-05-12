@@ -21,6 +21,7 @@ import {
   Users,
   FileText,
   User as UserIcon,
+  Settings,
   ClipboardCheck,
   Truck,
   PanelLeftClose,
@@ -59,6 +60,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['seller', 'buyer', 'admin'] },
     { label: 'Seller Portal', path: '/seller/onboarding', icon: Store, roles: ['seller'] },
     { label: 'Tenders', path: '/seller/tenders', icon: FileText, roles: ['seller'] },
+    { label: 'Account Settings', path: '/seller/settings', icon: Settings, roles: ['seller'] },
     { label: 'Quotations', path: '/quotations', icon: ClipboardCheck, roles: ['seller', 'buyer'] },
     { label: 'Buyer Hub', path: '/buyer/onboarding', icon: Building2, roles: ['buyer'] },
     { label: 'Vendors', path: '/buyer/vendors', icon: Users, roles: ['buyer'] },
@@ -340,6 +342,7 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
       case '/buyer/orders': return 'Order Management';
       case '/buyer/tracking': return 'Shipment Tracking';
       case '/seller/tenders': return 'Tender Marketplace';
+      case '/seller/settings': return 'Account Settings';
       case '/admin/onboarding': return 'Onboarding Verification';
       case '/profile': return 'My Profile';
       default: return 'Procurement ERP';

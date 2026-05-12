@@ -323,6 +323,13 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
       toast.error('Please verify your email address first');
       return;
     }
+
+    if (currentSubStep === 3 && isEmailVerified && role === 'seller') {
+      if (!formData.userId && formData.email) {
+        const prefix = formData.email.split('@')[0];
+        setFormData(prev => ({ ...prev, userId: prefix }));
+      }
+    }
     
     if (currentSubStep < 4) setCurrentSubStep(currentSubStep + 1);
   };
@@ -1241,28 +1248,34 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                   </>
                 ) : (
                   <>
-                    <Input
-                      label="User ID"
-                      value={formData.email}
-                      disabled
-                      className="bg-slate-50 font-bold  h-11 rounded"
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <h2 className="text-xl md:text-2xl font-black text-slate-800">User Credentials</h2>
+                    <div className="max-w-md">
                       <Input
-                        label="Password"
+                        label="User Id *"
+                        placeholder="Enter unique user id"
+                        value={formData.userId}
+                        onChange={(e) => setFormData({...formData, userId: e.target.value})}
+                        error={!formData.userId ? 'Please enter user id.' : undefined}
+                        className="h-14 rounded-lg border-slate-200 bg-white"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <Input
+                        label="Password *"
                         type="password"
-                        placeholder="Min. 8 characters"
+                        placeholder="Enter Password"
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="h-11 rounded border-slate-200"
+                        className="h-14 rounded-lg border-slate-200 bg-white"
                       />
                       <Input
-                        label="Confirm Password"
+                        label="Confirm Password*"
                         type="password"
-                        placeholder="Repeat password"
+                        placeholder="Confirm Password"
                         value={formData.confirmPassword}
                         onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                        className="h-11 rounded border-slate-200"
+                        className="h-14 rounded-lg border-slate-200 bg-white"
                       />
                     </div>
 
@@ -1277,10 +1290,24 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                           <ValidationItem label="Passwords Match" valid={formData.password !== '' && formData.password === formData.confirmPassword} />
                        </div>
                     </div>
+                    <div className="flex justify-end pt-6">
+                      <Button
+                        onClick={handleSubmit}
+                        disabled={isLoading || !formData.userId || !isPasswordStrong(formData.password) || formData.password !== formData.confirmPassword}
+                        className={cn(
+                          "h-14 w-full sm:w-64 rounded-lg font-black uppercase tracking-wide",
+                          !isLoading && formData.userId && isPasswordStrong(formData.password) && formData.password === formData.confirmPassword
+                            ? "bg-slate-900 text-white"
+                            : "bg-slate-200 text-slate-500"
+                        )}
+                      >
+                        {isLoading ? 'Creating Account...' : 'Create Account'}
+                      </Button>
+                    </div>
                   </>
                 )}
               </div>
-        )}
+            )}
 
             <div className="mt-10 flex items-center justify-end gap-4 pt-6">
               {currentSubStep > 1 && (
