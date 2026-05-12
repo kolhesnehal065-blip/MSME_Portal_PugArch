@@ -379,7 +379,7 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
             onKeyDown={(event) => {
               if (event.key === 'Enter') navigate(user.role === 'buyer' ? '/buyer/vendors' : user.role === 'seller' ? '/seller/tenders' : '/admin/onboarding');
             }}
-            className="pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs w-60 focus:ring-2 focus:ring-[#0f766e] transition-all outline-none"
+            className="pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs w-60 focus:ring-2 focus:ring-[#12335f] transition-all outline-none"
           />
         </div>
         <div className="relative flex items-center gap-2">
@@ -441,7 +441,7 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
                             ? "border-red-100 bg-red-50/70 hover:border-red-200 hover:bg-red-50 focus:ring-red-300"
                             : isSuccess
                               ? "border-emerald-100 bg-emerald-50/70 hover:border-emerald-200 hover:bg-emerald-50 focus:ring-emerald-300"
-                              : "border-slate-100 bg-slate-50/70 hover:border-slate-200 hover:bg-slate-50 focus:ring-[#0f766e]"
+                              : "border-slate-100 bg-slate-50/70 hover:border-slate-200 hover:bg-slate-50 focus:ring-[#12335f]"
                         )}
                       >
                         <div className="flex items-start gap-3">

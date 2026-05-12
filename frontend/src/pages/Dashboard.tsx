@@ -82,7 +82,7 @@ export default function Dashboard() {
     return () => window.removeEventListener('notifications:updated', refreshNotifications);
   }, [token]);
 
-  if (isLoading) return <div className="flex h-screen items-center justify-center font-black italic text-blue-600 animate-pulse text-xl">Loading MSME Portal...</div>;
+  if (isLoading) return <div className="flex h-screen items-center justify-center font-black  text-blue-600 animate-pulse text-xl">Loading MSME Portal...</div>;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -185,7 +185,7 @@ export default function Dashboard() {
            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {[
                 { label: 'Direct Purchase', icon: ShoppingBag, color: 'bg-blue-50 text-blue-600', hover: 'hover:bg-blue-100', path: '/buyer/vendors' },
-                { label: 'Request for Quotation (RFQ)', icon: MessageSquare, color: 'bg-teal-50 text-teal-700', hover: 'hover:bg-teal-100', path: '/quotations' },
+                { label: 'Request for Quotation (RFQ)', icon: MessageSquare, color: 'bg-slate-50 text-[#12335f]', hover: 'hover:bg-slate-100', path: '/quotations' },
                 { label: 'Tender Management', icon: FileText, color: 'bg-emerald-50 text-emerald-600', hover: 'hover:bg-emerald-100', path: '/buyer/tenders' },
                 { label: 'Reverse Auction', icon: Gavel, color: 'bg-amber-50 text-amber-700', hover: 'hover:bg-amber-100', path: '/buyer/tenders' },
                 { label: 'Service Procurement', icon: Briefcase, color: 'bg-orange-50 text-orange-700', hover: 'hover:bg-orange-100', path: '/buyer/vendors' }
@@ -222,7 +222,7 @@ export default function Dashboard() {
                  <ShieldCheck className="h-5 w-5 text-[#12335f]" />
                  Verification Status Tracker
                </h3>
-               <Badge className="bg-white text-[#12335f] border border-teal-100 px-3 py-1 rounded text-[10px] font-bold uppercase">
+               <Badge className="bg-white text-[#12335f] border border-slate-200 px-3 py-1 rounded text-[10px] font-bold uppercase">
                  Live Monitoring
                </Badge>
             </div>
@@ -290,7 +290,7 @@ export default function Dashboard() {
         {/* Notification Panel */}
         <div className="space-y-6">
            <div className="flex items-center justify-between px-2">
-              <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest italic flex items-center gap-2">
+              <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest  flex items-center gap-2">
                  <Bell className="h-4 w-4" />
                  Notifications
               </h3>
@@ -314,14 +314,14 @@ export default function Dashboard() {
                    <div className="flex items-center gap-3 mb-2">
                       <div className={cn(
                         "h-8 w-8 rounded-xl flex items-center justify-center",
-                        notif.type === 'quote_request' ? "bg-teal-100 text-teal-700" : "bg-blue-100 text-blue-700"
+                        notif.type === 'quote_request' ? "bg-slate-100 text-[#12335f]" : "bg-blue-100 text-blue-700"
                       )}>
                          {notif.type === 'quote_request' ? <FileText className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
                       </div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{notif.title}</p>
                    </div>
-                   <p className="text-xs font-bold text-slate-800 italic leading-relaxed">{notif.message}</p>
-                   <p className="text-[9px] font-black text-slate-400 uppercase mt-3 italic">{new Date(notif.createdAt).toLocaleString()}</p>
+                   <p className="text-xs font-bold text-slate-800  leading-relaxed">{notif.message}</p>
+                   <p className="text-[9px] font-black text-slate-400 uppercase mt-3 ">{new Date(notif.createdAt).toLocaleString()}</p>
                 </div>
               ))}
 
@@ -331,7 +331,7 @@ export default function Dashboard() {
                       <Clock className="h-4 w-4 text-amber-600" />
                       <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Admin Remark</p>
                    </div>
-                   <p className="text-sm font-semibold text-amber-900 italic leading-relaxed">"{user.adminFeedback}"</p>
+                   <p className="text-sm font-semibold text-amber-900  leading-relaxed">"{user.adminFeedback}"</p>
                 </div>
               )}
 
@@ -349,14 +349,14 @@ export default function Dashboard() {
                         </div>
                         <ArrowRight className="h-4 w-4 text-red-300 group-hover:translate-x-1 transition-transform" />
                      </div>
-                     <p className="text-[11px] font-black text-slate-900 uppercase italic">Section: {section}</p>
-                     <p className="text-sm font-semibold text-red-900 italic leading-relaxed">"{reason}"</p>
+                     <p className="text-[11px] font-black text-slate-900 uppercase ">Section: {section}</p>
+                     <p className="text-sm font-semibold text-red-900  leading-relaxed">"{reason}"</p>
                   </Link>
                 ))
               )}
 
               {notifications.length === 0 && sectionMessages.length === 0 && !user?.adminFeedback && (
-                <div className="bg-white border border-slate-100 p-12 rounded-3xl text-center space-y-3 italic opacity-60">
+                <div className="bg-white border border-slate-100 p-12 rounded-3xl text-center space-y-3  opacity-60">
                    <Bell className="h-8 w-8 text-slate-300 mx-auto" />
                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No New Notifications</p>
                 </div>

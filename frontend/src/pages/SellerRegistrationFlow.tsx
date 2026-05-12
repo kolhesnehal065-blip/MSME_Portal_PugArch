@@ -40,7 +40,7 @@ export default function SellerRegistrationFlow() {
           {step === 3 && <RegistrationDetailsFlow businessType={businessType} onBack={() => setStep(2)} role="seller" />}
         </div>
 
-        <div className="mt-4 shrink-0 px-2 text-center text-[9px] font-black uppercase italic tracking-[0.18em] text-slate-300 sm:text-[10px] sm:tracking-[0.3em]">
+        <div className="mt-4 shrink-0 px-2 text-center text-[9px] font-black uppercase  tracking-[0.18em] text-slate-300 sm:text-[10px] sm:tracking-[0.3em]">
           Professional Procurement Portal | Secure & Verified
         </div>
       </div>

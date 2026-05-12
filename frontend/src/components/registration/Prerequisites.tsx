@@ -186,7 +186,7 @@ export default function Prerequisites({ onProceed, role }: PrerequisitesProps) {
               )}
               
               <div className="flex flex-col items-stretch justify-between gap-4 pt-6 sm:pt-8 md:flex-row md:items-center">
-                <button className="min-h-10 text-left text-[10px] font-black uppercase italic tracking-widest text-indigo-600 hover:underline md:text-center">
+                <button className="min-h-10 text-left text-[10px] font-black uppercase  tracking-widest text-indigo-600 hover:underline md:text-center">
                   View Pre-requisites Document
                 </button>
                 <Button 
@@ -205,7 +205,7 @@ export default function Prerequisites({ onProceed, role }: PrerequisitesProps) {
 
           {!selectedType && (
             <div className="pt-2 sm:pt-4">
-               <button className="min-h-10 text-left text-[10px] font-black uppercase italic tracking-widest text-indigo-600 hover:underline">
+               <button className="min-h-10 text-left text-[10px] font-black uppercase  tracking-widest text-indigo-600 hover:underline">
                   View Pre-requisites Document
                </button>
             </div>
@@ -214,7 +214,7 @@ export default function Prerequisites({ onProceed, role }: PrerequisitesProps) {
       </Card>
       
       <div className="mt-4 px-2">
-         <p className="text-xs font-medium italic leading-relaxed text-slate-500">
+         <p className="text-xs font-medium  leading-relaxed text-slate-500">
             Already registered with PugArch? <Link to="/login" className="text-indigo-600 font-bold hover:underline">CLICK HERE TO LOGIN</Link>
          </p>
       </div>

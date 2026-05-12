@@ -30,7 +30,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
   const { user, loading } = useAuth();
   const location = useLocation();
   
-  if (loading) return <div className="flex min-h-dvh items-center justify-center px-4 text-center font-bold italic text-indigo-600">PugArch MSME Marketplace...</div>;
+  if (loading) return <div className="flex min-h-dvh items-center justify-center px-4 text-center font-bold  text-indigo-600">PugArch MSME Marketplace...</div>;
   if (!user) return <Navigate to="/" state={{ from: location }} replace />;
   if (user && allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" />;
   

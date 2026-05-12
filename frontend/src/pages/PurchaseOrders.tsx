@@ -351,7 +351,7 @@ export default function PurchaseOrders() {
                              <td className="px-6 py-3 font-medium text-slate-500">{step.date}</td>
                              <td className="px-6 py-3 font-bold text-slate-700">{step.status}</td>
                              <td className="px-6 py-3 font-medium text-slate-500">{step.loc}</td>
-                             <td className="px-6 py-3 italic text-slate-400">{step.note}</td>
+                             <td className="px-6 py-3  text-slate-400">{step.note}</td>
                           </tr>
                        ))}
                     </tbody>
@@ -362,7 +362,7 @@ export default function PurchaseOrders() {
         
         {/* Footer */}
         <div className="mt-20 px-12 pb-12 text-center">
-           <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">This is a system generated document. No signature required.</p>
+           <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest ">This is a system generated document. No signature required.</p>
         </div>
       </div>
     </div>

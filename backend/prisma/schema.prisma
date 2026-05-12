@@ -256,6 +256,22 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
+model GstCache {
+  id                     Int       @id @default(autoincrement())
+  gstNumber              String    @unique
+  legalBusinessName      String
+  tradeName              String?
+  constitutionOfBusiness String?
+  registrationDate       DateTime?
+  taxpayerType           String?
+  businessAddress        String?
+  state                  String?
+  pincode                String?
+  lastVerified           DateTime  @default(now())
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
 enum Role {
   seller
   buyer
@@ -289,14 +305,4 @@ enum TenderStatus {
   awarded
   po_generated
   closed
-  approved
-  published
-  bid_submission
-  tech_bid_opening
-  tech_evaluation
-  financial_bid_opening
-  financial_opening
-  financial_evaluation
-  awarded
-  po_generated
 }

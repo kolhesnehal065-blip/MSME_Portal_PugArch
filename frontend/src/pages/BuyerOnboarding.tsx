@@ -828,7 +828,7 @@ export default function BuyerOnboarding() {
     }
   };
 
-  if (isFetching) return <div className="buyer-font flex min-h-dvh items-center justify-center px-4 text-center font-bold italic text-indigo-600">Loading form...</div>;
+  if (isFetching) return <div className="buyer-font flex min-h-dvh items-center justify-center px-4 text-center font-bold  text-indigo-600">Loading form...</div>;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-3 sm:p-6 md:p-8">
@@ -844,7 +844,7 @@ export default function BuyerOnboarding() {
           </div>
           <div className="mt-4 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
             <div
-              className="h-full bg-teal-600 transition-all duration-500"
+              className="h-full bg-[#12335f] transition-all duration-500"
               style={{ width: `${((SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection) + 1) / SIDEBAR_SECTIONS.length) * 100}%` }}
             />
           </div>
@@ -865,7 +865,7 @@ export default function BuyerOnboarding() {
                 className={cn(
                   "flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap border",
                   isActive
-                    ? "bg-teal-50 text-teal-700 border-teal-200 shadow-sm"
+                    ? "bg-slate-50 text-[#12335f] border-slate-200 shadow-sm"
                     : isCompleted
                       ? "bg-white text-slate-900 border-slate-200 shadow-sm"
                       : "bg-transparent text-slate-400 border-transparent hover:text-slate-600"
@@ -873,7 +873,7 @@ export default function BuyerOnboarding() {
               >
                 <span className={cn(
                   "w-5 h-5 rounded-full flex items-center justify-center text-[10px]",
-                  isActive ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-500"
+                  isActive ? "bg-[#12335f] text-white" : "bg-slate-100 text-slate-500"
                 )}>
                   {idx + 1}
                 </span>
@@ -953,7 +953,7 @@ export default function BuyerOnboarding() {
                           variant="outline"
                           onClick={fetchGstDetails}
                           disabled={isFetchingGst || !formData.gst}
-                          className="h-12 px-4 rounded-xl border-indigo-200 text-indigo-600 font-bold uppercase text-[10px] italic hover:bg-indigo-50"
+                          className="h-12 px-4 rounded-xl border-indigo-200 text-indigo-600 font-bold uppercase text-[10px]  hover:bg-indigo-50"
                         >
                           {isFetchingGst ? 'Fetching...' : 'Fetch Details'}
                         </Button>
@@ -966,7 +966,7 @@ export default function BuyerOnboarding() {
                     {/* Organization Address Fields */}
                     <div className="md:col-span-2 pt-6 mt-2 border-t border-slate-100">
                       <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-teal-600" />
+                        <MapPin className="h-4 w-4 text-[#12335f]" />
                         Organization Address
                       </h3>
                     </div>
@@ -1062,9 +1062,9 @@ export default function BuyerOnboarding() {
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {formData.customProcurementCategories.map((cat: string) => (
-                                <span key={cat} className="inline-flex items-center gap-2 bg-teal-50 text-teal-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase italic border border-teal-100">
+                                <span key={cat} className="inline-flex items-center gap-2 bg-slate-50 text-[#12335f] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase  border border-slate-200">
                                   {cat}
-                                  <button type="button" onClick={() => removeCustomProcurementCategory(cat)} className="text-teal-400 hover:text-teal-600">
+                                  <button type="button" onClick={() => removeCustomProcurementCategory(cat)} className="text-teal-400 hover:text-[#12335f]">
                                     <X className="h-3 w-3" />
                                   </button>
                                 </span>
@@ -1129,7 +1129,7 @@ export default function BuyerOnboarding() {
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {formData.customPreferredMethods.map((method: string) => (
-                                  <span key={method} className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase italic border border-indigo-100">
+                                  <span key={method} className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase  border border-indigo-100">
                                     {method}
                                     <button type="button" onClick={() => removeCustomPreferredMethod(method)} className="text-indigo-400 hover:text-indigo-600">
                                       <X className="h-3 w-3" />
@@ -1156,7 +1156,7 @@ export default function BuyerOnboarding() {
                         <li>Address Proof</li>
                         <li>Authorization Letter of Representative (Optional)</li>
                       </ul>
-                      <p className="font-bold text-teal-700">Allowed formats: PDF / JPG / PNG</p>
+                      <p className="font-bold text-[#12335f]">Allowed formats: PDF / JPG / PNG</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {[
@@ -1170,7 +1170,7 @@ export default function BuyerOnboarding() {
                           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{doc.label}</span>
                           <div className="flex items-center justify-between gap-4">
                             <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload(e, `documents.${doc.field}`)} id={`upload-${doc.field}`} className="hidden" />
-                            <label htmlFor={`upload-${doc.field}`} className="cursor-pointer text-xs font-bold text-teal-600 hover:text-teal-700 underline">
+                            <label htmlFor={`upload-${doc.field}`} className="cursor-pointer text-xs font-bold text-[#12335f] hover:text-[#12335f] underline">
                               {isUploading === `documents.${doc.field}` ? 'Uploading...' : formData.documents[doc.field] ? 'Change File' : 'Upload File'}
                             </label>
                             {formData.documents[doc.field] && (
@@ -1191,11 +1191,11 @@ export default function BuyerOnboarding() {
                     <Input label="CONFIRM PASSWORD" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} error={touched.confirmPassword ? (formData.password !== formData.confirmPassword ? 'Passwords do not match' : '') : ''} className="h-12" />
                     <div className="space-y-4">
                       <label className="flex items-start gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={formData.declaration} onChange={(e) => setFormData({ ...formData, declaration: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                        <input type="checkbox" checked={formData.declaration} onChange={(e) => setFormData({ ...formData, declaration: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-[#12335f] focus:ring-[#12335f]" />
                         <span className="text-xs text-slate-600 font-medium">I confirm that the information provided is accurate.</span>
                       </label>
                       <label className="flex items-start gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={formData.agreeTerms} onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                        <input type="checkbox" checked={formData.agreeTerms} onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-[#12335f] focus:ring-[#12335f]" />
                         <span className="text-xs text-slate-600 font-medium">I agree to the platform Terms & Conditions.</span>
                       </label>
                     </div>
@@ -1220,7 +1220,7 @@ export default function BuyerOnboarding() {
                   <Button type="button" variant="ghost" onClick={saveDraft} disabled={isProfileLocked} className="text-slate-600 font-bold border border-slate-200 px-6 rounded-lg h-10 text-sm">
                     Save Draft
                   </Button>
-                  <Button type="submit" disabled={isLoading || isProfileLocked} className="bg-teal-700 hover:bg-teal-800 text-white font-bold px-8 rounded-lg h-10 text-sm flex items-center gap-2">
+                  <Button type="submit" disabled={isLoading || isProfileLocked} className="bg-[#12335f] hover:bg-[#0b2445] text-white font-bold px-8 rounded-lg h-10 text-sm flex items-center gap-2">
                     {isProfileLocked ? 'Locked' : isLoading ? 'Processing...' : activeSection === 'account' ? 'Finish Registration' : 'Continue'}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
@@ -1242,7 +1242,7 @@ export default function BuyerOnboarding() {
           <div className="flex h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:rounded-[2rem]">
             <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-4">
               <div className="min-w-0">
-                <h3 className="truncate text-sm font-black uppercase text-slate-900 italic sm:text-lg">{previewDocument.label}</h3>
+                <h3 className="truncate text-sm font-black uppercase text-slate-900  sm:text-lg">{previewDocument.label}</h3>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Document Preview</p>
               </div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -1250,7 +1250,7 @@ export default function BuyerOnboarding() {
                   href={previewDocument.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hidden h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-[10px] font-black uppercase italic text-slate-600 transition-all hover:bg-slate-50 sm:inline-flex"
+                  className="hidden h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-[10px] font-black uppercase  text-slate-600 transition-all hover:bg-slate-50 sm:inline-flex"
                 >
                   Open Original
                 </a>
@@ -1467,7 +1467,7 @@ function SearchableSelect({
               className={cn(
                 'block w-full px-3 py-2 text-left font-semibold text-slate-700 transition-colors',
                 highlightedIndex === index && 'bg-indigo-50 text-indigo-700',
-                value === option && 'bg-teal-50 text-teal-700'
+                value === option && 'bg-slate-50 text-[#12335f]'
               )}
             >
               {option}

@@ -40,7 +40,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
           isFullscreen && 'flex h-full flex-col'
         )}
       >
-        <h2 className="mb-4 text-sm font-black italic tracking-tight text-slate-800 uppercase sm:text-base md:mb-7 md:text-2xl underline decoration-blue-500 decoration-4 underline-offset-8">
+        <h2 className="mb-4 text-sm font-black  tracking-tight text-slate-800 uppercase sm:text-base md:mb-7 md:text-2xl underline decoration-blue-500 decoration-4 underline-offset-8">
           General Terms & Conditions (GTC)
         </h2>
 
@@ -60,7 +60,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                     >
                       <MiniPage faded={page !== 1} />
                     </div>
-                    <span className="mt-2 block text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Page {page}</span>
+                    <span className="mt-2 block text-[10px] font-black uppercase tracking-widest text-slate-500 ">Page {page}</span>
                   </button>
                 ))}
               </div>
@@ -70,7 +70,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
               <article className="mx-auto min-h-full max-w-[850px] bg-white px-10 py-12 shadow-2xl shadow-slate-300/50 font-serif text-[15px] leading-relaxed text-slate-900 sm:text-[17px] md:py-16 md:text-[18px] border border-slate-100">
                 <div className="mb-12 border-b-2 border-slate-900 pb-8 text-center">
                    <h1 className="text-2xl font-black uppercase tracking-tighter sm:text-3xl">GOVERNMENT E-MARKETPLACE</h1>
-                   <p className="mt-2 text-sm font-bold uppercase tracking-widest text-slate-500 italic">Department of Commerce, Ministry of Commerce & Industry</p>
+                   <p className="mt-2 text-sm font-bold uppercase tracking-widest text-slate-500 ">Department of Commerce, Ministry of Commerce & Industry</p>
                 </div>
 
                 <p className="text-center font-bold leading-snug underline underline-offset-4">
@@ -94,7 +94,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </p>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">2. General Terms and Definitions:</h3>
+                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">2. General Terms and Definitions:</h3>
                   <div className="space-y-4 ml-4">
                     <p className="text-justify">
                       a. <strong>&ldquo;APPLICABLE LAWS&rdquo;</strong> shall mean any statute, law, ordinance, notification,
@@ -110,7 +110,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </section>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">3. Registration and Verification:</h3>
+                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">3. Registration and Verification:</h3>
                   <p className="ml-4 text-justify">
                     Users agree that identity, email, mobile number, Aadhaar, PAN, business registration and other
                     submitted details may be verified through appropriate authorities or approved verification services.
@@ -119,7 +119,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </section>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">4. Procurement Guidelines:</h3>
+                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">4. Procurement Guidelines:</h3>
                   <p className="ml-4 text-justify">
                     The platform ensures that all procurement activities conducted through the MSME Marketplace 
                     comply with the General Financial Rules (GFR), 2017 and any specific guidelines issued by 
@@ -130,7 +130,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </section>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">5. Code of Conduct:</h3>
+                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">5. Code of Conduct:</h3>
                   <p className="ml-4 text-justify">
                     All users are expected to maintain the highest standards of integrity and transparency. 
                     Collusion, price manipulation, or any fraudulent activity is strictly prohibited and will 
@@ -139,7 +139,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </section>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">6. Data Privacy and Security:</h3>
+                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">6. Data Privacy and Security:</h3>
                   <p className="ml-4 text-justify">
                     We value your data privacy. All sensitive information including PAN, Aadhaar (masked), 
                     and Bank Details are stored using industry-standard encryption. By using this portal, 
@@ -148,7 +148,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </section>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight italic border-l-4 border-blue-600 pl-4">7. Liability and Indemnity:</h3>
+                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">7. Liability and Indemnity:</h3>
                   <p className="ml-4 text-justify">
                     The portal provides a marketplace interface and shall not be held liable for defaults 
                     by third-party service providers. Users agree to indemnify and hold PugArch harmless 
@@ -156,7 +156,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                   </p>
                 </section>
 
-                <div className="mt-16 pt-8 border-t-2 border-slate-100 text-center text-slate-400 font-bold italic uppercase text-xs">
+                <div className="mt-16 pt-8 border-t-2 border-slate-100 text-center text-slate-400 font-bold  uppercase text-xs">
                   End of Terms & Conditions Document
                 </div>
               </article>
@@ -177,8 +177,8 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
               <Check className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-black uppercase tracking-tight italic group-hover:text-blue-600 transition-colors">* Acceptance of Terms</span>
-              <span className="text-xs font-bold text-slate-500 italic">I have read and agree to the Terms & Conditions of Government e-Marketplace (GeM)</span>
+              <span className="text-sm font-black uppercase tracking-tight  group-hover:text-blue-600 transition-colors">* Acceptance of Terms</span>
+              <span className="text-xs font-bold text-slate-500 ">I have read and agree to the Terms & Conditions of Government e-Marketplace (GeM)</span>
             </div>
           </label>
 
@@ -186,7 +186,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
             <button
               type="button"
               onClick={() => setIsFullscreen((value) => !value)}
-              className="h-12 rounded-xl px-6 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all italic"
+              className="h-12 rounded-xl px-6 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all "
             >
               {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen View'}
             </button>
@@ -194,7 +194,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
               onClick={onAccept}
               disabled={!accepted}
               className={cn(
-                'h-14 w-full rounded-xl px-12 text-xs font-black uppercase tracking-[0.2em] italic shadow-xl transition-all active:scale-95 sm:w-auto',
+                'h-14 w-full rounded-xl px-12 text-xs font-black uppercase tracking-[0.2em]  shadow-xl transition-all active:scale-95 sm:w-auto',
                 accepted
                   ? 'bg-blue-600 text-white shadow-blue-600/20 hover:bg-blue-700'
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'

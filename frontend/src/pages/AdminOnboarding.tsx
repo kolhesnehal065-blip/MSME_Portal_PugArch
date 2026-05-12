@@ -626,7 +626,7 @@ export default function AdminOnboarding() {
                                 url && (
                                   <div key={key} className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
                                      <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">{key}</p>
-                                     <a href={url} target="_blank" rel="noreferrer" className="text-xs font-bold text-teal-600 hover:underline flex items-center gap-1">
+                                     <a href={url} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#12335f] hover:underline flex items-center gap-1">
                                        <Eye className="h-3 w-3" /> View Document
                                      </a>
                                   </div>

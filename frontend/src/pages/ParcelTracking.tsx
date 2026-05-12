@@ -18,7 +18,7 @@ export default function ParcelTracking({ trackingNumber = "PKG-92837465-IN" }: {
           <Truck className="h-5 w-5 text-indigo-400" />
           <h3 className="font-black uppercase text-xs tracking-widest">Live Logistics Tracker</h3>
         </div>
-        <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30 text-[9px] font-black ">ON THE WAY</Badge>
+        <Badge className="bg-slate-500/20 text-teal-400 border-teal-500/30 text-[9px] font-black ">ON THE WAY</Badge>
       </div>
       
       <div className="p-6 bg-white">
@@ -41,7 +41,7 @@ export default function ParcelTracking({ trackingNumber = "PKG-92837465-IN" }: {
             <div key={idx} className="relative flex items-center gap-4">
               <div className={cn(
                 "h-6 w-6 rounded-full flex items-center justify-center z-10 shadow-sm transition-all",
-                step.status === 'completed' ? "bg-teal-500 text-white" :
+                step.status === 'completed' ? "bg-slate-500 text-white" :
                 step.status === 'current' ? "bg-indigo-600 text-white animate-pulse ring-4 ring-indigo-50" :
                 "bg-white border border-slate-200 text-slate-300"
               )}>
@@ -52,12 +52,12 @@ export default function ParcelTracking({ trackingNumber = "PKG-92837465-IN" }: {
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <p className={cn(
-                    "text-[10px] font-black uppercase italic",
+                    "text-[10px] font-black uppercase ",
                     step.status === 'pending' ? "text-slate-400" : "text-slate-900"
                   )}>
                     {step.label}
                   </p>
-                  <p className="text-[9px] font-medium text-slate-400 italic">{step.date}</p>
+                  <p className="text-[9px] font-medium text-slate-400 ">{step.date}</p>
                 </div>
               </div>
             </div>
@@ -72,7 +72,7 @@ export default function ParcelTracking({ trackingNumber = "PKG-92837465-IN" }: {
                 </div>
               ))}
            </div>
-           <p className="text-[9px] font-black text-indigo-600 uppercase italic cursor-pointer hover:underline">View Transit Details</p>
+           <p className="text-[9px] font-black text-indigo-600 uppercase  cursor-pointer hover:underline">View Transit Details</p>
         </div>
       </div>
     </Card>

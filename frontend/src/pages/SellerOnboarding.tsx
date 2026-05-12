@@ -508,7 +508,7 @@ export default function SellerOnboarding() {
   if (formData.offices.length === 0) warnings.push("Registered Address details missing");
   if (!formData.ownershipDeclarationAccepted) warnings.push("Please complete Beneficial Ownership Compliance");
 
-  if (isFetching) return <div className="flex h-screen items-center justify-center font-black italic text-blue-600 animate-pulse">Initializing Profile...</div>;
+  if (isFetching) return <div className="flex h-screen items-center justify-center font-black  text-blue-600 animate-pulse">Initializing Profile...</div>;
 
   return (
     <div className="flex flex-col md:flex-row bg-gray-50 min-h-screen">
@@ -583,10 +583,10 @@ export default function SellerOnboarding() {
                     <Input label="Date (As in PAN)" name="dateAsInPan" type="date" value={formData.dateAsInPan} onChange={handleChange} />
                   </div>
                   <div className="flex justify-end gap-3 pt-4">
-                    <Button onClick={fetchPanDetails} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 rounded-xl px-8 h-12 font-black uppercase text-xs italic tracking-widest shadow-lg shadow-blue-100">
+                    <Button onClick={fetchPanDetails} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 rounded-xl px-8 h-12 font-black uppercase text-xs  tracking-widest shadow-lg shadow-blue-100">
                        {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Verify Business PAN'}
                     </Button>
-                    <Button onClick={() => handleSaveSection('details')} disabled={isLoading || !formData.panVerified} className="bg-gray-900 hover:bg-black rounded-xl px-8 h-12 font-black uppercase text-xs italic tracking-widest text-white">
+                    <Button onClick={() => handleSaveSection('details')} disabled={isLoading || !formData.panVerified} className="bg-gray-900 hover:bg-black rounded-xl px-8 h-12 font-black uppercase text-xs  tracking-widest text-white">
                        {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
                        Save & Continue
                     </Button>
@@ -816,7 +816,7 @@ export default function SellerOnboarding() {
                                contactNumber: contact,
                                isMandatory: type === 'Registered'
                              });
-                           }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 rounded transition-colors uppercase tracking-widest text-xs italic shadow-lg shadow-blue-100">
+                           }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 rounded transition-colors uppercase tracking-widest text-xs  shadow-lg shadow-blue-100">
                                {editingOfficeId ? 'UPDATE OFFICE' : <><Plus className="mr-2 h-4 w-4" /> ADD OFFICE</>}
                            </Button>
                         </div>
@@ -1017,7 +1017,7 @@ export default function SellerOnboarding() {
 
               {currentSection === 'einvoicing' && (
                 <div className="space-y-6 animate-in fade-in duration-300 min-w-0 w-full">
-                   <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-2xl space-y-2 italic">
+                   <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-2xl space-y-2 ">
                       <p className="text-[10px] font-black uppercase text-blue-700">e-Invoice Information</p>
                       <p className="text-xs font-medium text-blue-900 leading-relaxed opacity-80">
                         As per Government regulations, taxpayers with turnover exceeding specific limits must generate e-invoices. Please declare your status below.
@@ -1025,7 +1025,7 @@ export default function SellerOnboarding() {
                    </div>
                    <div className="grid grid-cols-1 gap-6">
                       <Input label="Turnover (Max in last 3 years)" name="turnoverMax3Yrs" value={formData.turnoverMax3Yrs} onChange={handleChange} placeholder="e.g. 10 Crores" />
-                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 italic font-bold">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100  font-bold">
                         <span className="text-sm">Specific category excluded from e-invoicing?</span>
                         <div className="flex gap-4">
                            <label className="flex items-center gap-2 cursor-pointer">
@@ -1053,8 +1053,8 @@ export default function SellerOnboarding() {
                       <div className="absolute top-0 right-0 p-8 opacity-10">
                          <ShieldCheck className="h-32 w-32" />
                       </div>
-                      <h3 className="border-b border-white/10 pb-4 text-xl font-black uppercase tracking-tight italic">Beneficial Ownership Declaration</h3>
-                      <p className="mt-4 text-slate-400 text-sm leading-relaxed font-medium italic">
+                      <h3 className="border-b border-white/10 pb-4 text-xl font-black uppercase tracking-tight ">Beneficial Ownership Declaration</h3>
+                      <p className="mt-4 text-slate-400 text-sm leading-relaxed font-medium ">
                          I hereby solemnly affirm and declare that I have read and understood Rule 144(xi) of GFR 2017 and subsequent orders issued by the Ministry of Finance. I declare that our organization is compliant with the beneficial ownership rules as prescribed.
                       </p>
                       <label className="mt-8 flex cursor-pointer items-start gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/10">
@@ -1065,11 +1065,11 @@ export default function SellerOnboarding() {
                            onChange={handleChange}
                            className="mt-0.5 h-6 w-6 shrink-0 rounded accent-blue-500" 
                          />
-                         <span className="text-xs font-black uppercase leading-relaxed text-blue-400 italic">I Accept and Affirm Compliance</span>
+                         <span className="text-xs font-black uppercase leading-relaxed text-blue-400 ">I Accept and Affirm Compliance</span>
                       </label>
                    </div>
                    
-                   <div className="flex flex-col items-center gap-6 py-6 italic">
+                   <div className="flex flex-col items-center gap-6 py-6 ">
                       <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Verification Required via OTP</p>
                       <div className="flex gap-4">
                          <Button onClick={() => setFormData((prev: any) => ({ ...prev, ownershipVerified: true }))} className="bg-blue-600 text-white rounded px-6 h-9 font-bold uppercase text-xs tracking-wide">

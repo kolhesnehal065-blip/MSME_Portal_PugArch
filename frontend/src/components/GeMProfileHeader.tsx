@@ -66,7 +66,7 @@ export const GeMProfileHeader: React.FC<GeMProfileHeaderProps> = ({
           <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
           <div className="space-y-1">
             <p className="text-xs font-black text-yellow-800 uppercase tracking-widest">Action Required</p>
-            <ul className="text-xs font-medium text-yellow-700 space-y-1 list-disc list-inside italic">
+            <ul className="text-xs font-medium text-yellow-700 space-y-1 list-disc list-inside ">
               {warnings.map((warning, i) => (
                 <li key={i}>{warning}</li>
               ))}

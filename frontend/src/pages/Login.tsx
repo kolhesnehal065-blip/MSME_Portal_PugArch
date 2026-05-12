@@ -65,13 +65,13 @@ export default function Login() {
             <span className="block text-[#f9a825] text-[10px] tracking-[0.3em] mb-1 text-center">Secure Portal</span>
             Stakeholder Access
           </CardTitle>
-          <p className="text-[10px] font-bold text-slate-400 mt-3 uppercase tracking-[0.2em] italic opacity-80 text-center">PugArch Procurement Network</p>
+          <p className="text-[10px] font-bold text-slate-400 mt-3 uppercase tracking-[0.2em]  opacity-80 text-center">PugArch Procurement Network</p>
         </CardHeader>
 
         <CardContent className="p-5 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-               <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] italic ml-1">Official Email</label>
+               <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]  ml-1">Official Email</label>
                <div className="group relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#12335f] transition-colors" />
                   <input
@@ -86,7 +86,7 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-               <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] italic ml-1">Secure Password</label>
+               <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]  ml-1">Secure Password</label>
                <div className="group relative">
                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#12335f] transition-colors" />
                    <input
@@ -110,7 +110,7 @@ export default function Login() {
             <div className="pt-2">
               <Button 
                 type="submit" 
-                className="w-full h-12 rounded-[1.25rem] bg-gradient-to-r from-[#12335f] to-[#0b2445] hover:from-[#0b2445] hover:to-[#071830] text-white font-black uppercase tracking-[0.2em] italic shadow-[0_20px_40px_-10px_rgba(18,51,95,0.3)] transition-all hover:translate-y-[-2px] active:scale-[0.98] disabled:opacity-50" 
+                className="w-full h-12 rounded-[1.25rem] bg-gradient-to-r from-[#12335f] to-[#0b2445] hover:from-[#0b2445] hover:to-[#071830] text-white font-black uppercase tracking-[0.2em]  shadow-[0_20px_40px_-10px_rgba(18,51,95,0.3)] transition-all hover:translate-y-[-2px] active:scale-[0.98] disabled:opacity-50" 
                 disabled={isLoading}
               >
                 {isLoading ? (

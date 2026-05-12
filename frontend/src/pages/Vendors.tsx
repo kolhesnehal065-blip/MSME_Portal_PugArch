@@ -186,7 +186,7 @@ const Vendors = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
             placeholder="Search by name, city, or category..."
-            className="pl-11 bg-white border-slate-200 h-11 rounded-lg focus:ring-teal-500/10 text-slate-900 placeholder:text-slate-400"
+            className="pl-11 bg-white border-slate-200 h-11 rounded-lg focus:ring-[#12335f]/10 text-slate-900 placeholder:text-slate-400"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -195,7 +195,7 @@ const Vendors = () => {
         <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-center">
           <div className="relative group flex-1 sm:flex-none sm:min-w-[180px]">
             <select 
-              className="w-full appearance-none bg-white border border-slate-200 h-11 px-6 pr-12 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/10 cursor-pointer transition-all hover:border-teal-500/30 text-slate-700"
+              className="w-full appearance-none bg-white border border-slate-200 h-11 px-6 pr-12 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#12335f]/10 cursor-pointer transition-all hover:border-teal-500/30 text-slate-700"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
@@ -208,7 +208,7 @@ const Vendors = () => {
 
           <div className="relative group flex-1 sm:flex-none sm:min-w-[140px]">
             <select 
-              className="w-full appearance-none bg-white border border-slate-200 h-11 px-6 pr-12 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/10 cursor-pointer transition-all hover:border-teal-500/30 text-slate-700"
+              className="w-full appearance-none bg-white border border-slate-200 h-11 px-6 pr-12 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#12335f]/10 cursor-pointer transition-all hover:border-teal-500/30 text-slate-700"
               value={selectedSize}
               onChange={(e) => setSelectedSize(e.target.value)}
             >

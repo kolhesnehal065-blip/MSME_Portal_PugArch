@@ -122,7 +122,7 @@ export default function SellerSettings() {
     return 60;
   };
 
-  if (isFetching) return <div className="flex h-screen items-center justify-center font-black italic text-blue-600 animate-pulse">Loading Account Settings...</div>;
+  if (isFetching) return <div className="flex h-screen items-center justify-center font-black  text-blue-600 animate-pulse">Loading Account Settings...</div>;
 
   return (
     <div className="flex flex-col lg:flex-row bg-gray-50 min-h-screen">
@@ -145,11 +145,11 @@ export default function SellerSettings() {
           <div className="bg-amber-50 border border-amber-100 p-4 rounded-lg mb-8 space-y-2">
              <div className="flex items-start gap-2 text-amber-800">
                 <AlertTriangle className="h-4 w-4 mt-0.5" />
-                <p className="text-sm font-bold uppercase tracking-tight italic">Please complete your profile to start transacting on GeM</p>
+                <p className="text-sm font-bold uppercase tracking-tight ">Please complete your profile to start transacting on GeM</p>
              </div>
              <div className="flex items-start gap-2 text-amber-800">
                 <AlertTriangle className="h-4 w-4 mt-0.5" />
-                <p className="text-sm font-bold uppercase tracking-tight italic">
+                <p className="text-sm font-bold uppercase tracking-tight ">
                   Please complete 'Beneficial Ownership Compliance'. <span className="text-blue-600 hover:underline cursor-pointer">Click here</span>
                 </p>
              </div>
@@ -202,7 +202,7 @@ export default function SellerSettings() {
               <div className="p-8 space-y-8 animate-in fade-in duration-300">
                 <h2 className="text-2xl font-bold text-gray-800">Update Aadhaar</h2>
 
-                <div className="bg-sky-50 border border-sky-100 p-4 rounded-lg text-sky-800 text-sm italic font-medium">
+                <div className="bg-sky-50 border border-sky-100 p-4 rounded-lg text-sky-800 text-sm  font-medium">
                   On Aadhaar update, Pan Validation has to be reverified
                 </div>
 
@@ -214,7 +214,7 @@ export default function SellerSettings() {
                 <div className="border border-gray-100 rounded-lg p-6 bg-gray-50/50 space-y-4">
                   <div className="flex items-start gap-4">
                     <input type="checkbox" checked={aadhaarForm.consent} onChange={e => setAadhaarForm({...aadhaarForm, consent: e.target.checked})} className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600" />
-                    <div className="space-y-4 text-[13px] leading-relaxed text-gray-600 italic">
+                    <div className="space-y-4 text-[13px] leading-relaxed text-gray-600 ">
                       <p>
                         I, the holder of the above Aadhaar, hereby give my consent to GeM (Government e Marketplace), for using my Aadhaar number as allotted by UIDAI for GeM Registration. GeM (Government e Marketplace) have informed me that my aadhaar data will not be stored/shared.
                       </p>
@@ -226,11 +226,11 @@ export default function SellerSettings() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-sm font-medium text-gray-600 italic">
+                  <div className="flex items-center gap-4 text-sm font-medium text-gray-600 ">
                     Click on the play button to listen consent / सहमति सुनने के लिए प्ले बटन पर क्लिक करें।
                     <PlayCircle className="h-6 w-6 text-gray-400 cursor-pointer hover:text-gray-600" />
                   </div>
-                  <Button onClick={handleUpdateAadhaar} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 uppercase tracking-widest text-xs italic shadow-lg shadow-blue-100">
+                  <Button onClick={handleUpdateAadhaar} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 uppercase tracking-widest text-xs  shadow-lg shadow-blue-100">
                     {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'UPDATE AADHAAR'}
                   </Button>
                 </div>
@@ -242,9 +242,9 @@ export default function SellerSettings() {
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <h2 className="text-2xl font-bold text-gray-800">Change Password</h2>
-                    <p className="text-gray-500 italic">Password must fulfill GeM password policy</p>
+                    <p className="text-gray-500 ">Password must fulfill GeM password policy</p>
                   </div>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 h-12 uppercase tracking-widest text-xs italic shadow-lg shadow-blue-100">
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 h-12 uppercase tracking-widest text-xs  shadow-lg shadow-blue-100">
                     GET OTP
                   </Button>
                 </div>
@@ -255,7 +255,7 @@ export default function SellerSettings() {
                 </div>
 
                 <div className="flex justify-end pt-4">
-                  <Button onClick={handleChangePassword} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 uppercase tracking-widest text-xs italic shadow-lg shadow-blue-100">
+                  <Button onClick={handleChangePassword} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 uppercase tracking-widest text-xs  shadow-lg shadow-blue-100">
                     {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'CHANGE PASSWORD'}
                   </Button>
                 </div>
@@ -265,11 +265,11 @@ export default function SellerSettings() {
             {currentSection === 'email' && (
               <div className="p-8 space-y-8 animate-in fade-in duration-300">
                 <h2 className="text-2xl font-bold text-gray-800">Change Email</h2>
-                <p className="text-gray-500 italic">Please note that the new email ID will be used for business done on GeM</p>
+                <p className="text-gray-500 ">Please note that the new email ID will be used for business done on GeM</p>
 
                 <div className="bg-sky-50 border border-sky-100 p-6 rounded-lg space-y-4">
-                  <h3 className="font-bold text-red-600 uppercase tracking-tight italic">Important Update on Bid Notifications</h3>
-                  <p className="text-sm text-sky-800 italic leading-relaxed">
+                  <h3 className="font-bold text-red-600 uppercase tracking-tight ">Important Update on Bid Notifications</h3>
+                  <p className="text-sm text-sky-800  leading-relaxed">
                     This is to inform you that, to receive bid notifications on your updated email ID, you are required to click on the <span className="font-bold">Ongoing Bids</span> page at least once. Until this action is completed, bid notifications will not be delivered to the updated email address.
                   </p>
                 </div>
@@ -289,10 +289,10 @@ export default function SellerSettings() {
                 </div>
 
                 <div className="flex justify-end gap-4">
-                  <Button disabled className="bg-gray-200 text-gray-400 font-bold px-10 h-12 uppercase tracking-widest text-xs italic">
+                  <Button disabled className="bg-gray-200 text-gray-400 font-bold px-10 h-12 uppercase tracking-widest text-xs ">
                     SEND OTP
                   </Button>
-                  <Button onClick={handleChangeEmail} disabled={isLoading || !emailForm.newEmail} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 uppercase tracking-widest text-xs italic shadow-lg shadow-blue-100">
+                  <Button onClick={handleChangeEmail} disabled={isLoading || !emailForm.newEmail} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 uppercase tracking-widest text-xs  shadow-lg shadow-blue-100">
                     {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'UPDATE EMAIL'}
                   </Button>
                 </div>
@@ -303,24 +303,24 @@ export default function SellerSettings() {
               <div className="p-8 space-y-8 animate-in fade-in duration-300">
                 <div className="flex justify-between items-start">
                   <h2 className="text-2xl font-bold text-gray-800">Close Account</h2>
-                  <div className="text-[10px] flex items-center gap-2 text-gray-400 uppercase tracking-widest font-black italic">
+                  <div className="text-[10px] flex items-center gap-2 text-gray-400 uppercase tracking-widest font-black ">
                     Need help with Seller Profile completion? <PlayCircle className="h-4 w-4 text-red-600" />
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-600 italic">
+                <p className="text-sm text-gray-600 ">
                   If you close your account, your account will be closed permanently. You will not be able to login with this account. In addition, all the secondary seller accounts will also be closed.
                 </p>
 
                 <div className="bg-sky-50 border border-sky-100 p-6 rounded-lg">
-                  <p className="text-sm text-sky-800 italic leading-relaxed">
+                  <p className="text-sm text-sky-800  leading-relaxed">
                     You are advised to check and validate your bank account detail before closing your seller account at GeM. The bank account details cannot be updated once the account is closed which may hamper refund of the caution money.
                   </p>
                 </div>
 
                 <div className="flex items-center justify-between pt-8">
-                  <p className="text-sm font-medium text-gray-700 italic">To close your account permanently click on</p>
-                  <Button onClick={handleCloseAccount} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 uppercase tracking-widest text-xs italic shadow-lg shadow-blue-100">
+                  <p className="text-sm font-medium text-gray-700 ">To close your account permanently click on</p>
+                  <Button onClick={handleCloseAccount} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 h-12 uppercase tracking-widest text-xs  shadow-lg shadow-blue-100">
                     {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'CLOSE ACCOUNT'}
                   </Button>
                 </div>

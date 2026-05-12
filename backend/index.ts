@@ -3,14 +3,18 @@ console.log('--- BACKEND index.ts (PRISMA) EXECUTING ---');
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import https from 'https';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({
+const envResult = dotenv.config({
   path: [
+    path.resolve(process.cwd(), '.env'),
     path.resolve(__dirname, '../.env'),
     path.resolve(__dirname, '.env')
-  ]
+  ],
+  override: true
 });
+console.log(`--- ENV loaded from: ${envResult.parsed ? 'backend/.env' : 'not found'} | API Setu key: ${process.env.APISETU_API_KEY ? 'configured' : 'missing'} ---`);
 
 import express from 'express';
 import type { Response } from 'express';
@@ -271,6 +275,64 @@ async function startServer() {
     return '';
   };
 
+  const cleanEnv = (value: unknown) => normalizeSpaces(value).replace(/^['"]|['"]$/g, '');
+  const getApiSetuConfig = () => ({
+    apiKey: cleanEnv(process.env.APISETU_API_KEY),
+    clientId: cleanEnv(process.env.APISETU_CLIENT_ID),
+    urlTemplate: cleanEnv(process.env.APISETU_GST_URL || 'https://apisetu.gov.in/gstn/v2/taxpayers/{gstin}')
+  });
+
+  const fetchApiSetuJson = async (apiUrl: string, headers: Record<string, string>) => {
+    try {
+      const response = await fetch(apiUrl, { method: 'GET', headers });
+      const text = await response.text();
+      const body = text ? JSON.parse(text) : {};
+      return { ok: response.ok, status: response.status, body, text };
+    } catch (err: any) {
+      const allowInsecureTls =
+        cleanEnv(process.env.APISETU_ALLOW_INSECURE_TLS).toLowerCase() === 'true' ||
+        process.env.NODE_ENV !== 'production';
+
+      const isCertificateChainError =
+        err?.cause?.code === 'SELF_SIGNED_CERT_IN_CHAIN' ||
+        /certificate/i.test(String(err?.cause?.message || err?.message || ''));
+
+      if (!allowInsecureTls) {
+        throw err;
+      }
+
+      console.warn('[GST Verify] Node TLS rejected API Setu certificate chain. Retrying with APISETU_ALLOW_INSECURE_TLS fallback.');
+      return new Promise<{ ok: boolean; status: number; body: any; text: string }>((resolve, reject) => {
+        const request = https.request(apiUrl, {
+          method: 'GET',
+          headers,
+          rejectUnauthorized: false
+        }, response => {
+          let text = '';
+          response.setEncoding('utf8');
+          response.on('data', chunk => { text += chunk; });
+          response.on('end', () => {
+            let body: any = {};
+            try {
+              body = text ? JSON.parse(text) : {};
+            } catch {
+              body = {};
+            }
+            resolve({
+              ok: Boolean(response.statusCode && response.statusCode >= 200 && response.statusCode < 300),
+              status: response.statusCode || 0,
+              body,
+              text
+            });
+          });
+        });
+        request.on('error', reject);
+        request.setTimeout(20000, () => request.destroy(new Error('API Setu request timed out')));
+        request.end();
+      });
+    }
+  };
+
   const getNestedValue = (source: any, paths: string[]) => {
     for (const path of paths) {
       const value = path.split('.').reduce((current, key) => {
@@ -291,26 +353,36 @@ async function startServer() {
     raw?.result ||
     raw?.gstinData ||
     raw?.gstDetails ||
+    raw?.taxpayerDetails ||
+    raw?.taxPayerDetails ||
     raw?.certificateData ||
     raw;
 
   const normalizeGstDetails = (raw: any, requestedGstin: string) => {
     const payload = resolveGstPayload(raw);
-    const principal = payload?.pradr || payload?.principalPlaceOfBusiness || payload?.principalAddress || payload?.principal_place_of_business || {};
+    const principal =
+      payload?.principalPlaceOfBusinessFields?.principalPlaceOfBusinessAddress ||
+      payload?.principalPlaceOfBusinessFields ||
+      payload?.pradr ||
+      payload?.principalPlaceOfBusiness ||
+      payload?.principalAddress ||
+      payload?.principal_place_of_business ||
+      {};
     const addressSource = principal?.addr || principal?.address || principal;
     const requested = requestedGstin.toUpperCase();
     const responseGstin = pickFirstValue(
       payload?.gstin,
       payload?.gstIn,
       payload?.GSTIN,
+      payload?.gstIdentificationNumber,
       getNestedValue(raw, ['data.gstin', 'data.GSTIN', 'result.gstin'])
     ).toUpperCase();
 
-    const legalName = pickFirstValue(payload?.lgnm, payload?.legalName, payload?.legal_name, payload?.legalNam, payload?.name);
-    const tradeName = pickFirstValue(payload?.tradeNam, payload?.tradeName, payload?.trade_name, payload?.businessName);
+    const legalName = pickFirstValue(payload?.legalNameOfBusiness, payload?.lgnm, payload?.legalName, payload?.legal_name, payload?.legalNam, payload?.legal_name_of_business, payload?.name);
+    const tradeName = pickFirstValue(payload?.tradeNam, payload?.tradeName, payload?.trade_name, payload?.trade_name_of_business, payload?.businessName);
     const pincode = pickFirstValue(addressSource?.pncd, addressSource?.pinCode, addressSource?.pincode, addressSource?.pin, addressSource?.zip);
-    const district = pickFirstValue(addressSource?.dst, addressSource?.district, addressSource?.dist);
-    const city = pickFirstValue(addressSource?.city, addressSource?.town, addressSource?.village, district);
+    const district = pickFirstValue(addressSource?.dst, addressSource?.district, addressSource?.dist, addressSource?.districtName);
+    const city = pickFirstValue(addressSource?.city, addressSource?.town, addressSource?.village, addressSource?.location, district);
     const state = pickFirstValue(addressSource?.stcd, addressSource?.state, addressSource?.stateName);
     const address = compactParts(
       addressSource?.bno,
@@ -318,11 +390,15 @@ async function startServer() {
       addressSource?.bnm,
       addressSource?.buildingName,
       addressSource?.flno,
+      addressSource?.floorNumber,
       addressSource?.floor,
       addressSource?.st,
+      addressSource?.streetName,
       addressSource?.street,
       addressSource?.loc,
       addressSource?.location,
+      addressSource?.locality,
+      addressSource?.landMark,
       addressSource?.city,
       district,
       state,
@@ -344,7 +420,7 @@ async function startServer() {
       pincode,
       pinCode: pincode,
       pan: pickFirstValue(payload?.pan, payload?.PAN, payload?.panNo, payload?.panNumber) || requested.substring(2, 12),
-      status: pickFirstValue(payload?.sts, payload?.status, payload?.authStatus) || 'Active',
+      status: pickFirstValue(payload?.gstnStatus, payload?.sts, payload?.status, payload?.authStatus) || 'Active',
       raw
     };
   };
@@ -423,99 +499,102 @@ async function startServer() {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
 
-      const apiKey = process.env.GST_API_KEY?.replace(/['"]/g, '').trim();
-      const apiSetuUrlTemplate = (
-        process.env.GST_APISETU_URL ||
-        process.env.GST_API_URL ||
-        ''
-      ).replace(/['"]/g, '').trim();
+      const { apiKey, clientId, urlTemplate } = getApiSetuConfig();
       console.log(`[GST Verify] Request for: ${gstin}`);
       console.log(`[GST Verify] Using API Key: ${apiKey ? (apiKey.substring(0, 5) + '...') : 'MISSING'}`);
+      console.log(`[GST Verify] Using Client ID: ${clientId ? clientId : 'MISSING'}`);
 
-      if (!apiKey) {
+      if (!apiKey || apiKey.includes('YOUR_')) {
         console.warn('[GST Verify] No API key found in .env.');
         return res.status(500).json({
-          message: 'GST API key is not configured on server. Live GST fetch is unavailable.'
+          message: 'API Setu GST API key is not configured on server. Add APISETU_API_KEY in backend/.env.'
         });
       }
 
-      if (!apiSetuUrlTemplate) {
+      if (!clientId || clientId.includes('YOUR_')) {
         return res.status(500).json({
-          message: 'GST_APISETU_URL is not configured. Add API Setu GST endpoint URL in backend/.env'
+          message: 'API Setu client ID is not configured on server. Add APISETU_CLIENT_ID in backend/.env.'
         });
       }
 
       // Supports either:
-      // 1) .../{gstin}
+      // 1) Official API Setu path: /gstn/v2/taxpayers/{gstin}
       // 2) ...?gstin={gstin}
-      // 3) plain endpoint (we append ?gstin=...)
-      const apiUrl = apiSetuUrlTemplate.includes('{gstin}')
-        ? apiSetuUrlTemplate.replace('{gstin}', encodeURIComponent(gstin))
-        : apiSetuUrlTemplate.includes('gstin=')
-          ? apiSetuUrlTemplate.replace(/gstin=[^&]*/i, `gstin=${encodeURIComponent(gstin)}`)
-          : `${apiSetuUrlTemplate}${apiSetuUrlTemplate.includes('?') ? '&' : '?'}gstin=${encodeURIComponent(gstin)}`;
+      // 3) plain endpoint (we append /{gstin})
+      const apiUrl = urlTemplate.includes('{gstin}')
+        ? urlTemplate.replace('{gstin}', encodeURIComponent(gstin))
+        : urlTemplate.includes('gstin=')
+          ? urlTemplate.replace(/gstin=[^&]*/i, `gstin=${encodeURIComponent(gstin)}`)
+          : `${urlTemplate.replace(/\/$/, '')}/${encodeURIComponent(gstin)}`;
 
       console.log(`[GST Verify] Calling API Setu endpoint: ${apiUrl}`);
 
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'apy-token': apiKey,
-          'x-api-key': apiKey,
-          'api-key': apiKey,
-          'Authorization': `Bearer ${apiKey}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
+      const providerResponse = await fetchApiSetuJson(apiUrl, {
+        'X-APISETU-APIKEY': apiKey,
+        'X-APISETU-CLIENTID': clientId,
+        'Accept': 'application/json'
       });
 
-      console.log(`[GST Verify] API Setu Response Status: ${response.status}`);
+      console.log(`[GST Verify] API Setu Response Status: ${providerResponse.status}`);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[GST Verify] API Setu Error: ${response.status} - ${errorText}`);
+      if (!providerResponse.ok) {
+        console.error(`[GST Verify] API Setu Error: ${providerResponse.status} - ${providerResponse.text}`);
         return res.json({
           ...derivedFallback,
           message: "Live GST verification unavailable right now. Derived basic details from GSTIN.",
-          providerStatus: response.status
+          providerStatus: providerResponse.status
         });
       }
 
-      const result: any = await response.json();
+      const result: any = providerResponse.body;
       console.log(`[GST Verify] GST Data Received:`, JSON.stringify(result).substring(0, 120) + '...');
       
-      const data = result?.data || result?.result || result;
+      console.log('[GST Verify] Raw API Setu response:', JSON.stringify(result));
+      const normalized = normalizeGstDetails(result, gstin);
+      console.log('[GST Verify] Mapped GST output:', JSON.stringify({
+        requestedGstin: normalized.requestedGstin,
+        responseGstin: normalized.responseGstin || 'not_returned',
+        legalName: normalized.legalName,
+        tradeName: normalized.tradeName,
+        state: normalized.state,
+        city: normalized.city,
+        pincode: normalized.pincode,
+        hasAddress: Boolean(normalized.address)
+      }));
 
-      // Map common GST provider fields to frontend expectations
-      const normalized = {
-        legalName: data.legal_name || data.legalName || data.lgnm || data.trade_name || data.tradeName || data.tnam || '',
-        tradeName: data.trade_name || data.tradeName || data.tnam || '',
-        address: data.address || data.pradr?.adr || data.pradr?.addr || '',
-        state: data.state || data.pradr?.stcd || data.stjCd || '',
-        city: data.city || data.pradr?.city || data.ctj || '',
-        pincode: data.pincode || data.pradr?.pncd || data.pradr?.pincode || '',
-        pan: data.pan || data.panNumber || data.ctb?.pan || gstin.substring(2, 12),
-        status: data.status || data.gstStatus || data.dty || data.sts || '',
-        isRegisteredDealer: Boolean(
-          ['active', 'registered', 'regular', 'composition'].includes(
-            String(data.status || data.gstStatus || data.dty || data.sts || '').toLowerCase()
-          )
-        ),
-      };
-
-      if (!normalized.legalName || !normalized.address) {
-        return res.json({
-          ...derivedFallback,
-          message: 'Provider returned incomplete GST data. Derived basic details from GSTIN.'
+      if (normalized.responseGstin && normalized.responseGstin !== gstin) {
+        return res.status(409).json({
+          message: 'GST API response does not match the requested GSTIN. Please retry.',
+          requestedGstin: gstin,
+          responseGstin: normalized.responseGstin
         });
       }
 
-      res.json(normalized);
+      if (!normalized.legalName && !normalized.tradeName) {
+        return res.json({
+          ...derivedFallback,
+          message: 'Provider returned incomplete GST data. Please verify GSTIN and enter details manually.'
+        });
+      }
+
+      res.json({
+        ...normalized,
+        isRegisteredDealer: ['active', 'registered', 'regular', 'composition'].includes(String(normalized.status).toLowerCase()),
+        message: normalized.address ? undefined : 'Address not available from GST API. Please enter manually.'
+      });
     } catch (err: any) {
       console.error('[GST Verify] Critical Failure:', err);
+      const errorCode = err?.cause?.code || err?.code || '';
+      const errorDetail = normalizeSpaces(err?.cause?.message || err?.message || 'Unknown network error');
       res.json({
         ...derivedFallback,
-        message: "Live GST verification failed due to provider/network issue. Derived basic details from GSTIN."
+        message: process.env.NODE_ENV === 'production'
+          ? 'Live GST verification failed due to provider/network issue. Derived basic details from GSTIN.'
+          : `Live GST verification failed: ${errorCode ? `${errorCode} - ` : ''}${errorDetail}`,
+        providerError: process.env.NODE_ENV === 'production' ? undefined : {
+          code: errorCode,
+          detail: errorDetail
+        }
       });
     }
   });
