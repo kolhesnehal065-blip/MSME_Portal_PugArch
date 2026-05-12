@@ -18,6 +18,18 @@ export default defineConfig(({mode}) => {
     },
     build: {
       outDir: 'dist',
+      chunkSizeWarningLimit: 1600,
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('scheduler') || id.includes('react-dom')) return 'vendor-react';
+              if (id.includes('lucide')) return 'vendor-icons';
+              return 'vendor';
+            }
+          }
+        }
+      }
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
