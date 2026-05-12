@@ -253,7 +253,7 @@ export default function Quotations() {
                   onChange={(event) => setStatusFilter(event.target.value as 'all' | BidStatus)}
                   className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:ring-2 focus:ring-[#12335f]"
                 >
-                  <option value="all">All statuses</option>
+                  <option value="all">All status</option>
                   <option value="pending">Pending</option>
                   <option value="accepted">Accepted</option>
                   <option value="rejected">Rejected</option>
