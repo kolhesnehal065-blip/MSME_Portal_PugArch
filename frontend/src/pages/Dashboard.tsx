@@ -6,15 +6,20 @@ import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui/card';
 import { AlertTriangle, CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck, Bell, Info, ShoppingBag, MessageSquare, Gavel, Briefcase, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { toast } from 'sonner';
 
 import ParcelTracking from './ParcelTracking';
 
 export default function Dashboard() {
   const { user, token, logout } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [adminStats, setAdminStats] = useState<any>(null);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  const cachedMe = token ? api.peek('/api/auth/me', { headers: authHeaders }) : null;
+  const cachedNotifications = token ? api.peek('/api/notifications', { headers: authHeaders }) : null;
+  const cachedAdminStats = token ? api.peek('/api/admin/stats', { headers: authHeaders }) : null;
+  const [profile, setProfile] = useState<any>(cachedMe?.profile || null);
+  const [isLoading, setIsLoading] = useState(!cachedMe);
+  const [adminStats, setAdminStats] = useState<any>(cachedAdminStats || null);
+  const [notifications, setNotifications] = useState<any[]>(cachedNotifications || []);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,40 +83,40 @@ export default function Dashboard() {
 
   if (user?.role === 'admin') {
     return (
-      <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="space-y-5 animate-in fade-in duration-500">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tight">Admin Control Center</h1>
-            <p className="text-slate-500 font-medium italic">Manage the MSME Procurement Network</p>
+            <h1 className="text-2xl font-extrabold text-[#12335f] uppercase tracking-tight">Admin Control Center</h1>
+            <p className="text-sm text-slate-500 font-medium">Manage the MSME Procurement Network</p>
           </div>
           <Link to="/admin/onboarding">
-            <Button className="bg-slate-900 hover:bg-black text-white h-12 px-6 rounded-xl space-x-2 font-black uppercase italic tracking-widest text-xs">
+            <Button className="bg-[#12335f] hover:bg-[#0b2445] text-white h-10 px-4 rounded-md space-x-2 font-bold uppercase tracking-wide text-xs">
               <ShieldCheck className="h-4 w-4" />
               <span>Review Submissions</span>
             </Button>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { label: 'Pending Approval', value: adminStats?.pendingApproval, color: 'amber' },
-            { label: 'Active Sellers', value: adminStats?.activeSellers, color: 'emerald' },
-            { label: 'Active Buyers', value: adminStats?.activeBuyers, color: 'blue' }
+            { label: 'Pending Approval', value: adminStats?.pendingApproval, path: '/admin/onboarding' },
+            { label: 'Active Sellers', value: adminStats?.activeSellers, path: '/admin/onboarding' },
+            { label: 'Active Buyers', value: adminStats?.activeBuyers, path: '/admin/onboarding' }
           ].map(stat => (
-            <div key={stat.label} className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-xl hover:-translate-y-1">
-              <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1 italic">{stat.label}</div>
-              <div className="text-4xl font-black tracking-tight text-slate-900">{stat.value ?? '0'}</div>
-            </div>
+            <Link key={stat.label} to={stat.path} className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-[#0f766e]/40 focus:outline-none focus:ring-2 focus:ring-[#0f766e]">
+              <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">{stat.label}</div>
+              <div className="text-3xl font-extrabold tracking-tight text-slate-900">{stat.value ?? '0'}</div>
+            </Link>
           ))}
         </div>
 
-        <Card className="rounded-3xl border-none shadow-2xl shadow-slate-200/50 overflow-hidden">
-          <CardContent className="py-16 text-center space-y-6">
-             <div className="mx-auto w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center rotate-3 transition-transform hover:rotate-0">
-                <ShieldCheck className="h-10 w-10 text-blue-600" />
+        <Card className="rounded-lg border-slate-200 shadow-sm overflow-hidden">
+          <CardContent className="py-10 text-center space-y-4">
+             <div className="mx-auto w-14 h-14 bg-blue-50 rounded-lg flex items-center justify-center">
+                <ShieldCheck className="h-7 w-7 text-[#12335f]" />
              </div>
-             <h2 className="text-2xl font-black text-slate-900 uppercase italic">Welcome back, Administrator</h2>
-             <p className="text-slate-500 font-medium italic max-w-md mx-auto leading-relaxed">
+             <h2 className="text-xl font-extrabold text-slate-900 uppercase">Welcome back, Administrator</h2>
+             <p className="text-sm text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
                Verified stakeholders are currently awaiting your review. Please ensure all document compliance before granting marketplace access.
              </p>
           </CardContent>
@@ -126,56 +131,60 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 border-b border-slate-100 pb-8">
+    <div className="space-y-5 animate-in fade-in duration-500 max-w-6xl mx-auto pb-10">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-slate-200 pb-4">
         <div>
-          <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] italic mb-1">MSME Procurement Portal</p>
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 uppercase italic tracking-tighter">Dashboard</h1>
+          <p className="text-[10px] font-bold text-[#0f766e] uppercase tracking-[0.18em] mb-1">MSME Procurement Portal</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#12335f] uppercase tracking-tight">Dashboard</h1>
         </div>
-        <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
-           <div className="h-12 w-12 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-lg italic">
+        <button
+          type="button"
+          onClick={() => navigate('/profile')}
+          className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-200 shadow-sm text-left hover:border-[#0f766e]/40 focus:outline-none focus:ring-2 focus:ring-[#0f766e]"
+        >
+           <div className="h-10 w-10 rounded-md bg-[#12335f] flex items-center justify-center text-white font-black text-base">
              {user?.name?.charAt(0)}
            </div>
-           <div className="pr-4">
-             <p className="text-xs font-black text-slate-900 uppercase italic">{user?.name}</p>
+           <div className="pr-3">
+             <p className="text-xs font-bold text-slate-900 uppercase">{user?.name}</p>
              <div className="flex flex-col gap-0.5 mt-0.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user?.role} Tier Account</p>
-                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest italic">
+                <p className="text-[10px] font-bold text-[#0f766e] uppercase tracking-widest">
                   ID: {user?.registrationDetails?.userId || `MSME-${user?.role?.charAt(0).toUpperCase()}-${String(user?.id).padStart(5, '0')}`}
                 </p>
              </div>
            </div>
-        </div>
+        </button>
       </div>
       
       {/* Procurement Method Selection - Only for Approved Buyers */}
       {user?.role === 'buyer' && user?.onboardingStatus === 'approved_for_procurement' && (
-        <div className="space-y-6 animate-in slide-in-from-top-4 duration-700">
-           <div className="bg-emerald-600 px-8 py-3 rounded-2xl shadow-lg shadow-emerald-100 flex items-center justify-between">
-              <h2 className="text-white text-xs font-black uppercase tracking-[0.3em] italic">Procurement Method Selection</h2>
-              <Badge className="bg-white/20 text-white border-none rounded-lg px-3 py-1 font-black italic text-[9px]">OFFICIAL CHANNELS</Badge>
+        <div className="space-y-4 animate-in slide-in-from-top-4 duration-700">
+           <div className="bg-[#12335f] px-4 py-2.5 rounded-lg shadow-sm flex items-center justify-between">
+              <h2 className="text-white text-xs font-bold uppercase tracking-[0.2em]">Procurement Method Selection</h2>
+              <Badge className="bg-white/15 text-white border-none rounded px-3 py-1 font-bold text-[9px]">OFFICIAL CHANNELS</Badge>
            </div>
            
-           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {[
                 { label: 'Direct Purchase', icon: ShoppingBag, color: 'bg-blue-50 text-blue-600', hover: 'hover:bg-blue-100', path: '/buyer/vendors' },
-                { label: 'Request for Quotation (RFQ)', icon: MessageSquare, color: 'bg-indigo-50 text-indigo-600', hover: 'hover:bg-indigo-100', path: '/buyer/quotations' },
+                { label: 'Request for Quotation (RFQ)', icon: MessageSquare, color: 'bg-teal-50 text-teal-700', hover: 'hover:bg-teal-100', path: '/quotations' },
                 { label: 'Tender Management', icon: FileText, color: 'bg-emerald-50 text-emerald-600', hover: 'hover:bg-emerald-100', path: '/buyer/tenders' },
-                { label: 'Reverse Auction', icon: Gavel, color: 'bg-amber-50 text-amber-600', hover: 'hover:bg-amber-100', path: '/buyer/auctions' },
-                { label: 'Service Procurement', icon: Briefcase, color: 'bg-orange-50 text-orange-600', hover: 'hover:bg-orange-100', path: '/buyer/services' }
+                { label: 'Reverse Auction', icon: Gavel, color: 'bg-amber-50 text-amber-700', hover: 'hover:bg-amber-100', path: '/buyer/tenders' },
+                { label: 'Service Procurement', icon: Briefcase, color: 'bg-orange-50 text-orange-700', hover: 'hover:bg-orange-100', path: '/buyer/vendors' }
               ].map((method) => (
                 <Link 
                   key={method.label} 
                   to={method.path}
                   className={cn(
-                    "flex flex-col items-center justify-center p-6 rounded-[2rem] border border-slate-100 bg-white transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group",
+                    "flex flex-col items-center justify-center p-4 rounded-lg border border-slate-200 bg-white transition-all duration-300 hover:shadow-md group focus:outline-none focus:ring-2 focus:ring-[#0f766e]",
                     method.hover
                   )}
                 >
-                   <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 group-hover:rotate-3", method.color)}>
-                      <method.icon className="h-6 w-6" />
+                   <div className={cn("h-11 w-11 rounded-md flex items-center justify-center mb-3 transition-transform group-hover:scale-105", method.color)}>
+                      <method.icon className="h-5 w-5" />
                    </div>
-                   <p className="text-[10px] font-black text-slate-900 uppercase italic text-center leading-tight tracking-tight px-2">{method.label}</p>
+                   <p className="text-[10px] font-bold text-slate-900 uppercase text-center leading-tight px-2">{method.label}</p>
                 </Link>
               ))}
            </div>
@@ -187,40 +196,40 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Onboarding Status Tracker */}
-        <div className="lg:col-span-2 space-y-8">
-          <Card className="rounded-3xl border-none shadow-xl shadow-slate-100/50 overflow-hidden bg-white">
-            <div className="bg-slate-50 border-b border-white px-8 py-6 flex items-center justify-between">
-               <h3 className="text-sm font-black uppercase text-slate-900 italic tracking-tight flex items-center gap-2">
-                 <ShieldCheck className="h-5 w-5 text-indigo-600" />
+        <div className="lg:col-span-2 space-y-5">
+          <Card className="rounded-lg border-slate-200 shadow-sm overflow-hidden bg-white">
+            <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+               <h3 className="text-sm font-bold uppercase text-slate-900 tracking-tight flex items-center gap-2">
+                 <ShieldCheck className="h-5 w-5 text-[#0f766e]" />
                  Verification Status Tracker
                </h3>
-               <Badge className="bg-white text-indigo-600 border border-indigo-100 px-4 py-1 rounded-full text-[10px] font-black uppercase italic">
+               <Badge className="bg-white text-[#0f766e] border border-teal-100 px-3 py-1 rounded text-[10px] font-bold uppercase">
                  Live Monitoring
                </Badge>
             </div>
-            <CardContent className="p-8">
-               <div className="flex flex-col md:flex-row items-center gap-8">
-                  <div className="relative h-32 w-32 shrink-0">
+            <CardContent className="p-5">
+               <div className="flex flex-col md:flex-row items-center gap-5">
+                  <div className="relative h-24 w-24 shrink-0">
                     <div className="absolute inset-0 bg-blue-50 rounded-full animate-pulse opacity-50" />
                     <div className="absolute inset-0 flex items-center justify-center">
                        {getStatusIcon(user?.onboardingStatus || 'pending')}
                     </div>
                   </div>
-                  <div className="space-y-4 text-center md:text-left">
+                  <div className="space-y-3 text-center md:text-left">
                      <div>
-                        <h4 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">
+                        <h4 className="text-xl font-extrabold text-slate-900 uppercase tracking-tight">
                           {getStatusLabel(user?.onboardingStatus || 'pending')}
                         </h4>
-                        <p className="text-slate-500 font-medium italic text-sm mt-1">
+                        <p className="text-slate-500 font-medium text-sm mt-1">
                           {user?.onboardingStatus === 'approved_for_procurement' 
                             ? "Your profile is fully verified. You can now participate in all procurement activities."
                             : "Your profile is currently being reviewed by the MSME compliance department."}
                         </p>
                      </div>
                      <Link to={user?.role === 'seller' ? '/seller/onboarding' : '/buyer/onboarding'}>
-                       <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 px-8 font-black uppercase italic text-xs tracking-widest shadow-lg shadow-indigo-100 transition-all hover:scale-105 active:scale-95">
+                       <Button className="bg-[#0f766e] hover:bg-[#0b5f59] text-white rounded-md h-10 px-5 font-bold uppercase text-xs tracking-wide transition-all">
                           {user?.onboardingStatus === 'approved_for_procurement' ? 'View Full Profile' : 'Complete Profile'}
                           <ArrowRight className="ml-2 h-4 w-4" />
                        </Button>
@@ -231,23 +240,33 @@ export default function Dashboard() {
           </Card>
 
           {/* Quick Actions / Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-                <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-3">
+                <div className="h-9 w-9 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
                    <Info className="h-5 w-5" />
                 </div>
-                <h5 className="font-black text-slate-900 uppercase italic text-sm">Need Help?</h5>
-                <p className="text-xs font-medium text-slate-500 italic leading-relaxed">Our support team is available 24/7 to help you with the GeM-style onboarding process.</p>
-                <Button variant="ghost" className="text-blue-600 font-black uppercase italic text-[10px] p-0 h-auto hover:bg-transparent">Contact Support</Button>
+                <h5 className="font-bold text-slate-900 uppercase text-sm">Need Help?</h5>
+                <p className="text-xs font-medium text-slate-500 leading-relaxed">Our support team is available to help you with the onboarding process.</p>
+                <Button
+                  variant="ghost"
+                  onClick={() => toast.info('Support desk request noted. Please email support@msme-portal.gov.in for urgent help.')}
+                  className="text-[#0f766e] font-bold uppercase text-[10px] p-0 h-auto hover:bg-transparent"
+                >
+                  Contact Support
+                </Button>
              </div>
-             <div className="bg-slate-900 p-6 rounded-3xl shadow-xl shadow-slate-200 space-y-4 text-white overflow-hidden relative">
+             {/* <button
+                type="button"
+                onClick={() => navigate(user?.role === 'seller' ? '/seller/onboarding' : '/buyer/onboarding')}
+                className="bg-[#12335f] p-4 rounded-lg shadow-sm space-y-3 text-white overflow-hidden relative text-left hover:bg-[#0b2445] focus:outline-none focus:ring-2 focus:ring-[#f9a825]"
+              >
                 <div className="absolute top-0 right-0 p-6 opacity-10">
                    <ShieldCheck className="h-20 w-20" />
                 </div>
-                <h5 className="font-black uppercase italic text-sm">Trust & Security</h5>
-                <p className="text-xs font-medium text-slate-400 italic leading-relaxed">Your data is encrypted and stored in compliance with MSME data sovereignty rules.</p>
-                <Badge className="bg-white/10 text-white border-none rounded-lg px-3 py-1 font-black italic text-[9px]">AES-256 SECURED</Badge>
-             </div>
+                <h5 className="font-bold uppercase text-sm">Trust & Security</h5>
+                <p className="text-xs font-medium text-blue-100/80 leading-relaxed">Your data is encrypted and stored in compliance with MSME data sovereignty rules.</p>
+                <Badge className="bg-white/10 text-white border-none rounded px-3 py-1 font-bold text-[9px]">AES-256 SECURED</Badge>
+             </button> */}
           </div>
         </div>
 

@@ -102,9 +102,176 @@ async function startServer() {
     next();
   });
 
-  const ensureOnboardingEditable = async (userId: number) => {
+  const ensureOnboardingEditable = async (
+    userId: number
+  ): Promise<{ editable: boolean; status?: number; message?: string }> => {
     // Force unlock for all statuses as requested by USER
     return { editable: true };
+  };
+
+  const normalizeSpaces = (value: unknown) => String(value || '').replace(/\s+/g, ' ').trim();
+
+  const validateSellerBankPayload = (body: any) => {
+    const values = {
+      ifsc: normalizeSpaces(body.ifsc).toUpperCase(),
+      bankName: normalizeSpaces(body.bankName),
+      bankAddress: normalizeSpaces(body.bankAddress),
+      holderName: normalizeSpaces(body.holderName),
+      accountNumber: String(body.accountNumber || '').trim(),
+      isPrimary: Boolean(body.isPrimary)
+    };
+    const errors: Record<string, string> = {};
+    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+    const bankNameRegex = /^[A-Za-z0-9 .,&()/-]+$/;
+    const holderRegex = /^[A-Za-z .'-]+$/;
+    const accountRegex = /^\d{9,18}$/;
+
+    if (!values.ifsc) errors.ifsc = 'IFSC code is required';
+    else if (!ifscRegex.test(values.ifsc)) errors.ifsc = 'Invalid IFSC format';
+
+    if (!values.bankName) errors.bankName = 'Bank name is required';
+    else if (values.bankName.length < 2 || values.bankName.length > 100) errors.bankName = 'Bank name must be 2 to 100 characters';
+    else if (!bankNameRegex.test(values.bankName)) errors.bankName = 'Bank name contains invalid characters';
+
+    if (!values.bankAddress) errors.bankAddress = 'Bank address is required';
+    else if (values.bankAddress.length < 10 || values.bankAddress.length > 250) errors.bankAddress = 'Bank address must be 10 to 250 characters';
+
+    if (!values.holderName) errors.holderName = 'Account holder name is required';
+    else if (values.holderName.length < 2) errors.holderName = 'Account holder name must be at least 2 characters';
+    else if (!holderRegex.test(values.holderName)) errors.holderName = 'Account holder name contains invalid characters';
+
+    if (!values.accountNumber) errors.accountNumber = 'Bank account number is required';
+    else if (!accountRegex.test(values.accountNumber)) errors.accountNumber = 'Account number must be 9 to 18 digits';
+
+    return { values, errors, isValid: Object.keys(errors).length === 0 };
+  };
+
+  const validatePersonalVerification = (role: unknown, details: any, dob: unknown, mobile: unknown) => {
+    const errors: Record<string, string> = {};
+    const method = String(details?.verificationMethod || '').trim();
+    const mobileValue = String(mobile || '').trim();
+    const dobValue = String(dob || '').trim();
+
+    if (role !== 'seller') return { errors, isValid: true };
+    if (!['aadhaar', 'pan'].includes(method)) {
+      errors.verificationMethod = 'Select Aadhaar or Personal PAN verification';
+      return { errors, isValid: false };
+    }
+
+    if (method === 'aadhaar') {
+      const aadhaarValue = String(details?.aadhaarNumber || '').trim();
+      const validIdentity = /^\d{12}$/.test(aadhaarValue) || /^\d{16}$/.test(aadhaarValue);
+      const validMobile = /^[6-9]\d{9}$/.test(mobileValue) && !/^(\d)\1{9}$/.test(mobileValue);
+      if (!validIdentity) errors.aadhaarNumber = 'Aadhaar must be 12 digits or Virtual ID must be 16 digits';
+      if (!validMobile) errors.mobile = 'Aadhaar-linked mobile must be a valid 10 digit Indian mobile number';
+      if (!details?.isAadhaarVerified) errors.aadhaarVerified = 'Aadhaar verification is required';
+    }
+
+    if (method === 'pan') {
+      const pan = String(details?.pan || '').trim().toUpperCase();
+      const name = normalizeSpaces(details?.accountName);
+      const parsedDob = dobValue ? new Date(dobValue) : null;
+      const now = new Date();
+      const age = parsedDob
+        ? now.getFullYear() - parsedDob.getFullYear() - (now < new Date(now.getFullYear(), parsedDob.getMonth(), parsedDob.getDate()) ? 1 : 0)
+        : 0;
+      if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(pan)) errors.pan = 'PAN must follow ABCDE1234F format';
+      if (!/^[A-Za-z .-]{2,100}$/.test(name)) errors.accountName = 'Name as on PAN must be 2-100 valid text characters';
+      if (!parsedDob || parsedDob > now || age < 18) errors.dob = 'Date of birth must not be future and user must be at least 18 years old';
+    }
+
+    return { errors, isValid: Object.keys(errors).length === 0 };
+  };
+
+  const compactParts = (...parts: unknown[]) =>
+    parts
+      .map(part => normalizeSpaces(part))
+      .filter(Boolean);
+
+  const pickFirstValue = (...values: unknown[]) => {
+    for (const value of values) {
+      const normalized = normalizeSpaces(value);
+      if (normalized) return normalized;
+    }
+    return '';
+  };
+
+  const getNestedValue = (source: any, paths: string[]) => {
+    for (const path of paths) {
+      const value = path.split('.').reduce((current, key) => {
+        if (current === undefined || current === null) return undefined;
+        return current[key];
+      }, source);
+      const normalized = normalizeSpaces(value);
+      if (normalized) return normalized;
+    }
+    return '';
+  };
+
+  const resolveGstPayload = (raw: any) =>
+    raw?.data?.result ||
+    raw?.data?.gstinData ||
+    raw?.data?.gstDetails ||
+    raw?.data?.data ||
+    raw?.result ||
+    raw?.gstinData ||
+    raw?.gstDetails ||
+    raw?.certificateData ||
+    raw;
+
+  const normalizeGstDetails = (raw: any, requestedGstin: string) => {
+    const payload = resolveGstPayload(raw);
+    const principal = payload?.pradr || payload?.principalPlaceOfBusiness || payload?.principalAddress || payload?.principal_place_of_business || {};
+    const addressSource = principal?.addr || principal?.address || principal;
+    const requested = requestedGstin.toUpperCase();
+    const responseGstin = pickFirstValue(
+      payload?.gstin,
+      payload?.gstIn,
+      payload?.GSTIN,
+      getNestedValue(raw, ['data.gstin', 'data.GSTIN', 'result.gstin'])
+    ).toUpperCase();
+
+    const legalName = pickFirstValue(payload?.lgnm, payload?.legalName, payload?.legal_name, payload?.legalNam, payload?.name);
+    const tradeName = pickFirstValue(payload?.tradeNam, payload?.tradeName, payload?.trade_name, payload?.businessName);
+    const pincode = pickFirstValue(addressSource?.pncd, addressSource?.pinCode, addressSource?.pincode, addressSource?.pin, addressSource?.zip);
+    const district = pickFirstValue(addressSource?.dst, addressSource?.district, addressSource?.dist);
+    const city = pickFirstValue(addressSource?.city, addressSource?.town, addressSource?.village, district);
+    const state = pickFirstValue(addressSource?.stcd, addressSource?.state, addressSource?.stateName);
+    const address = compactParts(
+      addressSource?.bno,
+      addressSource?.buildingNumber,
+      addressSource?.bnm,
+      addressSource?.buildingName,
+      addressSource?.flno,
+      addressSource?.floor,
+      addressSource?.st,
+      addressSource?.street,
+      addressSource?.loc,
+      addressSource?.location,
+      addressSource?.city,
+      district,
+      state,
+      pincode
+    ).join(', ');
+
+    return {
+      requestedGstin: requested,
+      responseGstin,
+      legalName,
+      tradeName,
+      organizationName: legalName || tradeName,
+      address,
+      registeredOfficeAddress: address,
+      country: 'India',
+      state,
+      city,
+      district,
+      pincode,
+      pinCode: pincode,
+      pan: pickFirstValue(payload?.pan, payload?.PAN, payload?.panNo, payload?.panNumber) || requested.substring(2, 12),
+      status: pickFirstValue(payload?.sts, payload?.status, payload?.authStatus) || 'Active',
+      raw
+    };
   };
 
   app.get("/", (req, res) => {
@@ -144,24 +311,137 @@ async function startServer() {
 
   // GST Verification Utility
   app.get('/api/utils/gst-verify/:gstin', authenticate, async (req, res) => {
-    const { gstin } = req.params;
-    // Note: The API key is stored in .env. We use a mock response logic for now
-    // which can be replaced with a real fetch to a provider like ApyHub or Cashfree.
+    const rawGstin = String(req.params.gstin || '');
+    const gstin = rawGstin.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!/^[0-9]{2}[A-Z0-9]{10}[0-9A-Z]{1}[Zz]{1}[0-9A-Z]{1}$/.test(gstin)) {
+      return res.status(400).json({ message: 'Invalid GSTIN format' });
+    }
+
+    const gstStateMap: Record<string, string> = {
+      '01': 'Jammu and Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh',
+      '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan', '09': 'Uttar Pradesh',
+      '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal Pradesh', '13': 'Nagaland', '14': 'Manipur',
+      '15': 'Mizoram', '16': 'Tripura', '17': 'Meghalaya', '18': 'Assam', '19': 'West Bengal',
+      '20': 'Jharkhand', '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '24': 'Gujarat',
+      '25': 'Daman and Diu', '26': 'Dadra and Nagar Haveli and Daman and Diu', '27': 'Maharashtra',
+      '28': 'Andhra Pradesh', '29': 'Karnataka', '30': 'Goa', '31': 'Lakshadweep', '32': 'Kerala',
+      '33': 'Tamil Nadu', '34': 'Puducherry', '35': 'Andaman and Nicobar Islands', '36': 'Telangana',
+      '37': 'Andhra Pradesh (New)', '38': 'Ladakh'
+    };
+
+    const derivedFallback = {
+      legalName: '',
+      tradeName: '',
+      address: '',
+      state: gstStateMap[gstin.substring(0, 2)] || '',
+      city: '',
+      pincode: '',
+      pan: gstin.substring(2, 12),
+      status: '',
+      isRegisteredDealer: false,
+      partial: true,
+      source: 'derived_from_gstin'
+    };
+
     try {
-      // Simulation of a GST API response
-      const mockData = {
-        legalName: "PugArch MSME Enterprise",
-        address: "7th Floor, Wing A, Software Technology Park",
-        state: "Maharashtra",
-        city: "Mumbai",
-        pincode: "400001",
-        pan: gstin.substring(2, 12),
-        status: "Active"
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+
+      const apiKey = process.env.GST_API_KEY?.replace(/['"]/g, '').trim();
+      const apiSetuUrlTemplate = (
+        process.env.GST_APISETU_URL ||
+        process.env.GST_API_URL ||
+        ''
+      ).replace(/['"]/g, '').trim();
+      console.log(`[GST Verify] Request for: ${gstin}`);
+      console.log(`[GST Verify] Using API Key: ${apiKey ? (apiKey.substring(0, 5) + '...') : 'MISSING'}`);
+
+      if (!apiKey) {
+        console.warn('[GST Verify] No API key found in .env.');
+        return res.status(500).json({
+          message: 'GST API key is not configured on server. Live GST fetch is unavailable.'
+        });
+      }
+
+      if (!apiSetuUrlTemplate) {
+        return res.status(500).json({
+          message: 'GST_APISETU_URL is not configured. Add API Setu GST endpoint URL in backend/.env'
+        });
+      }
+
+      // Supports either:
+      // 1) .../{gstin}
+      // 2) ...?gstin={gstin}
+      // 3) plain endpoint (we append ?gstin=...)
+      const apiUrl = apiSetuUrlTemplate.includes('{gstin}')
+        ? apiSetuUrlTemplate.replace('{gstin}', encodeURIComponent(gstin))
+        : apiSetuUrlTemplate.includes('gstin=')
+          ? apiSetuUrlTemplate.replace(/gstin=[^&]*/i, `gstin=${encodeURIComponent(gstin)}`)
+          : `${apiSetuUrlTemplate}${apiSetuUrlTemplate.includes('?') ? '&' : '?'}gstin=${encodeURIComponent(gstin)}`;
+
+      console.log(`[GST Verify] Calling API Setu endpoint: ${apiUrl}`);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'apy-token': apiKey,
+          'x-api-key': apiKey,
+          'api-key': apiKey,
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log(`[GST Verify] API Setu Response Status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[GST Verify] API Setu Error: ${response.status} - ${errorText}`);
+        return res.json({
+          ...derivedFallback,
+          message: "Live GST verification unavailable right now. Derived basic details from GSTIN.",
+          providerStatus: response.status
+        });
+      }
+
+      const result: any = await response.json();
+      console.log(`[GST Verify] GST Data Received:`, JSON.stringify(result).substring(0, 120) + '...');
+      
+      const data = result?.data || result?.result || result;
+
+      // Map common GST provider fields to frontend expectations
+      const normalized = {
+        legalName: data.legal_name || data.legalName || data.lgnm || data.trade_name || data.tradeName || data.tnam || '',
+        tradeName: data.trade_name || data.tradeName || data.tnam || '',
+        address: data.address || data.pradr?.adr || data.pradr?.addr || '',
+        state: data.state || data.pradr?.stcd || data.stjCd || '',
+        city: data.city || data.pradr?.city || data.ctj || '',
+        pincode: data.pincode || data.pradr?.pncd || data.pradr?.pincode || '',
+        pan: data.pan || data.panNumber || data.ctb?.pan || gstin.substring(2, 12),
+        status: data.status || data.gstStatus || data.dty || data.sts || '',
+        isRegisteredDealer: Boolean(
+          ['active', 'registered', 'regular', 'composition'].includes(
+            String(data.status || data.gstStatus || data.dty || data.sts || '').toLowerCase()
+          )
+        ),
       };
 
-      res.json(mockData);
-    } catch (err) {
-      res.status(500).json({ message: "GST Verification failed" });
+      if (!normalized.legalName || !normalized.address) {
+        return res.json({
+          ...derivedFallback,
+          message: 'Provider returned incomplete GST data. Derived basic details from GSTIN.'
+        });
+      }
+
+      res.json(normalized);
+    } catch (err: any) {
+      console.error('[GST Verify] Critical Failure:', err);
+      res.json({
+        ...derivedFallback,
+        message: "Live GST verification failed due to provider/network issue. Derived basic details from GSTIN."
+      });
     }
   });
 
@@ -402,7 +682,7 @@ async function startServer() {
               category: 'Furniture',
               budget: 500000,
               description: 'Need ergonomic chairs and desks.',
-              status: 'active',
+              status: 'published',
               closesAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
             }
           });
@@ -410,8 +690,13 @@ async function startServer() {
       }
       console.log('Seeding completed.');
     }
-  } catch (err) {
-    console.error('Seeding error:', err);
+  } catch (err: any) {
+    const message = String(err?.message || '');
+    if (message.includes("Can't reach database server")) {
+      console.warn('Seeding skipped: database server is unreachable.');
+    } else {
+      console.error('Seeding error:', err);
+    }
   }
 
   // --- File Upload ---
@@ -452,6 +737,13 @@ async function startServer() {
       const email = String(req.body.email || '').trim().toLowerCase();
       console.log(`[Email OTP] Request for: ${email}`);
       if (!email) return res.status(400).json({ message: 'Email is required' });
+
+      // Preemptive check: Does user already exist in DB?
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        console.log(`[Email OTP] Rejection: User ${email} already exists.`);
+        return res.status(400).json({ message: 'User already exists. Please login directly.' });
+      }
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
       console.log(`[Email OTP] Deleting old records for: ${email}`);
@@ -467,10 +759,32 @@ async function startServer() {
       });
 
       const mailOptions = {
-        from: `"PugArch Admin" <${process.env.SMTP_USER}>`,
+        from: `"Government Procurement Support" <${process.env.SMTP_USER}>`,
         to: email,
-        subject: 'Verification Code',
-        html: `<h2>Code: ${otp}</h2>`
+        subject: `[SECURE AUTH] Action Verification Key: ${otp}`,
+        html: `
+          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="background-color: #1e3a8a; color: #ffffff; padding: 20px; text-align: center; text-transform: uppercase; font-weight: bold; font-size: 18px; letter-spacing: 1.5px;">
+              Security Audit Clearance
+            </div>
+            <div style="padding: 40px 30px; background-color: #ffffff;">
+              <p style="margin: 0 0 12px; color: #475569; font-size: 15px;">A request has been lodged for administrative portal access validation.</p>
+              <p style="margin: 0 0 30px; color: #1e293b; font-weight: bold; font-size: 15px;">Enter this verification code to authorize the action:</p>
+              
+              <div style="text-align: center; margin: 35px 0;">
+                <div style="display: inline-block; padding: 18px 40px; background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 6px; font-size: 36px; font-weight: 800; color: #1e3a8a; letter-spacing: 12px; font-family: 'Courier New', Courier, monospace;">
+                  ${otp}
+                </div>
+              </div>
+              
+              <div style="margin-top: 35px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
+                <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0;">
+                  This identifier retains operational validity for exactly 10 minutes. If you did not trigger this verification event, terminate this alert immediately.
+                </p>
+              </div>
+            </div>
+          </div>
+        `
       };
 
       if (process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -530,8 +844,21 @@ async function startServer() {
         return res.status(400).json({ message: 'OTP expired. Please request a new code.' });
       }
 
-      const existingUser = await prisma.user.findUnique({ where: { email } });
-      if (existingUser) return res.status(400).json({ message: 'Exists' });
+      const existingEmail = await prisma.user.findUnique({ where: { email } });
+      if (existingEmail) return res.status(400).json({ message: 'Email already registered. Please log in.' });
+
+      if (mobile) {
+        const existingMobile = await prisma.user.findFirst({ where: { mobile: String(mobile).trim() } });
+        if (existingMobile) return res.status(400).json({ message: 'Mobile number already in use. Please use unique details.' });
+      }
+
+      const personalValidation = validatePersonalVerification(role, registrationDetails, dob, mobile);
+      if (!personalValidation.isValid) {
+        return res.status(400).json({
+          message: 'Invalid personal verification details',
+          errors: personalValidation.errors
+        });
+      }
 
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await prisma.user.create({
@@ -593,6 +920,33 @@ async function startServer() {
         user: { ...userData, _id: user.id },
         profile: user.role === 'seller' ? user.sellerProfile : user.buyerProfile
       });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/auth/change-password', authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = Number(req.user?.id);
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Current and new passwords are required' });
+      }
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) return res.status(404).json({ message: 'User not found' });
+
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) return res.status(400).json({ message: 'Current password incorrect' });
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword }
+      });
+
+      res.json({ message: 'Password updated successfully' });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -705,14 +1059,72 @@ async function startServer() {
       const profile = await prisma.sellerProfile.findUnique({ where: { userId } });
       if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
-      const bank = await prisma.sellerBankAccount.create({
-        data: { ...req.body, sellerProfileId: profile.id }
+      const validation = validateSellerBankPayload(req.body);
+      if (!validation.isValid) {
+        return res.status(400).json({ message: 'Invalid bank account details', errors: validation.errors });
+      }
+
+      const existingAccounts = await prisma.sellerBankAccount.findMany({
+        where: { sellerProfileId: profile.id },
+        orderBy: { createdAt: 'asc' }
       });
-      res.json({ success: true, bank });
+      const duplicate = existingAccounts.find(bank =>
+        bank.ifsc.toUpperCase() === validation.values.ifsc &&
+        bank.accountNumber === validation.values.accountNumber
+      );
+      if (duplicate) {
+        return res.status(409).json({ message: 'This bank account is already added for this seller profile' });
+      }
+
+      const shouldBePrimary = existingAccounts.length === 0 || validation.values.isPrimary;
+      const bank = await prisma.$transaction(async (tx) => {
+        if (shouldBePrimary) {
+          await tx.sellerBankAccount.updateMany({
+            where: { sellerProfileId: profile.id },
+            data: { isPrimary: false }
+          });
+        }
+        return tx.sellerBankAccount.create({
+          data: {
+            sellerProfileId: profile.id,
+            ifsc: validation.values.ifsc,
+            bankName: validation.values.bankName,
+            bankAddress: validation.values.bankAddress,
+            holderName: validation.values.holderName,
+            accountNumber: validation.values.accountNumber,
+            isPrimary: shouldBePrimary
+          }
+        });
+      });
+      const bankAccounts = await prisma.sellerBankAccount.findMany({
+        where: { sellerProfileId: profile.id },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }]
+      });
+      res.json({ success: true, bank, bankAccounts });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
+  
+  app.post('/api/seller/submit', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
+    try {
+      const userId = Number(req.user?.id);
+      const editCheck = await ensureOnboardingEditable(userId);
+      if (!editCheck.editable) return res.status(editCheck.status || 403).json({ message: editCheck.message });
+      
+      const user = await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          onboardingStatus: 'under_compliance_review',
+          registrationStatus: 'completed'
+        }
+      });
+      res.json({ success: true, user });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
 
   app.delete('/api/seller/profile/bank/:id', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
     try {
@@ -727,8 +1139,31 @@ async function startServer() {
       if (!bank || bank.sellerProfile.userId !== userId) {
         return res.status(404).json({ message: 'Bank account not found' });
       }
-      await prisma.sellerBankAccount.delete({ where: { id: bankId } });
-      res.json({ success: true });
+      const accounts = await prisma.sellerBankAccount.findMany({
+        where: { sellerProfileId: bank.sellerProfileId },
+        orderBy: { createdAt: 'asc' }
+      });
+      if (accounts.length === 1) {
+        return res.status(400).json({ message: 'At least one bank account must remain on the profile' });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.sellerBankAccount.delete({ where: { id: bankId } });
+        if (bank.isPrimary) {
+          const replacement = accounts.find(account => account.id !== bankId);
+          if (replacement) {
+            await tx.sellerBankAccount.update({
+              where: { id: replacement.id },
+              data: { isPrimary: true }
+            });
+          }
+        }
+      });
+      const bankAccounts = await prisma.sellerBankAccount.findMany({
+        where: { sellerProfileId: bank.sellerProfileId },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }]
+      });
+      res.json({ success: true, bankAccounts });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -1099,7 +1534,23 @@ async function startServer() {
     }
   });
 
-  app.listen(PORT, () => console.log(`Server running on port ${PORT} (Prisma/PostgreSQL)`));
+  const startListening = (port: number) => {
+    const server = app.listen(port, () => {
+      console.log(`Server running on port ${port} (Prisma/PostgreSQL)`);
+    });
+
+    server.on('error', (err: any) => {
+      if (err?.code === 'EADDRINUSE') {
+        const nextPort = port + 1;
+        console.warn(`Port ${port} is in use. Retrying on port ${nextPort}...`);
+        startListening(nextPort);
+        return;
+      }
+      console.error('Server failed to start:', err);
+    });
+  };
+
+  startListening(PORT);
 }
 
 startServer().catch(err => {

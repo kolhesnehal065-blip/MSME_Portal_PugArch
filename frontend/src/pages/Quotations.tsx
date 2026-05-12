@@ -1,22 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { api } from '../lib/api';
-import { Card, CardContent } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { 
-  ClipboardCheck, 
-  Search, 
-  Filter, 
-  MapPin, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  Trophy,
-  ChevronDown,
-  ArrowRight,
-  Building2
-} from 'lucide-react';
-import { cn } from '../lib/utils';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  ClipboardCheck,
+  Clock,
+  FileText,
+  Search,
+  Send,
+  Trophy,
+  XCircle
+} from 'lucide-react';
+import { api } from '../lib/api';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { useAuth } from '../hooks/useAuth';
+import { cn } from '../lib/utils';
+
+type BidStatus = 'pending' | 'accepted' | 'rejected';
 
 interface Quotation {
   id: number;
@@ -25,323 +28,439 @@ interface Quotation {
   unitPrice: number;
   quantity: number;
   deliveryDays: number;
-  warranty: string;
-  validTill: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  warranty?: string;
+  validTill?: string;
+  status: BidStatus;
   note?: string;
   isLowest?: boolean;
-  tender: {
-    tenderId: string;
-    title: string;
+  tender?: {
+    id?: number;
+    tenderId?: string;
+    title?: string;
+    category?: string;
+    budget?: number;
+    status?: string;
+    closesAt?: string;
   };
-  seller: {
+  seller?: {
     name: string;
     sellerProfile?: {
-      businessName: string;
-      offices: Array<{ city: string }>;
-    }
-  }
+      businessName?: string;
+      offices?: Array<{ city?: string; state?: string }>;
+    };
+  };
 }
 
-import { useAuth } from '../hooks/useAuth';
+const statusStyles: Record<BidStatus, string> = {
+  pending: 'border-amber-200 bg-amber-50 text-amber-800',
+  accepted: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  rejected: 'border-red-200 bg-red-50 text-red-800'
+};
+
+const statusIcons: Record<BidStatus, React.ElementType> = {
+  pending: Clock,
+  accepted: CheckCircle2,
+  rejected: XCircle
+};
+
+const formatMoney = (value?: number) => `Rs. ${Number(value || 0).toLocaleString('en-IN')}`;
 
 export default function Quotations() {
   const { user } = useAuth();
-  const [quotes, setQuotes] = useState<Quotation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [tenders, setTenders] = useState<any[]>([]);
-  const [selectedTenderId, setSelectedTenderId] = useState<string>('all');
+  const navigate = useNavigate();
+  const authOptions = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
+  const cachedSellerBids = user?.role === 'seller' ? api.peek('/api/bids/my', authOptions) : null;
+  const cachedBuyerTenders = user?.role === 'buyer' ? api.peek('/api/tenders', authOptions) : null;
+
+  const [quotes, setQuotes] = useState<Quotation[]>(cachedSellerBids || []);
+  const [tenders, setTenders] = useState<any[]>(cachedBuyerTenders || []);
+  const [loading, setLoading] = useState(!(cachedSellerBids || cachedBuyerTenders));
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | BidStatus>('all');
+  const [selectedTenderId, setSelectedTenderId] = useState('all');
 
   useEffect(() => {
-    if (user?.role === 'buyer') {
-      fetchMyTenders();
-    } else if (user?.role === 'seller') {
-      fetchMyBids();
-    }
-  }, [user]);
+    if (user?.role === 'seller') fetchMyBids();
+    if (user?.role === 'buyer') fetchMyTenders();
+  }, [user?.role]);
 
   useEffect(() => {
-    if (user?.role === 'buyer' && tenders.length > 0) {
-      fetchAllBidsForBuyer();
-    }
-  }, [tenders, selectedTenderId, user]);
+    if (user?.role === 'buyer' && tenders.length > 0) fetchBuyerBids();
+  }, [user?.role, tenders.length, selectedTenderId]);
 
   const fetchMyTenders = async () => {
+    if (tenders.length === 0) setLoading(true);
     try {
-      const res = await api.get('/api/tenders', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTenders(data);
-      }
-    } catch (err) {
+      const res = await api.get('/api/tenders', authOptions);
+      if (!res.ok) throw new Error('Failed to load tenders');
+      const data = await res.json();
+      setTenders(data || []);
+      if ((data || []).length === 0) setQuotes([]);
+    } catch {
       toast.error('Failed to load your tenders');
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchMyBids = async () => {
-    setLoading(true);
+    if (quotes.length === 0) setLoading(true);
     try {
-      const res = await api.get('/api/bids/my', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setQuotes(data);
-      }
-    } catch (err) {
+      const res = await api.get('/api/bids/my', authOptions);
+      if (!res.ok) throw new Error('Failed to load bids');
+      const data = await res.json();
+      setQuotes(data || []);
+    } catch {
       toast.error('Failed to load your bids');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchAllBidsForBuyer = async () => {
-    setLoading(true);
+  const fetchBuyerBids = async () => {
+    if (quotes.length === 0) setLoading(true);
     try {
-      let allBids: Quotation[] = [];
-      
-      const tenderIdsToFetch = selectedTenderId === 'all' 
-        ? tenders.map(t => t.id) 
+      const tenderIds = selectedTenderId === 'all'
+        ? tenders.map(tender => tender.id)
         : [Number(selectedTenderId)];
+      let allBids: Quotation[] = [];
 
-      for (const id of tenderIdsToFetch) {
-        const res = await api.get(`/api/tenders/${id}/bids`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          // Find lowest unit price in this tender
-          const lowestPrice = Math.min(...data.map((b: any) => b.unitPrice));
-          const bidsWithMetadata = data.map((b: any) => ({
-            ...b,
-            isLowest: b.unitPrice === lowestPrice && data.length > 1,
-            tender: tenders.find(t => t.id === id)
-          }));
-          allBids = [...allBids, ...bidsWithMetadata];
-        }
+      for (const tenderId of tenderIds) {
+        const res = await api.get(`/api/tenders/${tenderId}/bids`, authOptions);
+        if (!res.ok) continue;
+        const data = await res.json();
+        const tender = tenders.find(item => item.id === tenderId);
+        const prices = (data || []).map((bid: Quotation) => Number(bid.unitPrice || 0)).filter(Boolean);
+        const lowestPrice = prices.length > 0 ? Math.min(...prices) : null;
+        allBids = [
+          ...allBids,
+          ...(data || []).map((bid: Quotation) => ({
+            ...bid,
+            tender,
+            isLowest: lowestPrice !== null && Number(bid.unitPrice) === lowestPrice && data.length > 1
+          }))
+        ];
       }
       setQuotes(allBids);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load quotations');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStatusUpdate = async (id: number, status: 'accepted' | 'rejected') => {
+  const handleStatusUpdate = async (id: number, status: BidStatus) => {
     try {
-      const res = await api.post(`/api/bids/${id}/status`, { status }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) {
-        toast.success(`Quotation ${status === 'accepted' ? 'accepted' : 'rejected'} successfully`);
-        fetchAllBidsForBuyer(); // Refresh
-      } else {
-        const data = await res.json();
-        toast.error(data.message || 'Update failed');
+      const res = await api.post(`/api/bids/${id}/status`, { status }, authOptions);
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || 'Update failed');
       }
-    } catch (err) {
-      toast.error('Network error');
+      toast.success(`Quotation ${status === 'accepted' ? 'accepted' : 'rejected'} successfully`);
+      fetchBuyerBids();
+    } catch (err: any) {
+      toast.error(err?.message || 'Network error');
     }
   };
 
-  const handleAccept = (id: number) => handleStatusUpdate(id, 'accepted');
-  const handleReject = (id: number) => handleStatusUpdate(id, 'rejected');
+  const filteredQuotes = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return quotes.filter((quote) => {
+      const tenderText = `${quote.tender?.tenderId || ''} ${quote.tender?.title || ''} ${quote.tender?.category || ''}`.toLowerCase();
+      const sellerText = `${quote.seller?.name || ''} ${quote.seller?.sellerProfile?.businessName || ''}`.toLowerCase();
+      const matchesSearch = !query || tenderText.includes(query) || sellerText.includes(query);
+      const matchesStatus = statusFilter === 'all' || quote.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [quotes, searchTerm, statusFilter]);
 
-  if (loading && quotes.length === 0) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center px-4 text-center">
-        <div className="space-y-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent mx-auto"></div>
-          <p className="text-sm font-bold text-slate-500 italic">Syncing market data...</p>
-        </div>
-      </div>
-    );
-  }
+  const stats = useMemo(() => {
+    const total = quotes.length;
+    const pending = quotes.filter(quote => quote.status === 'pending').length;
+    const accepted = quotes.filter(quote => quote.status === 'accepted').length;
+    const rejected = quotes.filter(quote => quote.status === 'rejected').length;
+    const totalValue = quotes.reduce((sum, quote) => sum + Number(quote.unitPrice || 0) * Number(quote.quantity || 0), 0);
+    return { total, pending, accepted, rejected, totalValue };
+  }, [quotes]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
-          <div className="space-y-1">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+    <div className="min-h-screen bg-slate-50 px-3 py-5 text-slate-900 sm:px-5 md:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">
               {user?.role === 'buyer' ? 'Bid Evaluation' : 'Market Participation'}
             </p>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#071632] md:text-3xl">
               {user?.role === 'buyer' ? 'Quotations' : 'My Bids'}
             </h1>
-            <p className="text-sm text-slate-500 font-medium">
-              {user?.role === 'buyer' 
-                ? 'Compare vendor bids side-by-side and award the tender to the best fit.'
+            <p className="mt-1 max-w-2xl text-sm font-medium text-slate-600">
+              {user?.role === 'buyer'
+                ? 'Review submitted quotations, compare pricing, and record procurement decisions.'
                 : 'Track the status and performance of your submitted tender quotations.'}
             </p>
           </div>
-          
-          {user?.role === 'buyer' && (
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
-                <select 
+
+          <Button
+            onClick={() => navigate(user?.role === 'seller' ? '/seller/tenders' : '/buyer/tenders')}
+            className="h-10 rounded-md bg-[#12335f] px-5 text-xs font-bold uppercase tracking-wide text-white hover:bg-[#0b2445]"
+          >
+            <Send className="mr-2 h-4 w-4" />
+            {user?.role === 'seller' ? 'Find Tenders' : 'View Tenders'}
+          </Button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryTile label={user?.role === 'buyer' ? 'Total Quotations' : 'Submitted Bids'} value={stats.total} icon={ClipboardCheck} />
+          <SummaryTile label="Pending Review" value={stats.pending} icon={Clock} tone="amber" />
+          <SummaryTile label="Accepted" value={stats.accepted} icon={CheckCircle2} tone="green" />
+          <SummaryTile label={user?.role === 'buyer' ? 'Quoted Value' : 'Bid Value'} value={formatMoney(stats.totalValue)} icon={FileText} />
+        </div>
+
+        <Card className="rounded-lg border border-slate-200 shadow-sm">
+          <CardContent className="p-4">
+            <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={user?.role === 'buyer' ? 'Search by seller, tender ID, or category' : 'Search by tender ID, title, or category'}
+                  className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm font-medium outline-none transition focus:ring-2 focus:ring-[#12335f]"
+                />
+              </div>
+
+              {user?.role === 'buyer' && (
+                <select
                   value={selectedTenderId}
-                  onChange={(e) => setSelectedTenderId(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 pr-10 text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all shadow-sm"
+                  onChange={(event) => setSelectedTenderId(event.target.value)}
+                  className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:ring-2 focus:ring-[#12335f]"
                 >
-                  <option value="all">All active tenders</option>
-                  {tenders.map(t => (
-                    <option key={t.id} value={t.id}>{t.tenderId} - {t.title}</option>
+                  <option value="all">All tenders</option>
+                  {tenders.map(tender => (
+                    <option key={tender.id} value={tender.id}>{tender.tenderId} - {tender.title}</option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              )}
+
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as 'all' | BidStatus)}
+                className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:ring-2 focus:ring-[#12335f]"
+              >
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {loading && quotes.length === 0 ? (
+          <div className="flex min-h-[300px] items-center justify-center rounded-lg border border-slate-200 bg-white">
+            <div className="space-y-3 text-center">
+              <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-[#12335f] border-t-transparent" />
+              <p className="text-sm font-semibold text-slate-600">Loading bid records...</p>
+            </div>
+          </div>
+        ) : filteredQuotes.length === 0 ? (
+          <EmptyState
+            role={user?.role}
+            hasQuotes={quotes.length > 0}
+            onPrimary={() => navigate(user?.role === 'seller' ? '/seller/tenders' : '/buyer/tenders')}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {filteredQuotes.map(quote => (
+              <React.Fragment key={quote.id}>
+                <QuotationCard
+                  quote={quote}
+                  role={user?.role}
+                  onAccept={() => handleStatusUpdate(quote.id, 'accepted')}
+                  onReject={() => handleStatusUpdate(quote.id, 'rejected')}
+                />
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SummaryTile({
+  label,
+  value,
+  icon: Icon,
+  tone = 'blue'
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+  tone?: 'blue' | 'amber' | 'green';
+}) {
+  const toneClass = tone === 'green'
+    ? 'bg-emerald-50 text-emerald-700'
+    : tone === 'amber'
+      ? 'bg-amber-50 text-amber-700'
+      : 'bg-blue-50 text-[#12335f]';
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="mt-2 text-xl font-extrabold text-slate-900">{value}</p>
+        </div>
+        <div className={cn('flex h-10 w-10 items-center justify-center rounded-md', toneClass)}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuotationCard({
+  quote,
+  role,
+  onAccept,
+  onReject
+}: {
+  quote: Quotation;
+  role?: string;
+  onAccept: () => void;
+  onReject: () => void;
+}) {
+  const StatusIcon = statusIcons[quote.status] || Clock;
+  const sellerName = quote.seller?.sellerProfile?.businessName || quote.seller?.name || 'Submitted Bid';
+  const totalValue = Number(quote.unitPrice || 0) * Number(quote.quantity || 0);
+
+  return (
+    <Card className={cn(
+      'overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:shadow-md',
+      quote.status === 'accepted' && 'border-emerald-300'
+    )}>
+      <CardContent className="p-0">
+        <div className="border-b border-slate-200 bg-[#f8fafc] px-5 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-mono text-[11px] font-bold uppercase text-slate-500">
+                  BID-{String(quote.id).padStart(5, '0')}
+                </p>
+                {quote.isLowest && (
+                  <span className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
+                    <Trophy className="h-3 w-3" />
+                    Lowest
+                  </span>
+                )}
               </div>
+              <h3 className="mt-2 truncate text-base font-extrabold text-[#071632]">
+                {role === 'buyer' ? sellerName : quote.tender?.title || 'Tender Quotation'}
+              </h3>
+              <p className="mt-1 text-xs font-semibold text-slate-500">
+                {quote.tender?.tenderId || `Tender #${quote.tenderId}`} | {quote.tender?.category || 'General Procurement'}
+              </p>
+            </div>
+            <span className={cn('inline-flex shrink-0 items-center gap-1 rounded border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide', statusStyles[quote.status])}>
+              <StatusIcon className="h-3.5 w-3.5" />
+              {quote.status}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-5 p-5">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <InfoBox label="Unit Price" value={formatMoney(quote.unitPrice)} />
+            <InfoBox label="Quantity" value={quote.quantity || 0} />
+            <InfoBox label="Total Value" value={formatMoney(totalValue)} strong />
+            <InfoBox label="Delivery" value={`${quote.deliveryDays || 0} days`} />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoBox label="Warranty" value={quote.warranty || 'Not Provided'} />
+            <InfoBox label="Valid Till" value={quote.validTill ? new Date(quote.validTill).toLocaleDateString() : 'Not Provided'} />
+          </div>
+
+          {quote.note && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Seller Note</p>
+              <p className="mt-1 text-sm font-medium leading-relaxed text-slate-700">{quote.note}</p>
+            </div>
+          )}
+
+          {role === 'buyer' ? (
+            quote.status === 'pending' ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button variant="outline" onClick={onReject} className="h-10 rounded-md border-red-200 font-bold text-red-700 hover:bg-red-50">
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Reject
+                </Button>
+                <Button onClick={onAccept} className="h-10 rounded-md bg-[#0f766e] font-bold text-white hover:bg-[#0b5f59]">
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Accept
+                </Button>
+              </div>
+            ) : (
+              <div className={cn('flex h-10 items-center justify-center rounded-md border text-sm font-bold', statusStyles[quote.status])}>
+                <StatusIcon className="mr-2 h-4 w-4" />
+                {quote.status === 'accepted' ? 'Quotation Accepted' : 'Quotation Rejected'}
+              </div>
+            )
+          ) : (
+            <div className={cn('flex h-10 items-center justify-center rounded-md border text-sm font-bold', statusStyles[quote.status])}>
+              <StatusIcon className="mr-2 h-4 w-4" />
+              {quote.status === 'pending' ? 'Pending buyer review' : quote.status === 'accepted' ? 'Accepted by buyer' : 'Not selected'}
             </div>
           )}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
 
-        {/* Quotes Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {quotes.map((quote) => (
-            <Card key={quote.id} className={cn(
-              "border-slate-200 shadow-sm overflow-hidden transition-all duration-300",
-              quote.status === 'accepted' ? "ring-2 ring-teal-500 border-transparent shadow-teal-100" : "hover:shadow-md"
-            )}>
-              <CardContent className="p-0">
-                <div className="p-6 md:p-8">
-                  {/* Header */}
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-slate-400">{quote.id}</span>
-                        {quote.isLowest && (
-                          <span className="flex items-center gap-1 bg-teal-50 text-teal-700 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-teal-100">
-                            <Trophy className="h-3 w-3" />
-                            Lowest bid
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-slate-900">
-                          {quote.seller.sellerProfile?.businessName || quote.seller.name}
-                        </h3>
-                        <p className="text-xs font-semibold text-slate-500 flex items-center gap-1 mt-1">
-                          {quote.seller.sellerProfile?.offices?.[0]?.city || 'N/A'} 
-                          <span className="text-slate-300">•</span> 
-                          {quote.tender.category}
-                        </p>
-                      </div>
-                    </div>
-                    <span className={cn(
-                      "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                      quote.status === 'pending' ? "bg-slate-50 text-slate-500 border-slate-100" :
-                      quote.status === 'accepted' ? "bg-teal-50 text-teal-600 border-teal-100" :
-                      "bg-red-50 text-red-600 border-red-100"
-                    )}>
-                      {quote.status}
-                    </span>
-                  </div>
+function InfoBox({ label, value, strong = false }: { label: string; value: string | number; strong?: boolean }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white px-3 py-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className={cn('mt-1 break-words text-sm font-bold text-slate-800', strong && 'text-[#12335f]')}>
+        {value}
+      </p>
+    </div>
+  );
+}
 
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">
-                    For {quote.tender.tenderId} <span className="text-slate-300 mx-1">·</span> {quote.tender.title}
-                  </p>
-
-                  {/* Details Grid */}
-                  <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-y-4 sm:gap-y-6 gap-x-4 sm:gap-x-12 mb-8">
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Unit Price</p>
-                      <p className="text-lg font-bold text-slate-900">₹{quote.unitPrice.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Quantity</p>
-                      <p className="text-lg font-bold text-slate-900">{quote.quantity}</p>
-                    </div>
-                    <div className="col-span-2 h-px bg-slate-200/50" />
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
-                      <p className="text-xl font-black text-slate-900">₹{(quote.unitPrice * quote.quantity).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Delivery</p>
-                      <p className="text-lg font-bold text-slate-900">{quote.deliveryDays} days</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Warranty</p>
-                      <p className="text-lg font-bold text-slate-900">{quote.warranty}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Valid Till</p>
-                      <p className="text-lg font-bold text-slate-900">
-                        {quote.validTill ? new Date(quote.validTill).toLocaleDateString() : 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {quote.note && (
-                    <p className="text-xs italic text-slate-500 mb-8 flex items-start gap-2">
-                      <span className="text-teal-500 text-lg leading-none">"</span>
-                      {quote.note}
-                    </p>
-                  )}
-
-                  {/* Actions */}
-                  {user?.role === 'buyer' ? (
-                    <>
-                      {quote.status === 'pending' ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                          <Button 
-                            variant="outline" 
-                            onClick={() => handleReject(quote.id)}
-                            className="border-slate-200 text-slate-600 font-bold h-12 rounded-xl hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all"
-                          >
-                            <XCircle className="h-4 w-4 mr-2" />
-                            Reject
-                          </Button>
-                          <Button 
-                            onClick={() => handleAccept(quote.id)}
-                            className="bg-teal-700 hover:bg-teal-800 text-white font-bold h-12 rounded-xl shadow-lg shadow-teal-700/10 transition-all"
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Accept
-                          </Button>
-                        </div>
-                      ) : quote.status === 'accepted' ? (
-                        <Button 
-                          disabled
-                          className="w-full bg-teal-50 text-teal-700 border border-teal-200 font-bold h-12 rounded-xl flex items-center justify-center gap-2"
-                        >
-                          <CheckCircle2 className="h-5 w-5" />
-                          Accepted
-                          <ArrowRight className="h-4 w-4 ml-auto" />
-                        </Button>
-                      ) : (
-                        <Button 
-                          disabled
-                          className="w-full bg-slate-100 text-slate-400 border border-slate-200 font-bold h-12 rounded-xl flex items-center justify-center gap-2"
-                        >
-                          <XCircle className="h-5 w-5" />
-                          Rejected
-                        </Button>
-                      )}
-                    </>
-                  ) : (
-                    <div className={cn(
-                      "w-full h-12 rounded-xl flex items-center justify-center gap-2 font-bold",
-                      quote.status === 'pending' ? "bg-amber-50 text-amber-600 border border-amber-100" :
-                      quote.status === 'accepted' ? "bg-teal-50 text-teal-700 border border-teal-100" :
-                      "bg-slate-100 text-slate-400 border border-slate-200"
-                    )}>
-                      {quote.status === 'pending' && <Clock className="h-4 w-4" />}
-                      {quote.status === 'accepted' && <CheckCircle2 className="h-4 w-4" />}
-                      {quote.status === 'rejected' && <XCircle className="h-4 w-4" />}
-                      {quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+function EmptyState({
+  role,
+  hasQuotes,
+  onPrimary
+}: {
+  role?: string;
+  hasQuotes: boolean;
+  onPrimary: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-md bg-blue-50 text-[#12335f]">
+        {hasQuotes ? <Search className="h-7 w-7" /> : <AlertCircle className="h-7 w-7" />}
       </div>
+      <h2 className="mt-4 text-lg font-extrabold text-slate-900">
+        {hasQuotes ? 'No matching bid records' : role === 'buyer' ? 'No quotations received yet' : 'No bids submitted yet'}
+      </h2>
+      <p className="mx-auto mt-2 max-w-xl text-sm font-medium text-slate-600">
+        {hasQuotes
+          ? 'Adjust the search or status filter to view more bid records.'
+          : role === 'buyer'
+            ? 'Published tenders will show supplier quotations here once sellers submit their bids.'
+            : 'Participate in active tenders to build your bid history and track procurement outcomes from this page.'}
+      </p>
+      {!hasQuotes && (
+        <Button onClick={onPrimary} className="mt-5 h-10 rounded-md bg-[#12335f] px-5 text-xs font-bold uppercase tracking-wide text-white hover:bg-[#0b2445]">
+          {role === 'buyer' ? 'View Tenders' : 'Find Active Tenders'}
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }

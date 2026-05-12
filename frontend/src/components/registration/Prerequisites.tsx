@@ -232,31 +232,42 @@ function BuyerSection({
   checkedItems: Record<string, boolean>
 }) {
   return (
-    <div className="space-y-3">
-      {items.map((item) => (
-        <div
-          key={item.id}
-          role="button"
-          tabIndex={0}
-          onClick={() => onCheck(item.id)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') onCheck(item.id);
-          }}
-          className="flex w-full items-start gap-3 rounded-xl p-1 text-left transition-colors hover:bg-slate-50"
-        >
-          <span
+    <div className="space-y-2 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+      {items.map((item) => {
+        const checked = checkedItems[item.id];
+        return (
+          <div
+            key={item.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => onCheck(item.id)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') onCheck(item.id);
+            }}
             className={cn(
-              "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 transition-all",
-              checkedItems[item.id] ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-200"
+              "flex w-full items-start gap-4 rounded-xl p-3 text-left transition-all cursor-pointer group hover:bg-white hover:shadow-sm",
+              checked ? "bg-white shadow-sm border border-slate-200/50" : "border border-transparent"
             )}
           >
-            {checkedItems[item.id] && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
-          </span>
-          <span className="text-xs font-medium leading-relaxed text-slate-600 sm:leading-tight">
-            {item.content}
-          </span>
-        </div>
-      ))}
+            <div
+              className={cn(
+                "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200",
+                checked 
+                  ? "bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-600/20" 
+                  : "bg-white border-slate-300 group-hover:border-indigo-400"
+              )}
+            >
+              {checked && <CheckCircle2 className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
+            </div>
+            <div className={cn(
+              "text-sm font-medium leading-normal transition-colors",
+              checked ? "text-slate-900 font-semibold" : "text-slate-600"
+            )}>
+              {item.content}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -276,28 +287,42 @@ function Section({
 }) {
   return (
     <div className="space-y-3">
-      <h4 className="text-xs font-bold uppercase tracking-tight text-slate-500">{title}</h4>
-      <div className="space-y-3">
-        {items.map((item, idx) => (
-          <button
-            key={idx}
-            type="button"
-            onClick={() => onCheck(item)}
-            className="flex w-full items-start gap-3 rounded-xl p-1 text-left transition-colors hover:bg-slate-50"
-          >
-            <span 
+      <h4 className="text-[11px] font-black uppercase tracking-[0.1em] text-indigo-400/90 flex items-center gap-2 px-1">
+        {title}
+        <span className="h-px flex-1 bg-indigo-100/50"></span>
+      </h4>
+      <div className="space-y-2 bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
+        {items.map((item, idx) => {
+          const checked = checkedItems[item];
+          return (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => onCheck(item)}
               className={cn(
-                "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 transition-all",
-                checkedItems[item] ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-200"
+                "flex w-full items-start gap-4 rounded-xl p-3 text-left transition-all group hover:bg-white hover:shadow-sm",
+                checked ? "bg-white shadow-sm border border-slate-200/50" : "border border-transparent"
               )}
             >
-              {checkedItems[item] && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
-            </span>
-            <span className="text-xs font-medium leading-relaxed text-slate-600 sm:leading-tight">
-              {item}
-            </span>
-          </button>
-        ))}
+              <div 
+                className={cn(
+                  "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200",
+                  checked 
+                    ? "bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-600/20" 
+                    : "bg-white border-slate-300 group-hover:border-indigo-400"
+                )}
+              >
+                {checked && <CheckCircle2 className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
+              </div>
+              <div className={cn(
+                "text-sm font-medium leading-normal transition-colors",
+                checked ? "text-slate-900 font-semibold" : "text-slate-600"
+              )}>
+                {item}
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

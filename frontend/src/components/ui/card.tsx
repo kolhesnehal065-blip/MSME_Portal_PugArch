@@ -8,13 +8,13 @@ interface BaseProps extends React.HTMLProps<HTMLDivElement> {
 }
 
 const Card = ({ className, children, ...props }: BaseProps) => (
-  <div className={cn("rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden", className)} {...props}>
+  <div className={cn("rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden", className)} {...props}>
     {children}
   </div>
 );
 
 const CardHeader = ({ className, children, ...props }: BaseProps) => (
-  <div className={cn("px-6 py-4 border-b border-slate-100", className)} {...props}>{children}</div>
+  <div className={cn("px-4 py-3 border-b border-slate-100", className)} {...props}>{children}</div>
 );
 
 const CardTitle = ({ className, children, ...props }: React.HTMLProps<HTMLHeadingElement>) => (
@@ -22,7 +22,7 @@ const CardTitle = ({ className, children, ...props }: React.HTMLProps<HTMLHeadin
 );
 
 const CardContent = ({ className, children, ...props }: BaseProps) => (
-  <div className={cn("px-6 py-4", className)} {...props}>{children}</div>
+  <div className={cn("px-4 py-3", className)} {...props}>{children}</div>
 );
 
 const Table = ({ className, children, ...props }: React.TableHTMLAttributes<HTMLTableElement>) => (

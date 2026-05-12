@@ -44,11 +44,14 @@ interface Vendor {
 }
 
 const Vendors = () => {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const authOptions = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
+  const cachedVendors = api.peek('/api/vendors', authOptions);
+  const [vendors, setVendors] = useState<Vendor[]>(cachedVendors || []);
+  const [loading, setLoading] = useState(!cachedVendors);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All categories');
   const [selectedSize, setSelectedSize] = useState('All sizes');
+  const [verifiedOnly, setVerifiedOnly] = useState(true);
   
   // Modal states
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -91,9 +94,7 @@ const Vendors = () => {
 
   const fetchVendors = async () => {
     try {
-      const res = await api.get('/api/vendors', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const res = await api.get('/api/vendors', authOptions);
       if (res.ok) {
         const data = await res.json();
         setVendors(data);
@@ -173,7 +174,8 @@ const Vendors = () => {
     const matchesSize = selectedSize === 'All sizes' || 
                        (profile.msmeCategory || '') === selectedSize;
     
-    return matchesSearch && matchesCategory && matchesSize;
+    const matchesVerification = !verifiedOnly || Boolean(profile.gst || profile.pan);
+    return matchesSearch && matchesCategory && matchesSize && matchesVerification;
   });
 
   return (
@@ -217,9 +219,13 @@ const Vendors = () => {
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none group-hover:text-teal-600 transition-colors" />
           </div>
 
-          <Button variant="outline" className="h-11 bg-white text-slate-700 border-slate-200 rounded-lg px-6 gap-2 font-medium hover:bg-slate-50 transition-all flex justify-center items-center">
+          <Button
+            variant="outline"
+            onClick={() => setVerifiedOnly(prev => !prev)}
+            className={`h-11 bg-white border-slate-200 rounded-lg px-6 gap-2 font-medium hover:bg-slate-50 transition-all flex justify-center items-center ${verifiedOnly ? 'text-[#0f766e] border-[#0f766e]/40' : 'text-slate-700'}`}
+          >
             <CheckCircle2 className="h-4 w-4 shrink-0 text-slate-400" />
-            <span>Verified only</span>
+            <span>{verifiedOnly ? 'Verified only' : 'All vendors'}</span>
           </Button>
         </div>
       </div>

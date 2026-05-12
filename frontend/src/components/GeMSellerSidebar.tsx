@@ -40,6 +40,22 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ id, label, status, isActive, 
   );
 };
 
+const AccountSidebarItem: React.FC<{ id: string, label: string, isActive: boolean, onClick: (id: string) => void }> = ({ id, label, isActive, onClick }) => {
+  return (
+    <button
+      onClick={() => onClick(id)}
+      className={cn(
+        "flex w-full items-center gap-3 pl-8 py-2.5 text-left transition-all border-l-4 text-sm",
+        isActive 
+          ? "bg-slate-50 border-blue-600 font-bold text-slate-800" 
+          : "border-transparent hover:bg-slate-50 text-slate-600 font-medium"
+      )}
+    >
+      {label}
+    </button>
+  );
+};
+
 interface GeMSellerSidebarProps {
   currentSection: string;
   onSectionChange: (id: string) => void;
@@ -65,10 +81,18 @@ export const GeMSellerSidebar: React.FC<GeMSellerSidebarProps> = ({
     { id: 'ownership', label: '7. Beneficial Ownership' },
   ];
 
-  const optionalItems = [
-    { id: 'tax', label: '8. Tax Assessment' },
-    { id: 'logistics', label: '9. Logistics' },
-    { id: 'tan', label: '10. TAN Validation' },
+  // const optionalItems = [
+  //   { id: 'tax', label: '8. Tax Assessment' },
+  //   { id: 'logistics', label: '9. Logistics' },
+  //   { id: 'tan', label: '10. TAN Validation' },
+  // ];
+
+  const accountItems = [
+    { id: 'sellerProfile', label: 'Seller Profile' },
+    { id: 'updateAadhaar', label: 'Update Aadhaar' },
+    { id: 'changePassword', label: 'Change Password' },
+    { id: 'changeEmail', label: 'Change Email' },
+    { id: 'closeAccount', label: 'Close Account' },
   ];
 
   return (
@@ -76,19 +100,19 @@ export const GeMSellerSidebar: React.FC<GeMSellerSidebarProps> = ({
       {/* Mobile Backdrop */}
       {isOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
           onClick={onClose}
         />
       )}
 
       <div className={cn(
-        "w-72 flex-shrink-0 bg-white border-r border-gray-200 min-h-screen shadow-sm overflow-y-auto transition-transform duration-300 lg:translate-x-0 fixed lg:static left-0 top-0 z-50 h-full",
+        "w-72 flex-shrink-0 bg-white border-r border-gray-200 min-h-screen shadow-sm overflow-y-auto transition-transform duration-300 md:translate-x-0 fixed md:static left-0 top-0 z-50 h-full",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Business Profile</h3>
           {onClose && (
-            <button onClick={onClose} className="lg:hidden p-1 rounded-lg hover:bg-gray-100">
+            <button onClick={onClose} className="md:hidden p-1 rounded-lg hover:bg-gray-100">
               <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -113,7 +137,7 @@ export const GeMSellerSidebar: React.FC<GeMSellerSidebarProps> = ({
           ))}
         </div>
 
-        <div className="py-2 border-t border-gray-100">
+        {/* <div className="py-2 border-t border-gray-100">
           <div className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase">Optional</div>
           {optionalItems.map(item => (
             <SidebarItem
@@ -128,19 +152,31 @@ export const GeMSellerSidebar: React.FC<GeMSellerSidebarProps> = ({
               }}
             />
           ))}
+        </div> */}
+
+        {/* <div className="py-2 bg-gray-50/50 border-t border-gray-100 text-gray-500 font-semibold text-sm px-4 py-3 opacity-60">
+           11. Vendor Assessment
+        </div> */}
+
+        <div className="py-2 border-t border-gray-100">
+          <div className="px-4 py-2 text-[10px] font-bold text-blue-600 uppercase">Account Settings</div>
+          {accountItems.map(item => (
+            <AccountSidebarItem
+              key={item.id}
+              id={item.id}
+              label={item.label}
+              isActive={currentSection === item.id}
+              onClick={(id) => {
+                onSectionChange(id);
+                if (onClose) onClose();
+              }}
+            />
+          ))}
         </div>
 
-        <div className="py-2 border-t border-gray-100 text-gray-500 pb-20 lg:pb-10">
-          <div className="px-4 py-3 flex items-center gap-3 text-sm font-semibold opacity-60">
-             <Circle className="h-5 w-5" /> 11. Vendor Assessment
-          </div>
-          <div className="px-4 py-3 flex items-center gap-3 text-sm font-semibold opacity-60">
-             <Circle className="h-5 w-5" /> 12. Account Settings
-          </div>
-          <div className="px-4 py-3 flex items-center gap-3 text-sm font-semibold opacity-60">
-             <Circle className="h-5 w-5" /> 13. User Management
-          </div>
-        </div>
+        {/* <div className="py-2 bg-gray-50/50 border-t border-gray-100 text-gray-500 font-semibold text-sm px-4 py-3 opacity-60 mb-10">
+           13. User Management
+        </div> */}
       </div>
     </>
   );

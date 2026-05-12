@@ -56,10 +56,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    const headers = { Authorization: `Bearer ${currentToken}` };
+    const cachedMe = api.peek('/api/auth/me', { headers });
+    if (cachedMe?.user) {
+      setUser(cachedMe.user);
+      setLoading(false);
+    }
+
     try {
-      const res = await api.fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${currentToken}` }
-      });
+      const res = await api.fetch('/api/auth/me', { headers });
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);

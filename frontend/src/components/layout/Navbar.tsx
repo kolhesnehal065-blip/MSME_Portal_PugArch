@@ -20,18 +20,20 @@ import {
   User as UserIcon,
   Settings,
   ClipboardCheck,
-  Package,
   Truck,
-  Globe
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -71,58 +73,71 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}
 
       <aside className={cn(
-        "w-64 bg-slate-900 text-white flex flex-col shrink-0 h-full fixed left-0 top-0 z-50 transition-transform duration-300 ease-in-out lg:translate-x-0",
+        "w-64 bg-[#12335f] text-white flex flex-col shrink-0 h-full fixed left-0 top-0 z-50 transition-all duration-300 ease-in-out lg:translate-x-0 border-r border-[#0b2445]",
+        isCollapsed ? "lg:w-20" : "w-64",
+        !isCollapsed && "lg:w-64",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-      <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3" onClick={onClose}>
-          <div className="w-8 h-8 bg-indigo-500 rounded flex items-center justify-center font-bold text-lg italic shadow-lg shadow-indigo-500/20">P</div>
-          <span className="font-bold tracking-tight text-xl">PugArch</span>
-        </Link>
-        <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:text-white" aria-label="Close sidebar">
+      <div className={cn("h-14 px-3 border-b border-white/10 flex items-center", isCollapsed ? "justify-center" : "justify-between")}>
+        <div
+          className={cn("flex items-center gap-3 min-w-0 select-none", isCollapsed && "lg:justify-center")}
+          title="MSME Portal"
+        >
+          <div className="w-8 h-8 bg-white text-[#12335f] rounded flex items-center justify-center font-black text-sm shadow-sm">MS</div>
+          <span className={cn("font-bold tracking-tight text-base truncate", isCollapsed && "lg:hidden")}>MSME Portal</span>
+        </div>
+        <button onClick={onClose} className="lg:hidden p-2 text-blue-100 hover:text-white" aria-label="Close sidebar">
           <X className="h-5 w-5" />
         </button>
+
       </div>
 
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest px-3 mb-4">Navigation</div>
+      <nav className={cn("flex-1 overflow-y-auto", isCollapsed ? "p-2 space-y-2" : "p-3 space-y-1")}>
+        <div className={cn("text-blue-200/70 text-[10px] font-bold uppercase tracking-widest px-3 mb-2", isCollapsed && "lg:hidden")}>Navigation</div>
         {filteredNav.map((item) => (
           <Link
             key={item.label}
             to={item.path}
             onClick={onClose}
+            title={isCollapsed ? item.label : undefined}
             className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
+              "flex items-center gap-3 rounded-md transition-all duration-200 group",
+              isCollapsed ? "lg:justify-center lg:px-0 px-3 py-2.5 h-11" : "px-3 py-2.5",
               location.pathname === item.path
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                ? "bg-white text-[#12335f] shadow-sm"
+                : "text-blue-50/80 hover:bg-white/10 hover:text-white"
             )}
           >
-            <item.icon className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", location.pathname === item.path ? "text-white" : "text-slate-500")} />
-            <span className="text-sm font-medium">{item.label}</span>
-            {location.pathname === item.path && <ChevronRight className="ml-auto h-3 w-3 opacity-50" />}
+            <item.icon className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", location.pathname === item.path ? "text-[#12335f]" : "text-blue-100")} />
+            <span className={cn("text-sm font-medium truncate", isCollapsed && "lg:hidden")}>{item.label}</span>
+            {location.pathname === item.path && <ChevronRight className={cn("ml-auto h-3 w-3 opacity-60", isCollapsed && "lg:hidden")} />}
           </Link>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-slate-800 bg-slate-900/50">
-        <div className="flex items-center gap-3 px-2 mb-4">
-          <div className="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center text-xs font-bold text-white shadow-inner">
+      <div className={cn("border-t border-white/10 bg-[#0b2445]/40", isCollapsed ? "p-2" : "p-3")}>
+        <Link 
+          to="/profile"
+          onClick={onClose}
+          className={cn("flex items-center gap-3 px-2 mb-3 py-1.5 rounded-md hover:bg-white/10 transition-colors", isCollapsed && "lg:justify-center lg:px-0")}
+        >
+          <div className="w-8 h-8 rounded-full bg-[#f9a825] flex items-center justify-center text-xs font-bold text-[#12335f] shadow-inner">
             {user.name.charAt(0)}
           </div>
-          <div className="flex flex-col min-w-0">
+          <div className={cn("flex flex-col min-w-0", isCollapsed && "lg:hidden")}>
             <span className="text-sm font-medium truncate">{user.name}</span>
-            <span className="text-[10px] text-slate-500 uppercase tracking-tighter font-bold">{user.role} Account</span>
+            <span className="text-[10px] text-blue-100/70 uppercase tracking-wide font-bold">{user.role} Account</span>
           </div>
-        </div>
+        </Link>
         <Button 
           variant="outline" 
           size="sm" 
           onClick={handleLogout} 
-          className="w-full bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white border-0 py-5"
+          title="Logout"
+          className={cn("w-full bg-white/10 border-white/10 text-blue-50 hover:bg-white hover:text-[#12335f] py-2", isCollapsed && "lg:px-0")}
         >
-          <LogOut className="h-4 w-4 mr-2" />
-          Logout
+          <LogOut className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+          <span className={cn(isCollapsed && "lg:hidden")}>Logout</span>
         </Button>
       </div>
     </aside>
@@ -132,9 +147,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
 interface HeaderProps {
   onMenuClick: () => void;
+  onSidebarToggle: () => void;
+  isSidebarCollapsed: boolean;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: HeaderProps) {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -184,36 +201,49 @@ export function Header({ onMenuClick }: HeaderProps) {
       case '/seller/tenders': return 'Tender Marketplace';
       case '/seller/settings': return 'Account Settings';
       case '/admin/onboarding': return 'Onboarding Verification';
+      case '/profile': return 'My Profile';
       default: return 'Procurement ERP';
     }
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-40 transition-all duration-300">
-      <div className="flex items-center gap-4">
+    <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-3 lg:px-5 shrink-0 sticky top-0 z-40 transition-all duration-300">
+      <div className="flex items-center gap-3 min-w-0">
         <button 
           onClick={onMenuClick}
-          className="p-2 -ml-2 text-slate-500 hover:bg-slate-50 rounded-lg lg:hidden"
+          className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md lg:hidden"
+          aria-label="Open sidebar"
         >
-          <Menu className="h-6 w-6" />
+          <Menu className="h-5 w-5" />
         </button>
-        <h1 className="text-xs xs:text-sm md:text-lg font-bold truncate max-w-[100px] xs:max-w-[200px] sm:max-w-[300px] md:max-w-none">{getPageTitle()}</h1>
+        <button
+          onClick={onSidebarToggle}
+          className="hidden lg:flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
+          aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          type="button"
+        >
+          {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+        </button>
+        <h1 className="text-sm md:text-base font-bold truncate max-w-[140px] xs:max-w-[220px] sm:max-w-[360px] md:max-w-none text-[#12335f]">{getPageTitle()}</h1>
       </div>
       
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-3">
         <div className="relative hidden md:block">
           <Search className="absolute inset-y-0 left-3 flex items-center h-full w-4 text-slate-400 pointer-events-none" />
           <input 
             type="text" 
             placeholder="Search entities..." 
-            className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl text-xs w-64 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') navigate(user.role === 'buyer' ? '/buyer/vendors' : user.role === 'seller' ? '/seller/tenders' : '/admin/onboarding');
+            }}
+            className="pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs w-60 focus:ring-2 focus:ring-[#0f766e] transition-all outline-none"
           />
         </div>
         <div className="relative flex items-center gap-2">
           <button
             type="button"
             onClick={() => setIsNotificationsOpen(prev => !prev)}
-            className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center cursor-pointer text-slate-400 hover:bg-slate-50 transition-colors relative"
+            className="w-9 h-9 rounded-md border border-slate-200 flex items-center justify-center cursor-pointer text-slate-500 hover:bg-slate-50 transition-colors relative"
             aria-label="Open notifications"
           >
             <Bell className="h-4 w-4" />

@@ -9,10 +9,12 @@ import { Search, Eye, CheckCircle, XCircle, Users, ShoppingBag, X, FileText, Che
 import { cn } from '../lib/utils';
 
 export default function AdminOnboarding() {
-  const [sellers, setSellers] = useState<any[]>([]);
-  const [buyers, setBuyers] = useState<any[]>([]);
+  const authOptions = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
+  const cachedData = api.peek('/api/admin/onboarding', authOptions);
+  const [sellers, setSellers] = useState<any[]>(cachedData?.sellers || []);
+  const [buyers, setBuyers] = useState<any[]>(cachedData?.buyers || []);
   const [activeTab, setActiveTab] = useState('sellers');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!cachedData);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [feedback, setFeedback] = useState('');
@@ -23,11 +25,9 @@ export default function AdminOnboarding() {
   const [rejectionReason, setRejectionReason] = useState('');
 
   const fetchData = async () => {
-    setIsLoading(true);
+    if (!cachedData) setIsLoading(true);
     try {
-      const res = await api.fetch('/api/admin/onboarding', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const res = await api.fetch('/api/admin/onboarding', authOptions);
       const data = await res.json();
       setSellers(data.sellers || []);
       setBuyers(data.buyers || []);
@@ -159,19 +159,19 @@ export default function AdminOnboarding() {
   const getStatusBadge = (onboardingStatus: string) => {
     switch (onboardingStatus) {
       case 'approved_for_procurement': 
-        return <Badge variant="success" className="rounded-full px-4 border-2 border-green-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest">Approved for Procurement</Badge>;
+        return <Badge variant="success" className="rounded-full px-4 border-2 border-green-100 shadow-sm font-black uppercase text-[9px] tracking-widest">Approved for Procurement</Badge>;
       case 'rejected': 
-        return <Badge variant="error" className="rounded-full px-4 border-2 border-red-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest">Rejected</Badge>;
+        return <Badge variant="error" className="rounded-full px-4 border-2 border-red-100 shadow-sm font-black uppercase text-[9px] tracking-widest">Rejected</Badge>;
       case 'resubmission_required':
-        return <Badge variant="warning" className="rounded-full px-4 border-2 border-amber-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest text-amber-700 bg-amber-50">Resubmission Required</Badge>;
+        return <Badge variant="warning" className="rounded-full px-4 border-2 border-amber-100 shadow-sm font-black uppercase text-[9px] tracking-widest text-amber-700 bg-amber-50">Resubmission Required</Badge>;
       case 'under_compliance_review':
-        return <Badge variant="warning" className="rounded-full px-4 border-2 border-blue-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest text-blue-700 bg-blue-50">Under Compliance Review</Badge>;
+        return <Badge variant="warning" className="rounded-full px-4 border-2 border-blue-100 shadow-sm font-black uppercase text-[9px] tracking-widest text-blue-700 bg-blue-50">Under Compliance Review</Badge>;
       case 'verified':
-        return <Badge variant="success" className="rounded-full px-4 border-2 border-indigo-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest text-indigo-700 bg-indigo-50">Verified</Badge>;
+        return <Badge variant="success" className="rounded-full px-4 border-2 border-indigo-100 shadow-sm font-black uppercase text-[9px] tracking-widest text-indigo-700 bg-indigo-50">Verified</Badge>;
       case 'pending_validation':
-        return <Badge variant="warning" className="rounded-full px-4 border-2 border-slate-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest text-slate-700 bg-slate-50">Pending Validation</Badge>;
+        return <Badge variant="warning" className="rounded-full px-4 border-2 border-slate-100 shadow-sm font-black uppercase text-[9px] tracking-widest text-slate-700 bg-slate-50">Pending Validation</Badge>;
       default: 
-        return <Badge variant="warning" className="rounded-full px-4 border-2 border-slate-100 shadow-sm font-black italic uppercase text-[9px] tracking-widest text-slate-700 bg-slate-50">{onboardingStatus || 'Pending'}</Badge>;
+        return <Badge variant="warning" className="rounded-full px-4 border-2 border-slate-100 shadow-sm font-black uppercase text-[9px] tracking-widest text-slate-700 bg-slate-50">{onboardingStatus || 'Pending'}</Badge>;
     }
   };
 
@@ -207,8 +207,8 @@ export default function AdminOnboarding() {
       <div className={cn("space-y-6 pb-20 transition-all duration-300", selectedItem && "blur-sm pointer-events-none")}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-indigo-950 uppercase italic">Registration Management</h1>
-            <p className="text-slate-500 font-medium italic">Review and approve new stakeholder registrations.</p>
+            <h1 className="text-base font-extrabold tracking-tight text-indigo-950 uppercase">Registration Management</h1>
+            <p className="text-slate-500 font-medium">Review and approve new stakeholder registrations.</p>
           </div>
           <div className="flex items-center space-x-3">
               <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 font-bold uppercase tracking-widest text-[10px]">Export CSV</Button>
@@ -226,8 +226,8 @@ export default function AdminOnboarding() {
           ].map((stat) => (
             <Card key={stat.label} className="border-none shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
               <CardContent className="p-6">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">{stat.label}</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter">{stat.value}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{stat.label}</p>
+                <p className="text-base font-black text-slate-900 tracking-tighter">{stat.value}</p>
               </CardContent>
             </Card>
           ))}
@@ -251,7 +251,7 @@ export default function AdminOnboarding() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input 
                   placeholder="Search by Company, GST, or Proprietor Name..." 
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium italic"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -260,9 +260,9 @@ export default function AdminOnboarding() {
             </div>
 
             {isLoading ? (
-              <div className="py-20 text-center text-slate-400 italic animate-pulse">Scanning database registrations...</div>
+              <div className="py-20 text-center text-slate-400 animate-pulse">Scanning database registrations...</div>
             ) : currentData.length === 0 ? (
-              <div className="py-20 text-center text-slate-400 border-2 border-dashed border-slate-100 m-6 rounded-2xl italic">
+              <div className="py-20 text-center text-slate-400 border-2 border-dashed border-slate-100 m-6 rounded-2xl">
                  No {activeTab} registrations in record.
               </div>
             ) : (
@@ -284,14 +284,14 @@ export default function AdminOnboarding() {
                     {currentData.map((item) => (
                       <TableRow key={item._id} className="group hover:bg-slate-50/50 transition-colors border-b border-slate-50">
                         <TableCell className="px-6 py-8">
-                           <div className="font-bold text-slate-800 text-sm tracking-tight">{item.name}</div>
+                           <div className="font-bold text-slate-800 text-xs tracking-tight">{item.name}</div>
                         </TableCell>
                         <TableCell className="px-6 py-8">
-                          <div className="font-bold text-slate-600 text-sm italic underline decoration-indigo-200 underline-offset-4">{item.profile?.businessName || item.profile?.organizationName || 'N/A'}</div>
+                          <div className="font-bold text-slate-600 text-xs underline decoration-indigo-200 underline-offset-4">{item.profile?.businessName || item.profile?.organizationName || 'N/A'}</div>
                         </TableCell>
                         <TableCell className="px-6 py-8">
                           <div className="space-y-1">
-                            <div className="text-[10px] font-black text-indigo-600 uppercase italic">
+                            <div className="text-[10px] font-black text-indigo-600 uppercase">
                               {item.role === 'buyer' ? (item.profile?.annualBudget || 'N/A') : (Array.isArray(item.profile?.productCategories) ? item.profile.productCategories[0] : 'N/A')}
                             </div>
                             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
@@ -300,7 +300,7 @@ export default function AdminOnboarding() {
                           </div>
                         </TableCell>
                         <TableCell className="px-6 py-8">
-                          <div className="text-xs font-bold text-slate-500 font-mono italic">{new Date(item.createdAt || Date.now()).toISOString().split('T')[0]}</div>
+                          <div className="text-xs font-bold text-slate-500 font-mono">{new Date(item.createdAt || Date.now()).toISOString().split('T')[0]}</div>
                         </TableCell>
                         <TableCell className="px-6 py-8">
                           <div className="space-y-2">
@@ -327,7 +327,7 @@ export default function AdminOnboarding() {
                                 setSelectedItem(item);
                                 setFeedback(item.adminFeedback || '');
                               }}
-                              className="text-[10px] font-black text-indigo-600 uppercase italic hover:underline hover:text-indigo-800 transition-all decoration-2 underline-offset-4"
+                              className="text-[10px] font-black text-indigo-600 uppercase hover:underline hover:text-indigo-800 transition-all decoration-2 underline-offset-4"
                             >
                               Review
                             </button>
@@ -344,15 +344,15 @@ export default function AdminOnboarding() {
                   <div key={item._id} className="p-4 space-y-4">
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
-                        <div className="font-bold text-slate-800 text-sm tracking-tight">{item.name}</div>
-                        <div className="font-bold text-slate-500 text-[10px] italic underline decoration-indigo-200 underline-offset-2">{item.profile?.businessName || item.profile?.organizationName || 'N/A'}</div>
+                        <div className="font-bold text-slate-800 text-xs tracking-tight">{item.name}</div>
+                        <div className="font-bold text-slate-500 text-[10px] underline decoration-indigo-200 underline-offset-2">{item.profile?.businessName || item.profile?.organizationName || 'N/A'}</div>
                       </div>
                       {getStatusBadge(item.onboardingStatus)}
                     </div>
                     
                     <div className="flex justify-between items-end">
                       <div className="space-y-2">
-                        <div className="text-[10px] font-black text-indigo-600 uppercase italic">
+                        <div className="text-[10px] font-black text-indigo-600 uppercase">
                           {item.role === 'buyer' ? (item.profile?.annualBudget || 'N/A') : (Array.isArray(item.profile?.productCategories) ? item.profile.productCategories[0] : 'N/A')}
                         </div>
                         <div className="flex space-x-0.5">
@@ -373,7 +373,7 @@ export default function AdminOnboarding() {
                           setSelectedItem(item);
                           setFeedback(item.adminFeedback || '');
                         }}
-                        className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase italic"
+                        className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase"
                       >
                         Review
                       </button>
@@ -389,67 +389,74 @@ export default function AdminOnboarding() {
 
       {/* FULL SCREEN REVIEW OVERLAY */}
       {selectedItem && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 flex items-center justify-center p-4 md:p-8">
-          <div className="w-full max-w-7xl h-full bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0b1f3a]/80 p-2 animate-in fade-in duration-300 md:p-4">
+          <div className="flex h-[95dvh] w-full max-w-[1300px] flex-col overflow-hidden rounded-lg border border-slate-300 bg-white shadow-2xl animate-in zoom-in-95 duration-300">
             {/* Header */}
-            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white z-10 sticky top-0">
-               <div>
-                 <h2 className="text-xl md:text-2xl font-black text-slate-950 uppercase italic tracking-tight">Application Review</h2>
-                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Detailed Participant Verification Module</p>
+            <div className="relative z-10 flex items-center justify-between border-b border-slate-200 bg-[#12335f] px-6 py-4 text-white md:px-8">
+               <div className="space-y-1">
+                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100">Registration Scrutiny Desk</p>
+                 <h2 className="text-lg font-extrabold uppercase leading-none tracking-tight md:text-xl">Application Review</h2>
+                 <p className="text-xs font-medium text-blue-100">Detailed participant verification and compliance decision module</p>
                </div>
                <button 
                 onClick={() => {
                   setSelectedItem(null);
                   setFeedback('');
                 }}
-                className="p-3 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-950 transition-all active:scale-90"
+                className="flex h-10 w-10 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white transition-all hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-[#f9a825]"
+                aria-label="Close application review"
                >
-                 <X className="h-6 w-6" />
+                 <X className="h-5 w-5" />
                </button>
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-12">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+            <div className="relative flex-1 space-y-8 overflow-y-auto bg-slate-50 p-4 md:p-6 lg:p-8">
+              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
                 {/* Left Column: Identity Baseline */}
-                <div className="space-y-8">
-                   <div className="space-y-4">
-                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic decoration-indigo-400 underline underline-offset-8 decoration-4">Identity Baseline</h3>
-                      <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 space-y-6">
-                        <div className="flex items-center space-x-4">
-                           <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl font-black shadow-xl shadow-indigo-200">
-                             {selectedItem.name.charAt(0)}
+                <div className="space-y-5 lg:sticky lg:top-0 lg:col-span-4">
+                   <div className="space-y-3">
+                      <div className="flex flex-col gap-1">
+                        <h3 className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#12335f]">Identity Baseline</h3>
+                        <div className="h-0.5 w-20 rounded-full bg-[#f9a825]" />
+                      </div>
+                      <div className="relative space-y-6 overflow-hidden rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                        <div className="flex items-start gap-5">
+                           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-[#12335f] text-base font-extrabold text-white shadow-sm">
+                             {selectedItem.name.charAt(0).toUpperCase()}
                            </div>
-                           <div>
-                              <div className="text-xl font-black text-slate-950 tracking-tight">{selectedItem.name}</div>
-                              <div className="text-sm font-bold text-slate-400 italic">{selectedItem.email}</div>
-                              <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-1">
-                                ID: {selectedItem.registrationDetails?.userId || `MSME-${selectedItem.role?.charAt(0).toUpperCase()}-${String(selectedItem._id).padStart(5, '0')}`}
+                           <div className="space-y-1 min-w-0 pt-1">
+                              <div className="truncate text-base font-extrabold leading-none tracking-tight text-slate-900">{selectedItem.name}</div>
+                              <div className="truncate text-xs font-semibold lowercase text-slate-500">{selectedItem.email}</div>
+                              <div className="mt-3 inline-flex rounded border border-blue-100 bg-blue-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#12335f]">
+                                ID: {selectedItem.registrationDetails?.userId || selectedItem.name.toUpperCase().replace(/\s+/g, '-')}
                               </div>
                            </div>
                         </div>
-                        <div className="pt-6 border-t border-slate-200">
-                          {getStatusBadge(selectedItem.onboardingStatus)}
+                        <div className="flex pt-3 border-t border-slate-200/50">
+                           <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-amber-800">
+                             Under Compliance Review
+                           </div>
                         </div>
                       </div>
                    </div>
 
-                   <div className="space-y-4">
+                   <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                       <div className="flex items-center justify-between">
-                         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Verification Progress</h3>
-                         <span className="text-xs font-black text-indigo-600">{getProgress(selectedItem)}%</span>
+                         <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Verification Progress</h3>
+                         <span className="text-xs font-extrabold text-[#12335f]">{getProgress(selectedItem)}%</span>
                       </div>
-                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                         <div className={cn("h-full bg-indigo-600 rounded-full shadow-lg shadow-indigo-500/30 transition-all duration-500")} style={{ width: `${getProgress(selectedItem)}%` }} />
+                      <div className="mt-3 h-2 w-full overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                         <div className="h-full rounded-full bg-[#0f766e] transition-all duration-700" style={{ width: `${getProgress(selectedItem)}%` }} />
                       </div>
                    </div>
 
                    {/* Quick Status Buttons */}
-                   <div className="pt-8 space-y-3">
+                   <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                       <Button 
                         onClick={() => handleUpdateStatus(selectedItem._id, 'approved_for_procurement')}
                         disabled={selectedItem.status === 'approved_for_procurement'}
-                        className="w-full py-8 rounded-2xl bg-green-600 hover:bg-green-700 shadow-xl shadow-green-600/20 font-black uppercase tracking-widest italic space-x-3 transition-all"
+                        className="h-12 w-full rounded-md bg-[#0f766e] font-bold uppercase tracking-wide text-white hover:bg-[#0b5f59]"
                       >
                          <CheckCircle className="h-5 w-5" />
                          <span>Approve Organization</span>
@@ -458,7 +465,7 @@ export default function AdminOnboarding() {
                         variant="outline"
                         onClick={() => handleUpdateStatus(selectedItem._id, 'resubmission_required')}
                         disabled={selectedItem.status === 'resubmission_required'}
-                        className="w-full py-8 rounded-2xl border-2 border-amber-100 text-amber-600 hover:bg-amber-50 hover:border-amber-200 font-black uppercase tracking-widest italic space-x-3 shadow-sm transition-all"
+                        className="h-12 w-full rounded-md border-amber-300 bg-white font-bold uppercase tracking-wide text-amber-700 hover:bg-amber-50"
                       >
                          <AlertTriangle className="h-5 w-5" />
                          <span>Request Correction</span>
@@ -467,7 +474,7 @@ export default function AdminOnboarding() {
                         variant="outline"
                         onClick={() => handleUpdateStatus(selectedItem._id, 'rejected')}
                         disabled={selectedItem.onboardingStatus === 'rejected'}
-                        className="w-full py-8 rounded-2xl border-2 border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 font-black uppercase tracking-widest italic space-x-3 shadow-sm transition-all"
+                        className="h-12 w-full rounded-md border-red-300 bg-white font-bold uppercase tracking-wide text-red-700 hover:bg-red-50"
                       >
                          <XCircle className="h-5 w-5" />
                          <span>Reject Application</span>
@@ -475,41 +482,41 @@ export default function AdminOnboarding() {
                    </div>
 
                    {/* Admin Feedback Section */}
-                   <div className="pt-8 space-y-4">
-                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic tracking-tight underline underline-offset-8 decoration-indigo-200 decoration-2">Admin Feedback / Query</h3>
-                      <div className="p-6 rounded-3xl bg-indigo-50/50 border border-indigo-100 space-y-4 shadow-inner">
+                   <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                      <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Admin Feedback / Query</h3>
+                      <div className="space-y-4">
                          <textarea 
                            value={feedback}
                            onChange={(e) => setFeedback(e.target.value)}
-                           placeholder="Type what is wrong or additional requirements..."
-                           className="w-full h-32 p-4 rounded-xl border border-indigo-100 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium italic resize-none"
+                           placeholder="Type feedback..."
+                           className="h-24 w-full resize-none rounded-md border border-slate-300 bg-white p-3 text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[#12335f]"
                          />
                          <Button 
                            onClick={handleSendFeedback}
-                           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                           className="h-10 w-full rounded-md bg-[#12335f] text-[10px] font-bold uppercase tracking-wide text-white hover:bg-[#0b2445]"
                          >
-                            Send Feedback / Message
+                            Send Message
                          </Button>
                       </div>
                    </div>
                 </div>
 
-                {/* Right Area: Structured Sections (Grid col-span-2) */}
-                <div className="lg:col-span-2 space-y-12">
+                {/* Right Area: Structured Sections */}
+                <div className="lg:col-span-8 space-y-6">
                     {selectedItem.role === 'buyer' ? (
                       <>
                         {/* Buyer Section 1: Org */}
-                        <div className="group">
-                           <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-teal-200 transition-colors">
+                         <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+                           <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                                <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                                   <Building2 className="h-4 w-4" />
                                 </div>
-                                <h4 className="text-xs font-black text-slate-700 uppercase italic">1. Organization Details</h4>
+                                <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">1. Organization Details</h4>
                              </div>
-                             <div className="flex space-x-2">
-                                <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'org', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.org === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                                <button onClick={() => openRejectionModal('org')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.org === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                             <div className="flex items-center space-x-2">
+                                <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'org', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.org === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                                <button onClick={() => openRejectionModal('org')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.org === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                              </div>
                            </div>
                            <div className="grid md:grid-cols-2 gap-8">
@@ -527,17 +534,17 @@ export default function AdminOnboarding() {
                         </div>
 
                         {/* Buyer Section 2: Rep */}
-                        <div className="group">
-                           <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-teal-200 transition-colors">
+                         <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-4 duration-300 delay-75">
+                           <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                                <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                                   <Users className="h-4 w-4" />
                                 </div>
-                                <h4 className="text-xs font-black text-slate-700 uppercase italic">2. Authorized Representative</h4>
+                                <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">2. Authorized Representative</h4>
                              </div>
-                             <div className="flex space-x-2">
-                                <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'rep', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.rep === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                                <button onClick={() => openRejectionModal('rep')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.rep === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                             <div className="flex items-center space-x-2">
+                                <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'rep', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.rep === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                                <button onClick={() => openRejectionModal('rep')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.rep === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                              </div>
                            </div>
                            <div className="grid md:grid-cols-2 gap-8">
@@ -551,17 +558,17 @@ export default function AdminOnboarding() {
                         </div>
 
                         {/* Buyer Section 3: Address */}
-                        <div className="group">
-                           <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-teal-200 transition-colors">
+                         <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+                           <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                                <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                                   <MapPin className="h-4 w-4" />
                                 </div>
-                                <h4 className="text-xs font-black text-slate-700 uppercase italic">3. Address Details</h4>
+                                <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">3. Address Details</h4>
                              </div>
-                             <div className="flex space-x-2">
-                                <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'address', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.address === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                                <button onClick={() => openRejectionModal('address')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.address === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                             <div className="flex items-center space-x-2">
+                                <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'address', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.address === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                                <button onClick={() => openRejectionModal('address')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.address === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                              </div>
                            </div>
                            <div className="grid md:grid-cols-2 gap-8">
@@ -576,17 +583,17 @@ export default function AdminOnboarding() {
                         </div>
 
                         {/* Buyer Section 4: Procurement */}
-                        <div className="group">
-                           <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-teal-200 transition-colors">
+                         <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+                           <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                                <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                                   <ShoppingBag className="h-4 w-4" />
                                 </div>
-                                <h4 className="text-xs font-black text-slate-700 uppercase italic">4. Procurement Profile</h4>
+                                <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">4. Procurement Profile</h4>
                              </div>
-                             <div className="flex space-x-2">
-                                <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'procurement', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.procurement === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                                <button onClick={() => openRejectionModal('procurement')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.procurement === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                             <div className="flex items-center space-x-2">
+                                <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'procurement', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.procurement === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                                <button onClick={() => openRejectionModal('procurement')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.procurement === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                              </div>
                            </div>
                            <div className="grid md:grid-cols-2 gap-8">
@@ -601,24 +608,24 @@ export default function AdminOnboarding() {
                         </div>
 
                         {/* Buyer Section 5: Documents */}
-                        <div className="group pb-12">
-                           <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-teal-200 transition-colors">
+                         <div className="group rounded-lg border border-slate-200 bg-white p-5 pb-6 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+                           <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                                <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                                   <FileText className="h-4 w-4" />
                                 </div>
-                                <h4 className="text-xs font-black text-slate-700 uppercase italic">5. Verification Documents</h4>
+                                <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">5. Verification Documents</h4>
                              </div>
-                             <div className="flex space-x-2">
-                                <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'docs', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.docs === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                                <button onClick={() => openRejectionModal('docs')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.docs === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                             <div className="flex items-center space-x-2">
+                                <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'docs', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.docs === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                                <button onClick={() => openRejectionModal('docs')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.docs === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                              </div>
                            </div>
                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                               {selectedItem.profile?.documents && Object.entries(selectedItem.profile.documents).map(([key, url]: [string, any]) => (
                                 url && (
                                   <div key={key} className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{key}</p>
+                                     <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">{key}</p>
                                      <a href={url} target="_blank" rel="noreferrer" className="text-xs font-bold text-teal-600 hover:underline flex items-center gap-1">
                                        <Eye className="h-3 w-3" /> View Document
                                      </a>
@@ -632,17 +639,17 @@ export default function AdminOnboarding() {
                       <>
 
                    {/* Section 1: PAN */}
-                   <div className="group">
-                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                   <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+                      <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                         <div className="flex items-center space-x-3">
-                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                           <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                              <ShieldCheck className="h-4 w-4" />
                            </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase italic">1. Business PAN Validation</h4>
+                           <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">1. Business PAN Validation</h4>
                         </div>
-                        <div className="flex space-x-2">
-                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'pan', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.pan === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                           <button onClick={() => openRejectionModal('pan')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.pan === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        <div className="flex items-center space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'pan', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.pan === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                           <button onClick={() => openRejectionModal('pan')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.pan === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                         </div>
                       </div>
                       <div className="grid md:grid-cols-2 gap-8">
@@ -654,17 +661,17 @@ export default function AdminOnboarding() {
                    </div>
 
                    {/* Section 2: Details */}
-                   <div className="group">
-                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                   <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-4 duration-300 delay-75">
+                      <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                         <div className="flex items-center space-x-3">
-                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                           <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                              <Building2 className="h-4 w-4" />
                            </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase italic">2. Business Details</h4>
+                           <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">2. Business Details</h4>
                         </div>
-                        <div className="flex space-x-2">
-                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'details', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.details === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                           <button onClick={() => openRejectionModal('details')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.details === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        <div className="flex items-center space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'details', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.details === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                           <button onClick={() => openRejectionModal('details')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.details === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                         </div>
                       </div>
                       <div className="grid md:grid-cols-2 gap-8">
@@ -674,17 +681,17 @@ export default function AdminOnboarding() {
                    </div>
 
                    {/* Section 3: Additional */}
-                   <div className="group">
-                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                   <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+                      <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                         <div className="flex items-center space-x-3">
-                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                           <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                              <Briefcase className="h-4 w-4" />
                            </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase italic">3. Additional Details</h4>
+                           <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">3. Additional Details</h4>
                         </div>
-                        <div className="flex space-x-2">
-                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'additional', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.additional === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                           <button onClick={() => openRejectionModal('additional')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.additional === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        <div className="flex items-center space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'additional', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.additional === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                           <button onClick={() => openRejectionModal('additional')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.additional === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                         </div>
                       </div>
                       <div className="grid md:grid-cols-2 gap-8">
@@ -695,56 +702,56 @@ export default function AdminOnboarding() {
                    </div>
 
                    {/* Section 4: Offices */}
-                   <div className="group">
-                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                   <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+                      <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                         <div className="flex items-center space-x-3">
-                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                           <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                              <MapPin className="h-4 w-4" />
                            </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase italic">4. Office Locations</h4>
+                           <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">4. Office Locations</h4>
                         </div>
-                        <div className="flex space-x-2">
-                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'offices', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.offices === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                           <button onClick={() => openRejectionModal('offices')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.offices === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        <div className="flex items-center space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'offices', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.offices === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                           <button onClick={() => openRejectionModal('offices')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.offices === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                         </div>
                       </div>
                       <div className="space-y-4">
                          {selectedItem.profile?.offices?.map((office: any) => (
                            <div key={office.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-start">
                               <div className="space-y-1">
-                                 <p className="text-sm font-black text-slate-900 uppercase italic">{office.name} <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full ml-2 not-italic">{office.type}</span></p>
+                                 <p className="text-xs font-extrabold text-slate-900 uppercase">{office.name} <span className="text-[10px] font-bold text-[#12335f] bg-blue-50 px-2 py-0.5 rounded-full ml-2">{office.type}</span></p>
                                  <p className="text-[11px] font-medium text-slate-600 uppercase">{office.address}</p>
                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{office.city}, {office.state} - {office.pincode}</p>
                               </div>
                               {office.gstRegistered && <Badge variant="success" className="text-[8px]">GST REG</Badge>}
                            </div>
                          ))}
-                         {(!selectedItem.profile?.offices || selectedItem.profile.offices.length === 0) && <p className="text-[10px] font-bold text-slate-400 italic">No offices registered.</p>}
+                         {(!selectedItem.profile?.offices || selectedItem.profile.offices.length === 0) && <p className="text-[10px] font-bold text-slate-400">No offices registered.</p>}
                       </div>
                    </div>
 
                    {/* Section 5: Bank */}
-                   <div className="group">
-                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                   <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+                      <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                         <div className="flex items-center space-x-3">
-                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                           <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                              <Building2 className="h-4 w-4" />
                            </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase italic">5. Bank Accounts</h4>
+                           <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">5. Bank Accounts</h4>
                         </div>
-                        <div className="flex space-x-2">
-                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'bank', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.bank === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                           <button onClick={() => openRejectionModal('bank')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.bank === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        <div className="flex items-center space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'bank', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.bank === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                           <button onClick={() => openRejectionModal('bank')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.bank === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                         </div>
                       </div>
                       <div className="space-y-4">
                          {selectedItem.profile?.bankAccounts?.map((bank: any) => (
                            <div key={bank.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-start">
                               <div className="space-y-1">
-                                 <p className="text-sm font-black text-slate-900 uppercase italic">{bank.bankName} {bank.isPrimary && <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full ml-2 not-italic">PRIMARY</span>}</p>
+                                 <p className="text-xs font-extrabold text-slate-900 uppercase">{bank.bankName} {bank.isPrimary && <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full ml-2">PRIMARY</span>}</p>
                                  <p className="text-[11px] font-bold text-slate-700 uppercase">A/C: <span className="text-slate-900">{bank.accountNumber}</span> | IFSC: <span className="text-slate-900">{bank.ifsc}</span></p>
                                  <p className="text-[10px] font-medium text-slate-500 uppercase">Holder: {bank.holderName}</p>
-                                 <p className="text-[10px] font-medium text-slate-400 uppercase italic">{bank.bankAddress}</p>
+                                 <p className="text-[10px] font-medium text-slate-400 uppercase">{bank.bankAddress}</p>
                               </div>
                               {bank.isVerified && <Badge variant="success" className="text-[8px] h-5">VERIFIED</Badge>}
                            </div>
@@ -753,17 +760,17 @@ export default function AdminOnboarding() {
                    </div>
 
                    {/* Section 6: e-Invoicing */}
-                   <div className="group">
-                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                   <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+                      <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                         <div className="flex items-center space-x-3">
-                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                           <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                              <FileText className="h-4 w-4" />
                            </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase italic">6. e-Invoicing</h4>
+                           <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">6. e-Invoicing</h4>
                         </div>
-                        <div className="flex space-x-2">
-                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'einvoicing', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.einvoicing === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                           <button onClick={() => openRejectionModal('einvoicing')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.einvoicing === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        <div className="flex items-center space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'einvoicing', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.einvoicing === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                           <button onClick={() => openRejectionModal('einvoicing')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.einvoicing === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                         </div>
                       </div>
                       <div className="grid md:grid-cols-2 gap-8">
@@ -773,17 +780,17 @@ export default function AdminOnboarding() {
                    </div>
 
                    {/* Section 7: Ownership */}
-                   <div className="group pb-12">
-                      <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
+                   <div className="group rounded-lg border border-slate-200 bg-white p-5 pb-6 shadow-sm animate-in slide-in-from-bottom-4 duration-300">
+                      <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 relative">
                         <div className="flex items-center space-x-3">
-                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                           <div className="w-9 h-9 rounded-md bg-blue-50 text-[#12335f] flex items-center justify-center shadow-sm">
                              <ShieldCheck className="h-4 w-4" />
                            </div>
-                           <h4 className="text-xs font-black text-slate-700 uppercase italic">7. Beneficial Ownership</h4>
+                           <h4 className="text-xs font-extrabold text-[#12335f] uppercase tracking-wide">7. Beneficial Ownership</h4>
                         </div>
-                        <div className="flex space-x-2">
-                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'ownership', 'approved')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.ownership === 'approved' ? "bg-green-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-green-500 hover:text-white")}><Check className="h-3 w-3" /></button>
-                           <button onClick={() => openRejectionModal('ownership')} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all", selectedItem.sectionStatus?.ownership === 'rejected' ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white")}><X className="h-3 w-3" /></button>
+                        <div className="flex items-center space-x-2">
+                           <button onClick={() => handleUpdateSectionStatus(selectedItem._id, 'ownership', 'approved')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.ownership === 'approved' ? "bg-green-500 border-green-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300")}><Check className="h-4 w-4" /></button>
+                           <button onClick={() => openRejectionModal('ownership')} className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow-sm", selectedItem.sectionStatus?.ownership === 'rejected' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-200 text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300")}><X className="h-4 w-4" /></button>
                         </div>
                       </div>
                       <div className="grid md:grid-cols-2 gap-8">
@@ -798,8 +805,8 @@ export default function AdminOnboarding() {
             </div>
             
             {/* Footer */}
-            <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex justify-center">
-               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">End of application record for verification</p>
+            <div className="flex justify-center border-t border-slate-200 bg-white px-8 py-3">
+               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">End of application record for verification</p>
             </div>
           </div>
         </div>
@@ -814,54 +821,56 @@ export default function AdminOnboarding() {
               setRejectionReason('');
             }}
           />
-          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 space-y-6 animate-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between">
+          <div className="relative w-full max-w-md overflow-hidden rounded-lg border border-slate-300 bg-white shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between border-b border-slate-200 bg-[#12335f] px-6 py-4 text-white">
               <div className="space-y-1">
-                <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">Provide Rejection Reason</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Section: {activeSectionForRejection}</p>
+                <h3 className="text-base font-extrabold uppercase tracking-tight">Provide Rejection Reason</h3>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100">Section: {activeSectionForRejection}</p>
               </div>
               <button 
                 onClick={() => {
                   setIsRejectModalOpen(false);
                   setRejectionReason('');
                 }}
-                className="p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-[#f9a825]"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <p className="text-xs font-medium text-slate-500 italic">
-                Please specify why this section is being rejected. This feedback will be visible to the {selectedItem?.role}.
-              </p>
-              <textarea 
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="e.g., Uploaded documents are incorrect or unreadable..."
-                className="w-full h-32 p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all font-medium italic resize-none shadow-inner"
-                autoFocus
-              />
-            </div>
+            <div className="space-y-5 p-6">
+              <div className="space-y-3">
+                <p className="text-xs font-medium leading-relaxed text-slate-600">
+                  Please specify why this section is being rejected. This feedback will be visible to the {selectedItem?.role}.
+                </p>
+                <textarea 
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="e.g., Uploaded documents are incorrect or unreadable..."
+                  className="h-32 w-full resize-none rounded-md border border-slate-300 bg-white p-3 text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-red-600"
+                  autoFocus
+                />
+              </div>
 
-            <div className="flex flex-col space-y-3">
-              <Button 
-                onClick={handleConfirmRejection}
-                disabled={!rejectionReason.trim()}
-                className="w-full py-6 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest italic shadow-lg shadow-red-600/20 active:scale-95 transition-all"
-              >
-                Confirm Rejection
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  setIsRejectModalOpen(false);
-                  setRejectionReason('');
-                }}
-                className="w-full py-6 rounded-xl border-2 border-slate-100 text-slate-400 hover:bg-slate-50 font-black uppercase tracking-widest italic transition-all"
-              >
-                Cancel
-              </Button>
+              <div className="flex flex-col space-y-3">
+                <Button 
+                  onClick={handleConfirmRejection}
+                  disabled={!rejectionReason.trim()}
+                  className="h-11 w-full rounded-md bg-red-700 font-bold uppercase tracking-wide text-white hover:bg-red-800"
+                >
+                  Confirm Rejection
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setIsRejectModalOpen(false);
+                    setRejectionReason('');
+                  }}
+                  className="h-11 w-full rounded-md border-slate-300 font-bold uppercase tracking-wide text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -872,11 +881,11 @@ export default function AdminOnboarding() {
 
 function InfoItem({ label, value, mono = false, highlight = false }: { label: string, value?: string, mono?: boolean, highlight?: boolean }) {
   return (
-    <div className="space-y-1.5">
-      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">{label}</p>
+    <div className="min-w-0 space-y-1 rounded-md border border-slate-100 bg-slate-50/70 px-3 py-2">
+      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
       <p className={cn(
-        "text-sm font-bold tracking-tight transition-all",
-        highlight ? "text-indigo-900" : "text-slate-700",
+        "break-words text-xs font-semibold tracking-tight transition-all",
+        highlight ? "text-[#12335f]" : "text-slate-800",
         mono && "font-mono"
       )}>
         {value || 'Not Provided'}
@@ -884,3 +893,4 @@ function InfoItem({ label, value, mono = false, highlight = false }: { label: st
     </div>
   );
 }
+

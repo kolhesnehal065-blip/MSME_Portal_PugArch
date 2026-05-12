@@ -18,7 +18,8 @@ import {
   ChevronLeft,
   Loader2,
   Info,
-  EyeOff
+  EyeOff,
+  Pencil
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -32,8 +33,12 @@ interface RegistrationDetailsFlowProps {
 }
 
 const cooperativeOrganisationTypes = [
-  'Multi-State Co-operative Societies (MSCS)',
-  'Single-State Co-operative Societies (SSCS)'
+  'Proprietorship',
+  'Partnership Firm',
+  'Company (Pvt Ltd / Ltd)',
+  'LLP',
+  'MSME',
+  'Startup'
 ];
 
 const districtOrganisationOverrides: Record<string, string[]> = {
@@ -100,10 +105,11 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
     gstin: '',
     website: '',
     orgPan: '',
-    personalVerificationMethod: 'aadhaar', // 'aadhaar' | 'pan'
+    personalVerificationMethod: role === 'buyer' ? 'aadhaar' : '', // 'aadhaar' | 'pan'
     aadhaarNumber: '',
     panNumber: '',
     personalName: '',
+    personalLastName: '',
     dob: '',
     mobile: '',
     roleInOrg: '',
@@ -133,16 +139,21 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
       
       if (res.ok) {
         const data = await res.json();
+        if (!data?.legalName || !data?.address) {
+          toast.error('Live GST details are incomplete. Please verify GSTIN and enter details manually.');
+          return;
+        }
         setFormData((prev: any) => ({
           ...prev,
-          businessName: data.legalName || prev.businessName,
+          businessName: data.legalName?.trim() || prev.businessName,
           orgPan: data.pan || prev.orgPan,
-          state: data.state || prev.state,
-          district: data.city || prev.district,
+          state: data.state?.trim() || prev.state,
+          district: data.city?.trim() || prev.district,
         }));
-        toast.success('Organization details fetched from GSTIN');
+        toast.success(`GST verified: ${data.status || 'Status available'}`);
       } else {
-        toast.error('Could not fetch GST details');
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.message || 'Could not fetch GST details');
       }
     } catch (err) {
       toast.error('Verification service unavailable');
@@ -156,6 +167,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
   const [aadhaarOtpSent, setAadhaarOtpSent] = useState(false);
   const [simulatedAadhaarOtp, setSimulatedAadhaarOtp] = useState('');
   const [aadhaarConsent, setAadhaarConsent] = useState(false);
+  const [isPanVerified, setIsPanVerified] = useState(false);
 
   const [emailOtp, setEmailOtp] = useState('');
   const [isEmailVerified, setIsEmailVerified] = useState(false);
@@ -167,6 +179,16 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
     { id: 2, title: 'Personal Verification', icon: UserCheck },
     { id: 3, title: 'Email Verification', icon: Mail },
     { id: 4, title: 'User Credentials', icon: Lock }
+  ];
+
+  const sellerRoleOptions = [
+    'Director',
+    'CEO',
+    'Managing Director',
+    'Managerial Personnel Authorized by Board of Directors',
+    'Proprietor',
+    'Partner',
+    'Authorized Signatory'
   ];
 
   const isPrimaryBuyer = role === 'buyer' && businessType.startsWith('Primary User');
@@ -187,10 +209,56 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
     !formData.officeZoneName && 'Office/Zone Name'
   ].filter(Boolean);
 
+  const aadhaarValue = formData.aadhaarNumber.trim();
+  const mobileValue = formData.mobile.trim();
+  const isAadhaarNumberValid = /^\d{12}$/.test(aadhaarValue);
+  const isVirtualIdValid = /^\d{16}$/.test(aadhaarValue);
+  const isAadhaarOrVidValid = isAadhaarNumberValid || isVirtualIdValid;
+  const isMobileValid = /^[6-9]\d{9}$/.test(mobileValue) && !/^(\d)\1{9}$/.test(mobileValue);
+  const panNumberValid = /^[A-Z]{5}\d{4}[A-Z]$/.test(formData.panNumber);
+  const panNameValid = /^[A-Za-z .-]{2,100}$/.test(formData.personalName.trim());
+  const dobDate = formData.dob ? new Date(formData.dob) : null;
+  const today = new Date();
+  const age = dobDate
+    ? today.getFullYear() - dobDate.getFullYear() - (today < new Date(today.getFullYear(), dobDate.getMonth(), dobDate.getDate()) ? 1 : 0)
+    : 0;
+  const dobValid = Boolean(dobDate && dobDate <= today && age >= 18);
+  const aadhaarErrors = {
+    aadhaarNumber: !aadhaarValue
+      ? 'Aadhaar Number / Virtual ID is required.'
+      : !isAadhaarOrVidValid
+        ? 'Enter exactly 12 digits for Aadhaar or 16 digits for Virtual ID.'
+        : '',
+    mobile: !mobileValue
+      ? 'Mobile number linked with Aadhaar is required.'
+      : !isMobileValid
+        ? 'Enter a valid 10 digit mobile number starting with 6, 7, 8, or 9.'
+        : '',
+    consent: !aadhaarConsent ? 'Consent is required before Aadhaar verification.' : ''
+  };
+  const panErrors = {
+    panNumber: !formData.panNumber
+      ? 'PAN number is required.'
+      : !panNumberValid
+        ? 'PAN must follow ABCDE1234F format.'
+        : '',
+    personalName: !formData.personalName.trim()
+      ? 'Name as on PAN is required.'
+      : !panNameValid
+        ? 'Use 2-100 characters: alphabets, spaces, dots, and hyphens only.'
+        : '',
+    dob: !formData.dob
+      ? 'Date of birth is required.'
+      : !dobValid
+        ? 'Date of birth cannot be future and age must be at least 18 years.'
+        : ''
+  };
+  const isAadhaarReady = isAadhaarOrVidValid && isMobileValid && aadhaarConsent;
+  const isPanReady = panNumberValid && panNameValid && dobValid;
+  const maskedAadhaar = isAadhaarOrVidValid ? `${'X'.repeat(aadhaarValue.length - 4).replace(/(.{4})/g, '$1 ').trim()} ${aadhaarValue.slice(-4)}` : '';
+
   const handleSendAadhaarOtp = () => {
-    if (formData.aadhaarNumber.length !== 12) return toast.error('Enter valid Aadhaar');
-    if (formData.mobile.length !== 10) return toast.error('Enter linked mobile number');
-    if (role === 'buyer' && !aadhaarConsent) return toast.error('Please provide Aadhaar consent');
+    if (!isAadhaarReady) return toast.error('Please complete valid Aadhaar details and consent');
     
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     setSimulatedAadhaarOtp(otp);
@@ -207,6 +275,12 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
     }
   };
 
+  const handleVerifyPan = () => {
+    if (!isPanReady) return toast.error('Please complete valid PAN details');
+    setIsPanVerified(true);
+    toast.success('PAN Verified Successfully');
+  };
+
   const handleNext = () => {
     if (currentSubStep === 1) {
       if (isPrimaryBuyer && !isPrimaryBuyerOrganisationComplete) {
@@ -219,14 +293,28 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
       }
     }
     if (currentSubStep === 2) {
+      if (!formData.personalVerificationMethod) {
+        toast.error('Please select Aadhaar or Personal PAN verification');
+        return;
+      }
       if (formData.personalVerificationMethod === 'aadhaar') {
         if (!isAadhaarVerified) {
           toast.error('Please verify Aadhaar first');
           return;
         }
       } else {
-         if (!formData.panNumber) {
-          toast.error('Please enter valid PAN Number');
+         if (!isPanVerified) {
+          toast.error('Please verify PAN first');
+          return;
+        }
+      }
+      if (role === 'seller') {
+        if (!formData.personalName.trim()) {
+          toast.error('Please enter first name');
+          return;
+        }
+        if (!formData.roleInOrg) {
+          toast.error('Please select your role');
           return;
         }
       }
@@ -297,7 +385,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
     
     setIsLoading(true);
     try {
-      const accountName = formData.personalName.trim() || formData.userId.trim() || formData.businessName.trim();
+      const accountName = [formData.personalName, formData.personalLastName].map(v => v.trim()).filter(Boolean).join(' ') || formData.userId.trim() || formData.businessName.trim();
       const res = await api.post('/api/auth/register', {
         name: accountName,
         email: formData.email || formData.userId,
@@ -346,200 +434,199 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
   const isBuyerEmailReady = Boolean(formData.email && formData.verifyEmail && formData.email === formData.verifyEmail);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-0 sm:px-1 lg:flex-row lg:gap-8 lg:p-0">
-      {/* Sidebar Navigation - Transitioned to horizontal on mobile */}
-      <div className="no-scrollbar flex-shrink-0 overflow-x-auto lg:w-64">
-        <div className="flex lg:flex-col gap-2 pb-4 lg:pb-0 min-w-max lg:min-w-0 sticky top-4 lg:top-8">
-          {steps.map((step) => {
-            const Icon = step.icon;
-            const isActive = currentSubStep === step.id;
-            const isCompleted = currentSubStep > step.id;
-            
-            return (
-              <div 
-                key={step.id}
-                className={`flex items-center gap-2 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl transition-all cursor-pointer ${
-                  isActive ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 
-                  isCompleted ? 'bg-green-50 text-green-700' : 'bg-white text-slate-400'
-                }`}
-                onClick={() => isCompleted && setCurrentSubStep(step.id)}
-              >
-                <div className={`p-1.5 md:p-2 rounded-lg md:rounded-xl ${
-                  isActive ? 'bg-white/20' : 
-                  isCompleted ? 'bg-green-100' : 'bg-slate-50'
-                }`}>
-                  {isCompleted ? <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" /> : <Icon className="h-4 w-4 md:h-5 md:w-5" />}
-                </div>
-                <span className="text-[10px] md:text-xs font-black uppercase tracking-tight italic whitespace-nowrap">{step.title}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-5xl text-xs font-sans">
+      <Card className="overflow-hidden rounded border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col md:flex-row min-h-[400px]">
+          {/* Left Side Navigation */}
+          <div className="w-full md:w-64 bg-white border-r border-slate-100 py-6">
+            <div className="flex flex-col">
+              {steps.map((step) => {
+                const isActive = currentSubStep === step.id;
+                return (
+                  <div 
+                    key={step.id}
+                    className={cn(
+                      "relative px-6 py-3 cursor-pointer transition-colors",
+                      isActive ? "bg-slate-50" : "hover:bg-slate-50/50"
+                    )}
+                    onClick={() => currentSubStep > step.id && setCurrentSubStep(step.id)}
+                  >
+                    {isActive && (
+                      <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-blue-600" />
+                    )}
+                    <span className={cn(
+                      "text-[13px] font-semibold tracking-tight",
+                      isActive ? "text-slate-700" : "text-slate-400"
+                    )}>
+                      {step.title}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1">
-        <Card className="overflow-hidden rounded-2xl border-none bg-white shadow-xl shadow-slate-200/70 md:rounded-3xl md:shadow-2xl">
-          <CardHeader className="border-b border-white bg-slate-50 p-4 sm:p-6 md:p-8">
-            <CardTitle className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900 italic">
-              Step {currentSubStep}: {steps.find(s => s.id === currentSubStep)?.title}
-            </CardTitle>
-          </CardHeader>
-          
-          <CardContent className="p-4 sm:p-6 md:p-10">
+          {/* Right Side Content */}
+          <div className="flex-1 p-6 md:p-8">
+            <CardContent className="p-0">
             {currentSubStep === 1 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+              <div className="animate-in slide-in-from-right-2 duration-300">
+                <h2 className="text-2xl font-bold text-slate-800 mb-8 tracking-tight">Organisation Details</h2>
+                
                 {isPrimaryBuyer ? (
-                  <div className="space-y-6">
-                    <h2 className="text-xl md:text-2xl font-black text-slate-800">Organisation Details</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        Business / Organisation Type * <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
                       <Select
-                        label="Organisation Type *"
                         value={formData.organisationType}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          organisationType: e.target.value
-                        })}
-                        error={!formData.organisationType ? 'Please select Organisation Type.' : undefined}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
+                        onChange={(e) => setFormData({...formData, organisationType: e.target.value})}
+                        className="h-10 rounded border-slate-300 bg-slate-50/50 text-[13px] text-slate-700 focus:ring-blue-500"
                       >
-                        <option value="">Select Organisation type</option>
+                        <option value="">Select Type</option>
                         {cooperativeOrganisationTypes.map((type) => (
                           <option key={type} value={type}>{type}</option>
                         ))}
                       </Select>
+                    </div>
 
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        State * <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
                       <Select
-                        label="State *"
                         value={formData.state}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          state: e.target.value,
-                          district: '',
-                          organisation: ''
-                        })}
-                        error={!formData.state ? 'Please select State.' : undefined}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
+                        onChange={(e) => setFormData({...formData, state: e.target.value, district: '', organisation: ''})}
+                        className="h-10 rounded border-slate-300 bg-slate-50/50 text-[13px] text-slate-700 focus:ring-blue-500"
                       >
                         <option value="">Select State</option>
                         {indiaStates.map((state) => (
                           <option key={state} value={state}>{state}</option>
                         ))}
                       </Select>
+                    </div>
 
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        District * <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
                       <Select
-                        label="District *"
                         value={formData.district}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          district: e.target.value,
-                          organisation: ''
-                        })}
                         disabled={!formData.state}
-                        error={formData.state && !formData.district ? 'Please select District.' : undefined}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
+                        onChange={(e) => setFormData({...formData, district: e.target.value, organisation: ''})}
+                        className="h-10 rounded border-slate-300 bg-slate-50/50 text-[13px] text-slate-700 focus:ring-blue-500"
                       >
                         <option value="">Select District</option>
-                        {districtOptions.map((district) => (
-                          <option key={district} value={district}>{district}</option>
+                        {districtOptions.map((d) => (
+                          <option key={d} value={d}>{d}</option>
                         ))}
                       </Select>
-
-                      <Select
-                        label="Organisation *"
-                        value={formData.organisation}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          organisation: e.target.value,
-                          businessName: e.target.value
-                        })}
-                        disabled={!formData.district}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
-                      >
-                        <option value="">Select Organisation</option>
-                        {organisationOptions.map((organisation) => (
-                          <option key={organisation} value={organisation}>{organisation}</option>
-                        ))}
-                      </Select>
-
-                      <div>
-                        <Input
-                          label="Office/Zone Name *"
-                          placeholder="Enter location"
-                          value={formData.officeZoneName}
-                          onChange={(e) => setFormData({...formData, officeZoneName: e.target.value})}
-                          className="h-14 rounded-lg border-slate-200 bg-white"
-                        />
-                        <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-                          Office / Zone is the location or a unit of your organisation requiring separate GeM account.
-                        </p>
-                      </div>
                     </div>
-                    {missingPrimaryBuyerFields.length > 0 && (
-                      <p className="text-[10px] text-amber-600">
-                        Please complete: {missingPrimaryBuyerFields.join(', ')}.
-                      </p>
-                    )}
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        Organisation Name * <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
+                      <Input
+                        placeholder="Enter organisation name"
+                        value={formData.organisation}
+                        onChange={(e) => setFormData({...formData, organisation: e.target.value, businessName: e.target.value})}
+                        className="h-10 rounded border-slate-300 bg-white text-[13px]"
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        Office / Zone Name * <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
+                      <Input
+                        placeholder="Enter unit/location name"
+                        value={formData.officeZoneName}
+                        onChange={(e) => setFormData({...formData, officeZoneName: e.target.value})}
+                        className="h-10 rounded border-slate-300 bg-white text-[13px]"
+                      />
+                    </div>
                   </div>
                 ) : role === 'buyer' ? (
-                  <>
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-end gap-2">
-                        <div className="flex-1">
-                          <Input
-                            label="GSTIN (Optional)"
-                            placeholder="Enter GSTIN"
-                            value={formData.gstin}
-                            onChange={(e) => setFormData({...formData, gstin: e.target.value.toUpperCase()})}
-                            className="h-14 rounded-2xl border-slate-200"
-                          />
-                        </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        GSTIN (Optional) <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter GSTIN"
+                          value={formData.gstin}
+                          onChange={(e) => setFormData({...formData, gstin: e.target.value.toUpperCase()})}
+                          className="h-10 rounded border-slate-300 bg-white text-[13px] flex-1"
+                        />
                         <Button 
                           type="button"
                           variant="outline"
                           onClick={fetchGstDetails}
                           disabled={isFetchingGst || !formData.gstin}
-                          className="h-14 px-4 rounded-xl border-indigo-200 text-indigo-600 font-bold uppercase text-[10px] italic hover:bg-indigo-50"
+                          className="h-10 px-4 rounded bg-slate-50 text-slate-600 border-slate-300 text-[12px] font-bold"
                         >
-                          {isFetchingGst ? 'Fetching...' : 'Fetch'}
+                          {isFetchingGst ? '...' : 'Fetch'}
                         </Button>
                       </div>
                     </div>
-                    <Input
-                      label="Organization / Company Name *"
-                      placeholder="Enter Registered Business Name"
-                      value={formData.businessName}
-                      onChange={(e) => setFormData({...formData, businessName: e.target.value})}
-                      className="h-14 rounded-2xl border-slate-200"
-                    />
-                    <Input
-                      label="Business Type"
-                      value={businessType}
-                      disabled
-                      className="bg-slate-50 font-bold italic h-14 rounded-2xl"
-                    />
 
-                  </>
-                ) : (
-                  <>
-                    <Input
-                      label="Organisation Type"
-                      value={businessType}
-                      disabled
-                      className="bg-slate-50 font-bold italic"
-                    />
-                    <Input
-                      label="Organisation Name"
-                      placeholder="Enter Registered Business Name"
-                      value={formData.businessName}
-                      onChange={(e) => setFormData({...formData, businessName: e.target.value})}
-                      className="h-14 rounded-2xl border-slate-200"
-                    />
-                    <div className="p-4 bg-indigo-50 rounded-2xl flex gap-3 text-indigo-700 border border-indigo-100 italic text-sm">
-                       <Info className="h-5 w-5 flex-shrink-0" />
-                       <p>Please ensure the name matches your legal registration documents (PAN/COI).</p>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        Business / Organisation Type * <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
+                      <Input
+                        value={businessType}
+                        disabled
+                        className="h-10 rounded border-slate-300 bg-slate-100 text-slate-600 text-[13px] font-medium"
+                      />
                     </div>
-                  </>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        Business / Organisation Name * <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
+                      <Input
+                        placeholder="Please enter your Business/Company Name"
+                        value={formData.businessName}
+                        onChange={(e) => setFormData({...formData, businessName: e.target.value})}
+                        className="h-10 rounded border-slate-300 bg-white text-[13px]"
+                      />
+                      {!formData.businessName && (
+                        <p className="text-[10px] text-red-500 mt-1">Please enter Business / Organisation Name.</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        Business / Organisation Type * <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
+                      <Input
+                        value={businessType}
+                        disabled
+                        className="h-10 rounded border-slate-200 bg-slate-100 text-slate-500 text-[13px]"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        Business / Organisation Name * <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
+                      <Input
+                        placeholder="Please enter your Business/Company Name"
+                        value={formData.businessName}
+                        onChange={(e) => setFormData({...formData, businessName: e.target.value})}
+                        className="h-10 rounded border-slate-300 bg-white text-[13px]"
+                      />
+                      {!formData.businessName && (
+                        <p className="text-[10px] text-red-500 mt-1 font-medium tracking-tight">Please enter Business / Organisation Name.</p>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -548,8 +635,8 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 {role === 'buyer' ? (
                   <div className="space-y-7">
-                    <h2 className="text-xl md:text-2xl font-black text-slate-800">Personal Verification</h2>
-                    <div className="rounded-md bg-sky-100 px-5 py-4 text-sm font-medium text-slate-700">
+                    <h2 className="text-base md:text-base font-bold text-slate-800">Personal Verification</h2>
+                    <div className="rounded-md bg-sky-100 px-5 py-4 text-xs font-medium text-slate-700">
                       We respect your Privacy, We do not share your personal details with anyone.
                     </div>
 
@@ -566,7 +653,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                             value={formData.aadhaarNumber}
                             onChange={(e) => setFormData({...formData, aadhaarNumber: e.target.value.replace(/\D/g, '')})}
                             disabled={isAadhaarVerified || aadhaarOtpSent}
-                            className="h-14 w-full rounded-lg border border-slate-200 bg-white px-4 pr-11 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="h-11 w-full rounded-lg border border-slate-200 bg-white px-4 pr-11 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                           />
                           <EyeOff className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
                         </div>
@@ -579,14 +666,14 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         value={formData.mobile}
                         onChange={(e) => setFormData({...formData, mobile: e.target.value.replace(/\D/g, '')})}
                         disabled={isAadhaarVerified || aadhaarOtpSent}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
+                        className="h-11 rounded-lg border-slate-200 bg-white"
                       />
                     </div>
 
                     {!aadhaarOtpSent && !isAadhaarVerified && (
                       <>
                         <div className="space-y-5">
-                          <label className="flex items-start gap-3 text-sm leading-relaxed text-slate-700">
+                          <label className="flex items-start gap-3 text-xs leading-relaxed text-slate-700">
                             <input
                               type="checkbox"
                               checked={aadhaarConsent}
@@ -598,12 +685,12 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                             </span>
                           </label>
 
-                          <p className="pl-8 text-sm leading-relaxed text-slate-700">
+                          <p className="pl-8 text-xs leading-relaxed text-slate-700">
                             मैं, उपर्युक्त आधार का धारक, भारतीय विशिष्ट पहचान प्राधिकरण द्वारा आवंटित अपने आधार नंबर को जेम पंजीकरण हेतु प्रयोग में लाने हेतु जेम (गवर्नमेंट ई-मार्केटप्लेस) को एतदद्वारा अपनी सहमति प्रदान करता हूं। जेम (गवर्नमेंट ई-मार्केटप्लेस) ने मुझे अवगत कराया है कि मेरे आधार डेटा को संग्रहीत/साझा नहीं किया जाएगा।
                           </p>
 
                           <div className="space-y-3">
-                            <p className="text-sm text-slate-700">Click on the play button to listen consent/ सहमति सुनने के लिए प्ले बटन पर क्लिक करें।</p>
+                            <p className="text-xs text-slate-700">Click on the play button to listen consent/ सहमति सुनने के लिए प्ले बटन पर क्लिक करें।</p>
                             <audio controls className="w-full max-w-sm" />
                           </div>
                         </div>
@@ -613,7 +700,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                             onClick={handleSendAadhaarOtp}
                             disabled={!isBuyerAadhaarReady}
                             className={cn(
-                              "h-14 w-full sm:w-64 rounded-lg font-black uppercase tracking-wide",
+                              "h-11 w-full sm:w-64 rounded-lg font-bold  tracking-wide",
                               isBuyerAadhaarReady ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-500"
                             )}
                           >
@@ -624,10 +711,10 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                     )}
 
                     {aadhaarOtpSent && !isAadhaarVerified && (
-                      <div className="space-y-4 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm sm:p-6">
+                      <div className="space-y-4 rounded border border-indigo-100 bg-white p-4 shadow-sm sm:p-6">
                          <div className="flex items-center justify-between">
-                            <h4 className="text-[10px] font-black text-indigo-600 uppercase italic">Enter OTP sent to your Aadhaar-linked mobile</h4>
-                            <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-black animate-pulse">
+                            <h4 className="text-[10px] font-bold text-indigo-600  ">Enter OTP sent to your Aadhaar-linked mobile</h4>
+                            <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-bold animate-pulse">
                                SIMULATION OTP: {simulatedAadhaarOtp}
                             </div>
                          </div>
@@ -637,18 +724,18 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                              maxLength={6}
                              value={aadhaarOtp}
                              onChange={(e) => setAadhaarOtp(e.target.value.replace(/\D/g, ''))}
-                             className="flex-1 h-12 px-4 rounded-xl border border-slate-200 text-center font-black tracking-widest"
+                             className="flex-1 h-12 px-4 rounded border border-slate-200 text-center font-bold "
                            />
                            <Button
                              onClick={() => setAadhaarOtp(simulatedAadhaarOtp)}
-                             className="h-12 px-4 rounded-xl border border-indigo-200 text-indigo-600 font-bold uppercase text-[10px] italic"
+                             className="h-12 px-4 rounded border border-indigo-200 text-indigo-600 font-bold  text-[10px] "
                            >
                              Auto-fill Simulation
                            </Button>
                          </div>
                          <Button
                            onClick={handleVerifyAadhaarOtp}
-                           className="w-full h-12 rounded-xl bg-slate-900 text-white font-black uppercase italic text-[10px]"
+                           className="w-full h-12 rounded bg-slate-900 text-white font-bold   text-[10px]"
                          >
                            Validate Aadhaar
                          </Button>
@@ -662,7 +749,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                             label="Mobile number linked with Aadhaar*"
                             value={formData.mobile}
                             disabled
-                            className="h-14 rounded-lg border-slate-200 bg-slate-100 text-slate-700"
+                            className="h-11 rounded-lg border-slate-200 bg-slate-100 text-slate-700"
                           />
                         </div>
 
@@ -672,26 +759,26 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                             value={formData.personalName}
                             onChange={(e) => setFormData({...formData, personalName: e.target.value})}
                             disabled
-                            className="h-14 rounded-lg border-slate-200 bg-slate-100 text-slate-700"
+                            className="h-11 rounded-lg border-slate-200 bg-slate-100 text-slate-700"
                           />
                           <Input
                             label="Last Name"
                             value={formData.roleInOrg}
                             onChange={(e) => setFormData({...formData, roleInOrg: e.target.value})}
                             disabled
-                            className="h-14 rounded-lg border-slate-200 bg-slate-100 text-slate-700"
+                            className="h-11 rounded-lg border-slate-200 bg-slate-100 text-slate-700"
                           />
                         </div>
 
                         <div className="flex items-center gap-3 text-slate-800">
                           <CheckCircle2 className="h-5 w-5 rounded-full fill-green-600 text-green-600" />
-                          <p className="text-sm font-bold">Aadhaar Details Verified Successfully.</p>
+                          <p className="text-xs font-bold">Aadhaar Details Verified Successfully.</p>
                         </div>
 
                         <div className="flex justify-end">
                           <Button
                             onClick={handleNext}
-                            className="h-14 w-full sm:w-40 rounded-lg bg-blue-600 text-white font-black uppercase tracking-wide hover:bg-blue-700"
+                            className="h-11 w-full sm:w-40 rounded-lg bg-blue-600 text-white font-bold  tracking-wide hover:bg-blue-700"
                           >
                             Next
                           </Button>
@@ -700,139 +787,236 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                     )}
                   </div>
                 ) : (
-                  <>
-                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                      <button 
-                        onClick={() => setFormData({...formData, personalVerificationMethod: 'aadhaar'})}
-                        className={`p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all flex flex-col items-center gap-4 ${
-                          formData.personalVerificationMethod === 'aadhaar' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 bg-slate-50'
-                        }`}
-                      >
-                        <Fingerprint className={`h-8 w-8 md:h-10 md:w-10 ${formData.personalVerificationMethod === 'aadhaar' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                        <span className="font-black uppercase italic text-[10px] tracking-widest">Aadhaar Verification</span>
-                      </button>
-                    <button 
-                      onClick={() => setFormData({...formData, personalVerificationMethod: 'pan'})}
-                      className={`p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all flex flex-col items-center gap-4 ${
-                        formData.personalVerificationMethod === 'pan' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 bg-slate-50'
-                      }`}
-                    >
-                      <FileText className={`h-8 w-8 md:h-10 md:w-10 ${formData.personalVerificationMethod === 'pan' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                      <span className="font-black uppercase italic text-[10px] tracking-widest">PAN Verification</span>
-                    </button>
+                  <div className="space-y-5">
+                    <h2 className="text-2xl font-bold text-slate-800">Personal Verification</h2>
+                    <div className="flex flex-wrap items-center gap-8">
+                      <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-800">
+                        <input
+                          type="radio"
+                          name="seller-personal-verification"
+                          checked={formData.personalVerificationMethod === 'aadhaar'}
+                          onChange={() => setFormData({...formData, personalVerificationMethod: 'aadhaar'})}
+                          className="h-4 w-4 accent-blue-600"
+                        />
+                        Aadhaar
+                      </label>
+                      <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-800">
+                        <input
+                          type="radio"
+                          name="seller-personal-verification"
+                          checked={formData.personalVerificationMethod === 'pan'}
+                          onChange={() => setFormData({...formData, personalVerificationMethod: 'pan'})}
+                          className="h-4 w-4 accent-blue-600"
+                        />
+                        Personal PAN
+                      </label>
                     </div>
 
-                {formData.personalVerificationMethod === 'aadhaar' ? (
-                  <div className="animate-in space-y-5 rounded-2xl bg-slate-50 p-4 fade-in duration-300 sm:p-6 md:rounded-3xl">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <Input
-                        label="Aadhaar Number / Virtual ID"
-                        placeholder="12 digit number"
-                        maxLength={12}
-                        value={formData.aadhaarNumber}
-                        onChange={(e) => setFormData({...formData, aadhaarNumber: e.target.value.replace(/\D/g, '')})}
-                        disabled={isAadhaarVerified || aadhaarOtpSent}
-                      />
-                      <Input
-                        label="Mobile Number (Aadhaar Linked)"
-                        placeholder="10 digit mobile"
-                        maxLength={10}
-                        value={formData.mobile}
-                        onChange={(e) => setFormData({...formData, mobile: e.target.value.replace(/\D/g, '')})}
-                        disabled={isAadhaarVerified || aadhaarOtpSent}
-                      />
+                    <div className="max-w-xl rounded-none bg-sky-100 px-5 py-3 text-sm font-medium text-slate-700">
+                      We respect your Privacy, We do not share your personal details with anyone.
                     </div>
-                    
-                    {!aadhaarOtpSent && !isAadhaarVerified && (
-                      <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-3">
-                           <input type="checkbox" className="w-5 h-5 rounded accent-indigo-600" />
-                           <p className="text-[10px] font-bold text-slate-500 italic uppercase">I hereby give my consent for Aadhaar verification via DigiLocker/UIDAI.</p>
-                        </div>
-                        <Button 
-                          onClick={handleSendAadhaarOtp}
-                          className="w-full h-12 rounded-2xl bg-indigo-600 text-white font-black uppercase italic tracking-widest text-[10px]"
-                        >
-                            Verify Aadhaar (Get OTP)
-                        </Button>
-                      </div>
-                    )}
 
-                    {aadhaarOtpSent && !isAadhaarVerified && (
-                      <div className="space-y-4 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm sm:p-6">
-                         <div className="flex items-center justify-between">
-                            <h4 className="text-[10px] font-black text-indigo-600 uppercase italic">Enter OTP sent to your Aadhaar-linked mobile</h4>
-                            <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-black animate-pulse">
-                               SIMULATION OTP: {simulatedAadhaarOtp}
+                    {formData.personalVerificationMethod === 'aadhaar' && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-800">
+                              Aadhaar Number / Virtual ID* <Info className="inline h-3.5 w-3.5 text-slate-500" />
+                            </label>
+                            <div className="relative">
+                              <input
+                                placeholder="Enter Aadhaar number / Virtual ID"
+                                maxLength={16}
+                                value={formData.aadhaarNumber}
+                                onChange={(event) => setFormData({...formData, aadhaarNumber: event.target.value.replace(/\D/g, '').slice(0, 16)})}
+                                disabled={isAadhaarVerified || aadhaarOtpSent}
+                                className={cn(
+                                  "h-11 w-full rounded border bg-white px-4 pr-11 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-60",
+                                  aadhaarErrors.aadhaarNumber ? "border-red-400 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
+                                )}
+                              />
+                              <EyeOff className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
                             </div>
-                         </div>
-                         <div className="flex flex-col sm:flex-row gap-2">
-                           <input 
-                             placeholder="6 Digit OTP"
-                             maxLength={6}
-                             value={aadhaarOtp}
-                             onChange={(e) => setAadhaarOtp(e.target.value.replace(/\D/g, ''))}
-                             className="flex-1 h-12 px-4 rounded-xl border border-slate-200 text-center font-black tracking-widest"
-                           />
-                           <Button 
-                             onClick={() => setAadhaarOtp(simulatedAadhaarOtp)}
-                             className="h-12 px-4 rounded-xl border border-indigo-200 text-indigo-600 font-bold uppercase text-[10px] italic"
-                           >
-                             Auto-fill Simulation
-                           </Button>
-                         </div>
-                         <Button 
-                           onClick={handleVerifyAadhaarOtp}
-                           className="w-full h-12 rounded-xl bg-slate-900 text-white font-black uppercase italic text-[10px]"
-                         >
-                           Validate Aadhaar
-                         </Button>
+                            {maskedAadhaar && <p className="text-xs font-semibold text-slate-500">Masked: {maskedAadhaar}</p>}
+                            {aadhaarErrors.aadhaarNumber && <p className="text-xs font-medium text-red-600">{aadhaarErrors.aadhaarNumber}</p>}
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-800">Mobile number linked with Aadhaar*</label>
+                            <input
+                              placeholder="Enter mobile number linked with Aadhaar"
+                              maxLength={10}
+                              value={formData.mobile}
+                              onChange={(event) => setFormData({...formData, mobile: event.target.value.replace(/\D/g, '').slice(0, 10)})}
+                              disabled={isAadhaarVerified || aadhaarOtpSent}
+                              className={cn(
+                                "h-11 w-full rounded border bg-white px-4 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-60",
+                                aadhaarErrors.mobile ? "border-red-400 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
+                              )}
+                            />
+                            {aadhaarErrors.mobile && <p className="text-xs font-medium text-red-600">{aadhaarErrors.mobile}</p>}
+                          </div>
+                        </div>
+
+                        {!aadhaarOtpSent && !isAadhaarVerified && (
+                          <>
+                            <label className="flex items-start gap-3 text-sm leading-relaxed text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={aadhaarConsent}
+                                onChange={(event) => setAadhaarConsent(event.target.checked)}
+                                className="mt-1 h-5 w-5 rounded border-slate-300 accent-blue-600"
+                              />
+                              <span>
+                                I, the holder of the above Aadhaar, hereby give my consent to GeM (Government e Marketplace), for using my Aadhaar number as allotted by UIDAI for GeM Registration. GeM has informed me that my Aadhaar data will not be stored/shared.
+                              </span>
+                            </label>
+                            {aadhaarErrors.consent && <p className="pl-8 text-xs font-medium text-red-600">{aadhaarErrors.consent}</p>}
+                            <p className="pl-8 text-sm leading-relaxed text-slate-700">
+                              I provide consent for identity verification only. Aadhaar details will be used for verification and masked after entry.
+                            </p>
+                            <div className="space-y-3">
+                              <p className="text-sm text-slate-700">Click on the play button to listen consent.</p>
+                              <audio controls className="w-full max-w-sm" />
+                            </div>
+                            <div className="flex justify-end">
+                              <Button
+                                onClick={handleSendAadhaarOtp}
+                                disabled={!isAadhaarReady}
+                                className={cn(
+                                  "h-11 w-full rounded font-bold uppercase tracking-wide sm:w-52",
+                                  isAadhaarReady ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                                )}
+                              >
+                                Verify Aadhaar
+                              </Button>
+                            </div>
+                          </>
+                        )}
+
+                        {aadhaarOtpSent && !isAadhaarVerified && (
+                          <div className="space-y-4 rounded border border-indigo-100 bg-white p-4 shadow-sm sm:p-6">
+                             <div className="flex items-center justify-between">
+                                <h4 className="text-xs font-bold text-indigo-600">Enter OTP sent to your Aadhaar-linked mobile</h4>
+                                <div className="rounded bg-amber-50 px-3 py-1 text-[10px] font-bold text-amber-600 animate-pulse">
+                                   SIMULATION OTP: {simulatedAadhaarOtp}
+                                </div>
+                             </div>
+                             <div className="flex flex-col gap-2 sm:flex-row">
+                               <input
+                                 placeholder="6 Digit OTP"
+                                 maxLength={6}
+                                 value={aadhaarOtp}
+                                 onChange={(event) => setAadhaarOtp(event.target.value.replace(/\D/g, ''))}
+                                 className="h-12 flex-1 rounded border border-slate-200 px-4 text-center font-bold"
+                               />
+                               <Button onClick={() => setAadhaarOtp(simulatedAadhaarOtp)} className="h-12 rounded border border-indigo-200 px-4 text-xs font-bold text-indigo-600">
+                                 Auto-fill Simulation
+                               </Button>
+                             </div>
+                             <Button onClick={handleVerifyAadhaarOtp} className="h-12 w-full rounded bg-slate-900 text-xs font-bold text-white">
+                               Validate Aadhaar
+                             </Button>
+                          </div>
+                        )}
+
+                        {isAadhaarVerified && (
+                          <div className="space-y-5">
+                            <div className="flex items-center gap-3 text-green-700">
+                              <CheckCircle2 className="h-5 w-5 fill-green-600 text-green-600" />
+                              <p className="text-sm font-bold">Aadhaar Details Verified Successfully.</p>
+                            </div>
+                            <SellerRoleDetails
+                              firstName={formData.personalName}
+                              lastName={formData.personalLastName}
+                              roleInOrg={formData.roleInOrg}
+                              roleOptions={sellerRoleOptions}
+                              onChange={(patch) => setFormData({...formData, ...patch})}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {isAadhaarVerified && (
-                      <div className="p-6 bg-green-50 rounded-2xl border border-green-100 flex items-center gap-4 text-green-700">
-                         <CheckCircle2 className="h-8 w-8" />
-                         <div>
-                            <p className="font-black uppercase italic text-xs">Aadhaar Verified</p>
-                            <p className="text-[10px] font-medium opacity-80">Identity successfully validated through UIDAI simulation.</p>
-                         </div>
+                    {formData.personalVerificationMethod === 'pan' && (
+                      <div className="space-y-5">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-800">PAN Number* <Info className="inline h-3.5 w-3.5 text-slate-500" /></label>
+                            <input
+                              placeholder="ABCDE1234F"
+                              maxLength={10}
+                              value={formData.panNumber}
+                              onChange={(event) => {
+                                setIsPanVerified(false);
+                                setFormData({...formData, panNumber: event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10)});
+                              }}
+                              className={cn(
+                                "h-11 w-full rounded border bg-white px-4 text-sm focus:outline-none focus:ring-1",
+                                panErrors.panNumber ? "border-red-400 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
+                              )}
+                            />
+                            {panErrors.panNumber && <p className="text-xs font-medium text-red-600">{panErrors.panNumber}</p>}
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-800">Name (as on PAN)* <Info className="inline h-3.5 w-3.5 text-slate-500" /></label>
+                            <input
+                              value={formData.personalName}
+                              onChange={(event) => {
+                                setIsPanVerified(false);
+                                setFormData({...formData, personalName: event.target.value.replace(/[^A-Za-z .-]/g, '').slice(0, 100)});
+                              }}
+                              className={cn(
+                                "h-11 w-full rounded border bg-white px-4 text-sm focus:outline-none focus:ring-1",
+                                panErrors.personalName ? "border-red-400 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
+                              )}
+                            />
+                            {panErrors.personalName && <p className="text-xs font-medium text-red-600">{panErrors.personalName}</p>}
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="text-sm font-semibold text-slate-800">Date Of Birth*</label>
+                             <Input
+                               type="date"
+                               value={formData.dob}
+                               onChange={(event) => {
+                                 setIsPanVerified(false);
+                                 setFormData({...formData, dob: event.target.value});
+                               }}
+                               className={cn("h-11 rounded border-slate-300 bg-white", panErrors.dob && "border-red-400 focus-visible:ring-red-500")}
+                             />
+                             {panErrors.dob && <p className="text-xs font-medium text-red-600">{panErrors.dob}</p>}
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button
+                            onClick={handleVerifyPan}
+                            disabled={!isPanReady}
+                            className={cn(
+                              "h-11 w-full rounded font-bold uppercase tracking-wide sm:w-44",
+                              isPanReady ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                            )}
+                          >
+                            Verify PAN
+                          </Button>
+                        </div>
+                        {isPanVerified && (
+                          <div className="space-y-5">
+                            <div className="flex items-center gap-3 text-green-700">
+                              <CheckCircle2 className="h-5 w-5 fill-green-600 text-green-600" />
+                              <p className="text-sm font-bold">PAN Details Verified Successfully.</p>
+                            </div>
+                            <SellerRoleDetails
+                              firstName={formData.personalName}
+                              lastName={formData.personalLastName}
+                              roleInOrg={formData.roleInOrg}
+                              roleOptions={sellerRoleOptions}
+                              onChange={(patch) => setFormData({...formData, ...patch})}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="space-y-5 rounded-2xl bg-slate-50 p-4 sm:p-6 md:rounded-3xl">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input
-                        label="PAN Number"
-                        placeholder="ABCDE1234F"
-                        value={formData.panNumber}
-                        onChange={(e) => setFormData({...formData, panNumber: e.target.value.toUpperCase()})}
-                      />
-                      <Input
-                        label="Name as per PAN"
-                        placeholder="John Doe"
-                        value={formData.personalName}
-                        onChange={(e) => setFormData({...formData, personalName: e.target.value})}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <Input
-                         label="Date of Birth"
-                         type="date"
-                         value={formData.dob}
-                         onChange={(e) => setFormData({...formData, dob: e.target.value})}
-                       />
-                       <Input
-                         label="Role in Organization"
-                         placeholder="Director / Proprietor"
-                         value={formData.roleInOrg}
-                         onChange={(e) => setFormData({...formData, roleInOrg: e.target.value})}
-                       />
-                    </div>
-                  </div>
-                )}
-                  </>
                 )}
               </div>
             )}
@@ -841,8 +1025,8 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                 {role === 'buyer' ? (
                   <>
-                    <h2 className="text-xl md:text-2xl font-black text-slate-800">Email Verification</h2>
-                    <div className="rounded-md bg-sky-100 px-5 py-4 text-sm font-medium text-slate-700">
+                    <h2 className="text-base md:text-base font-bold text-slate-800">Email Verification</h2>
+                    <div className="rounded-md bg-sky-100 px-5 py-4 text-xs font-medium text-slate-700">
                       To view list of whitelisted domains (accepted at GeM),{' '}
                       <button type="button" className="font-bold text-blue-600 hover:underline">Click here</button>
                     </div>
@@ -855,7 +1039,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                         disabled={isEmailVerified || otpSent}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
+                        className="h-11 rounded-lg border-slate-200 bg-white"
                       />
                       <Input
                         label="Verify Email Id*"
@@ -865,7 +1049,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         onChange={(e) => setFormData({...formData, verifyEmail: e.target.value})}
                         disabled={isEmailVerified || otpSent}
                         error={formData.verifyEmail && formData.email !== formData.verifyEmail ? 'Email does not match.' : undefined}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
+                        className="h-11 rounded-lg border-slate-200 bg-white"
                       />
                     </div>
 
@@ -875,7 +1059,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                           onClick={handleSendOtp}
                           disabled={isSendingOtp || !isBuyerEmailReady}
                           className={cn(
-                            "h-14 w-full sm:w-48 rounded-lg font-black uppercase tracking-wide",
+                            "h-11 w-full sm:w-48 rounded-lg font-bold  tracking-wide",
                             isBuyerEmailReady ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-500"
                           )}
                         >
@@ -885,58 +1069,117 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                     )}
 
                     {isEmailVerified && (
-                      <div className="h-14 flex items-center justify-center gap-2 px-6 bg-green-50 text-green-600 rounded-lg border border-green-100 font-black uppercase text-[10px]">
-                        <ShieldCheck className="h-5 w-5" />
-                        Verified
+                      <div className="flex items-center justify-between gap-2 px-6 py-3 bg-green-50 text-green-600 rounded-lg border border-green-100 font-bold text-[10px]">
+                        <span className="flex items-center gap-2">
+                          <ShieldCheck className="h-5 w-5" />
+                          Verified
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpSent(false);
+                            setIsEmailVerified(false);
+                            setEmailOtp("");
+                          }}
+                          className="flex items-center gap-1 text-blue-600 hover:underline font-bold"
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> Edit
+                        </button>
+                      </div>
+                    )}
+                    {otpSent && !isEmailVerified && (
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpSent(false);
+                            setIsEmailVerified(false);
+                            setEmailOtp("");
+                          }}
+                          className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Pencil className="h-3 w-3" /> Change/Edit Email
+                        </button>
                       </div>
                     )}
                   </>
                 ) : (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase text-slate-400 tracking-widest italic ml-1">Official Email ID</label>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="relative flex-1">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <input
-                          type="email"
-                          placeholder="name@company.com"
-                          value={formData.email}
-                          onChange={(e) => setFormData({...formData, email: e.target.value})}
-                          disabled={isEmailVerified || otpSent}
-                          className="w-full h-14 pl-10 pr-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 italic font-bold"
-                        />
-                      </div>
+                    <label className="text-[11px] font-semibold text-slate-500 ml-1">Official Email ID</label>
+                    <div className={cn(
+                      "flex items-center gap-3 px-4 h-12 rounded-md border transition-colors w-full",
+                      otpSent || isEmailVerified ? "bg-blue-50 border-blue-100" : "bg-white border-slate-300"
+                    )}>
+                      <Mail className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                      <input
+                        type="email"
+                        placeholder="name@company.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        disabled={isEmailVerified || otpSent}
+                        className={cn(
+                          "flex-1 bg-transparent outline-none border-none text-[13px] font-bold text-slate-800",
+                          (otpSent || isEmailVerified) && "cursor-not-allowed"
+                        )}
+                      />
                       {!isEmailVerified && !otpSent && (
-                        <Button onClick={handleSendOtp} disabled={isSendingOtp} className="w-full sm:w-auto h-14 px-8 rounded-2xl bg-indigo-600 font-black uppercase italic text-[10px]">
-                          {isSendingOtp ? 'Sending...' : 'Send OTP'}
+                        <Button 
+                          onClick={handleSendOtp} 
+                          disabled={isSendingOtp} 
+                          variant="ghost"
+                          className="h-8 px-4 text-indigo-600 font-bold text-[11px] hover:bg-indigo-50 border border-transparent"
+                        >
+                          {isSendingOtp ? '...' : 'Send OTP'}
                         </Button>
                       )}
                       {isEmailVerified && (
-                        <div className="h-14 flex items-center justify-center gap-2 px-6 bg-green-50 text-green-600 rounded-2xl border border-green-100 font-black italic uppercase text-[10px]">
-                          <ShieldCheck className="h-5 w-5" />
+                        <span className="text-[11px] font-bold text-green-600 flex items-center gap-1">
+                          <ShieldCheck className="h-4 w-4" />
                           Verified
-                        </div>
+                        </span>
+                      )}
+                      {(otpSent || isEmailVerified) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpSent(false);
+                            setIsEmailVerified(false);
+                            setEmailOtp("");
+                          }}
+                          className="ml-2 flex items-center gap-1 rounded-full bg-slate-200/50 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-200 hover:text-blue-600 transition-all border border-transparent active:scale-95"
+                          title="Edit Email"
+                        >
+                          <Pencil className="h-3 w-3" /> Edit
+                        </button>
                       )}
                     </div>
                   </div>
                 )}
 
                 {otpSent && !isEmailVerified && (
-                  <div className="flex flex-col items-center gap-5 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:gap-6 sm:p-8 md:rounded-3xl">
-                    <h4 className="text-sm font-black uppercase italic tracking-widest text-indigo-600">Enter Verification Code</h4>
-                    <div className="flex flex-col sm:flex-row gap-4 w-full">
+                  <div className="mt-6 flex flex-col items-center gap-6 rounded-md border border-slate-100 bg-[#f8fafc]/60 px-6 py-10 sm:px-12 md:rounded-md">
+                    <h4 className="text-[13px] font-bold text-[#5e35b1]">Enter Verification Code</h4>
+                    <div className="flex flex-row gap-3 w-full max-w-xl">
                         <input
                           type="text"
                           maxLength={6}
                           value={emailOtp}
                           onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
-                          className="h-14 w-full rounded-2xl border-2 border-indigo-100 text-center text-xl font-black tracking-[0.25em] focus:border-indigo-500 sm:w-48 sm:text-2xl sm:tracking-[0.5em]"
+                          className="h-11 w-32 rounded border-2 border-slate-900 bg-white text-center text-sm font-bold tracking-[0.2em] focus:ring-2 focus:ring-slate-400 outline-none"
                         />
-                        <Button onClick={handleVerifyOtp} className="w-full sm:flex-1 h-14 px-8 rounded-2xl bg-slate-900 text-white font-black uppercase italic text-[10px]">
+                        <Button 
+                          onClick={handleVerifyOtp} 
+                          className="flex-1 h-11 rounded bg-[#0f172a] text-white font-bold text-[11px] hover:bg-[#1e293b] transition-colors shadow-sm"
+                        >
                            Verify Code
                         </Button>
                     </div>
-                    <button onClick={handleSendOtp} className="text-xs font-bold text-slate-400 hover:text-indigo-600 italic underline">Didn't receive? Resend Code</button>
+                    <button 
+                      onClick={handleSendOtp} 
+                      className="text-[11px] font-bold text-slate-500 hover:text-indigo-600 underline decoration-slate-400 underline-offset-4"
+                    >
+                      Didn't receive? Resend Code
+                    </button>
                   </div>
                 )}
               </div>
@@ -946,7 +1189,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                 {role === 'buyer' ? (
                   <>
-                    <h2 className="text-xl md:text-2xl font-black text-slate-800">User Credentials</h2>
+                    <h2 className="text-base md:text-base font-bold text-slate-800">User Credentials</h2>
                     <div className="max-w-md">
                       <Input
                         label="User Id *"
@@ -954,7 +1197,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         value={formData.userId}
                         onChange={(e) => setFormData({...formData, userId: e.target.value})}
                         error={!formData.userId ? 'Please enter user id.' : undefined}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
+                        className="h-11 rounded-lg border-slate-200 bg-white"
                       />
                     </div>
 
@@ -965,7 +1208,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         placeholder="Enter Password"
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
+                        className="h-11 rounded-lg border-slate-200 bg-white"
                       />
                       <Input
                         label="Confirm Password*"
@@ -973,11 +1216,11 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         placeholder="Confirm Password"
                         value={formData.confirmPassword}
                         onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                        className="h-14 rounded-lg border-slate-200 bg-white"
+                        className="h-11 rounded-lg border-slate-200 bg-white"
                       />
                     </div>
 
-                    <div className="space-y-3 text-sm text-slate-400">
+                    <div className="space-y-3 text-xs text-slate-400">
                       <p>Password must contain minimum of</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-16 gap-y-3 max-w-xl">
                         <CredentialRule label="One Upper Case" valid={/[A-Z]/.test(formData.password)} />
@@ -993,7 +1236,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         onClick={handleSubmit}
                         disabled={isLoading || !formData.userId || !isPasswordStrong(formData.password) || formData.password !== formData.confirmPassword}
                         className={cn(
-                          "h-14 w-full sm:w-64 rounded-lg font-black uppercase tracking-wide",
+                          "h-11 w-full sm:w-64 rounded-lg font-bold  tracking-wide",
                           !isLoading && formData.userId && isPasswordStrong(formData.password) && formData.password === formData.confirmPassword
                             ? "bg-slate-900 text-white"
                             : "bg-slate-200 text-slate-500"
@@ -1005,8 +1248,18 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                   </>
                 ) : (
                   <>
+<<<<<<< HEAD
                     <h2 className="text-xl md:text-2xl font-black text-slate-800">User Credentials</h2>
                     <div className="max-w-md">
+=======
+                    <Input
+                      label="User ID"
+                      value={formData.email}
+                      disabled
+                      className="bg-slate-50 font-bold  h-11 rounded"
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+>>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
                       <Input
                         label="User Id *"
                         placeholder="Enter unique user id"
@@ -1024,7 +1277,11 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         placeholder="Enter Password"
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
+<<<<<<< HEAD
                         className="h-14 rounded-lg border-slate-200 bg-white"
+=======
+                        className="h-11 rounded border-slate-200"
+>>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
                       />
                       <Input
                         label="Confirm Password*"
@@ -1032,15 +1289,19 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         placeholder="Confirm Password"
                         value={formData.confirmPassword}
                         onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+<<<<<<< HEAD
                         className="h-14 rounded-lg border-slate-200 bg-white"
+=======
+                        className="h-11 rounded border-slate-200"
+>>>>>>> 71ac3cabfb20c61842c1c19e3b28d07339d68ae3
                       />
                     </div>
 
-                    <div className="rounded-2xl bg-slate-50 p-4 sm:p-6 md:rounded-3xl">
-                       <h4 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">Password Security Checklist</h4>
+                    <div className="rounded bg-slate-50 p-4 sm:p-6 md:rounded">
+                       <h4 className="text-[10px] font-bold  text-slate-400 mb-4  ">Password Security Checklist</h4>
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <ValidationItem label="8-16 Characters" valid={formData.password.length >= 8 && formData.password.length <= 16} />
-                          <ValidationItem label="Uppercase Letter" valid={/[A-Z]/.test(formData.password)} />
+                          <ValidationItem label=" Letter" valid={/[A-Z]/.test(formData.password)} />
                           <ValidationItem label="Lowercase Letter" valid={/[a-z]/.test(formData.password)} />
                           <ValidationItem label="Numeric Value" valid={/[0-9]/.test(formData.password)} />
                           <ValidationItem label="Special Character" valid={/[^A-Za-z0-9]/.test(formData.password)} />
@@ -1066,46 +1327,47 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
               </div>
             )}
 
-        <div className="mt-8 flex flex-col items-stretch justify-between gap-3 border-t border-slate-50 pt-6 sm:flex-row sm:items-center sm:gap-4 md:mt-12 md:pt-8">
-            <Button 
-              variant="ghost" 
-              onClick={handleBack}
-              disabled={isLoading}
-              className="w-full sm:w-auto h-12 rounded-xl text-slate-400 hover:text-slate-900 font-bold uppercase italic tracking-widest text-[10px]"
-            >
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-            
-            {currentSubStep === 2 && role === 'buyer' && isAadhaarVerified ? null : currentSubStep === 4 && role === 'buyer' ? null : currentSubStep < 4 ? (
-              <Button 
-                onClick={handleNext}
-                disabled={currentSubStep === 1 && isPrimaryBuyer && !isPrimaryBuyerOrganisationComplete}
-                className={cn(
-                  "w-full sm:w-auto h-14 px-10 rounded-2xl font-black uppercase italic tracking-widest group transition-all",
-                  currentSubStep === 1 && isPrimaryBuyer && !isPrimaryBuyerOrganisationComplete
-                    ? "bg-slate-200 text-slate-500 shadow-none"
-                    : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100"
-                )}
-              >
-                {currentSubStep === 1 && isPrimaryBuyer && !isPrimaryBuyerOrganisationComplete ? 'Complete Details' : currentSubStep === 1 && isPrimaryBuyer ? 'Next' : 'Save & Continue'}
-                <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            ) : (
-              <Button 
-                onClick={handleSubmit}
-                disabled={isLoading || !isPasswordStrong(formData.password) || formData.password !== formData.confirmPassword}
-                className="w-full sm:w-auto h-14 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase italic tracking-widest shadow-xl shadow-slate-200 transition-all flex items-center justify-center gap-2"
-              >
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
-                {isLoading ? 'Creating Account...' : 'Create Account'}
-              </Button>
-            )}
-          </div>
+            <div className="mt-10 flex items-center justify-end gap-4 pt-6">
+              {currentSubStep > 1 && (
+                <Button 
+                  variant="ghost" 
+                  onClick={handleBack}
+                  disabled={isLoading}
+                  className="h-10 px-6 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[13px] font-bold  tracking-wide"
+                >
+                  Back
+                </Button>
+              )}
+              
+              {currentSubStep === 2 && role === 'buyer' && isAadhaarVerified ? null : currentSubStep === 4 && role === 'buyer' ? null : currentSubStep < 4 ? (
+                <Button 
+                  onClick={handleNext}
+                  disabled={currentSubStep === 1 && isPrimaryBuyer && !isPrimaryBuyerOrganisationComplete}
+                  className={cn(
+                    "h-10 px-8 rounded text-[13px] font-bold  tracking-wider transition-all",
+                    currentSubStep === 1 && isPrimaryBuyer && !isPrimaryBuyerOrganisationComplete
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                      : "bg-slate-200 hover:bg-slate-300 text-slate-600" 
+                  )}
+                >
+                  {currentSubStep === 1 && isPrimaryBuyer && !isPrimaryBuyerOrganisationComplete ? 'Complete Details' : 'Next'}
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={isLoading || !isPasswordStrong(formData.password) || formData.password !== formData.confirmPassword}
+                  className="h-10 px-8 rounded bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold  tracking-wider shadow-sm flex items-center gap-2"
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {isLoading ? 'Creating...' : 'Create Account'}
+                </Button>
+              )}
+            </div>
           </CardContent>
-        </Card>
+        </div>
       </div>
-    </div>
+    </Card>
+  </div>
   );
 }
 
@@ -1115,7 +1377,62 @@ function ValidationItem({ label, valid }: { label: string, valid: boolean }) {
       <div className={`w-4 h-4 rounded-full flex items-center justify-center ${valid ? 'bg-green-500' : 'bg-slate-200'}`}>
          {valid && <CheckCircle2 className="h-3 w-3 text-white" />}
       </div>
-      <span className={`text-[10px] font-bold italic uppercase ${valid ? 'text-green-600' : 'text-slate-400'}`}>{label}</span>
+      <span className={`text-[10px] font-bold   ${valid ? 'text-green-600' : 'text-slate-400'}`}>{label}</span>
+    </div>
+  );
+}
+
+function SellerRoleDetails({
+  firstName,
+  lastName,
+  roleInOrg,
+  roleOptions,
+  onChange
+}: {
+  firstName: string;
+  lastName: string;
+  roleInOrg: string;
+  roleOptions: string[];
+  onChange: (patch: { personalName?: string; personalLastName?: string; roleInOrg?: string }) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-800">First Name*</label>
+          <input
+            value={firstName}
+            onChange={(event) => onChange({ personalName: event.target.value.replace(/[^A-Za-z .-]/g, '').slice(0, 100) })}
+            placeholder="Enter first name"
+            className="h-11 w-full rounded border border-slate-300 bg-white px-4 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          {!firstName.trim() && <p className="text-xs font-medium text-red-600">First name is required.</p>}
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-800">Last Name</label>
+          <input
+            value={lastName}
+            onChange={(event) => onChange({ personalLastName: event.target.value.replace(/[^A-Za-z .-]/g, '').slice(0, 100) })}
+            placeholder="Enter last name"
+            className="h-11 w-full rounded border border-slate-300 bg-white px-4 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      <div className="max-w-md space-y-1.5">
+        <label className="text-sm font-semibold text-slate-800">Role in Organisation*</label>
+        <select
+          value={roleInOrg}
+          onChange={(event) => onChange({ roleInOrg: event.target.value })}
+          className="h-11 w-full rounded border border-slate-300 bg-white px-4 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="">Select your role</option>
+          {roleOptions.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+        {!roleInOrg && <p className="text-xs font-medium text-red-600">Please select your role.</p>}
+      </div>
     </div>
   );
 }
@@ -1124,7 +1441,7 @@ function CredentialRule({ label, valid }: { label: string, valid: boolean }) {
   return (
     <div className="flex items-center gap-3">
       <span className={cn("h-3.5 w-3.5 rounded-full", valid ? "bg-green-500" : "bg-slate-300")} />
-      <span className={cn("text-sm", valid ? "text-green-700" : "text-slate-400")}>{label}</span>
+      <span className={cn("text-xs", valid ? "text-green-700" : "text-slate-400")}>{label}</span>
     </div>
   );
 }
