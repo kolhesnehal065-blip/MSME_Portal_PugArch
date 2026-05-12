@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui/card';
-import { AlertTriangle, CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck, Bell, Info, ShoppingBag, MessageSquare, Gavel, Briefcase, Zap } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, XCircle, FileText, ArrowRight, ShieldCheck, Bell, Info, ShoppingBag, MessageSquare, Gavel, Briefcase, Users, BarChart3, ClipboardCheck, FileSearch } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 
@@ -99,45 +99,159 @@ export default function Dashboard() {
   };
 
   if (user?.role === 'admin') {
+    const adminTiles = [
+      {
+        label: 'Pending Approval',
+        value: adminStats?.pendingApproval ?? 0,
+        helper: 'Applications waiting for review',
+        icon: FileSearch,
+        path: '/admin/onboarding',
+        tone: 'bg-amber-50 text-amber-700'
+      },
+      {
+        label: 'Active Sellers',
+        value: adminStats?.activeSellers ?? 0,
+        helper: 'Approved suppliers in the network',
+        icon: Users,
+        path: '/admin/procurement',
+        tone: 'bg-emerald-50 text-emerald-700'
+      },
+      {
+        label: 'Active Buyers',
+        value: adminStats?.activeBuyers ?? 0,
+        helper: 'Buyer departments enabled',
+        icon: ClipboardCheck,
+        path: '/admin/procurement',
+        tone: 'bg-blue-50 text-[#12335f]'
+      },
+      {
+        label: 'Total Network',
+        value: adminStats?.totalNetwork ?? 0,
+        helper: 'Stakeholders registered',
+        icon: BarChart3,
+        path: '/admin/reports',
+        tone: 'bg-slate-100 text-slate-700'
+      }
+    ];
+
+    const adminModules = [
+      {
+        title: 'Procurement Desk',
+        detail: 'Monitor active buyer and seller readiness, supplier pool size, and access requests.',
+        path: '/admin/procurement',
+        icon: ClipboardCheck
+      },
+      {
+        title: 'Compliance Desk',
+        detail: 'Review KYC, PAN, GST, document status, resubmissions, and rejected records.',
+        path: '/admin/compliance',
+        icon: ShieldCheck
+      },
+      {
+        title: 'Onboarding Console',
+        detail: 'Approve, reject, request section changes, and send administrator feedback.',
+        path: '/admin/onboarding',
+        icon: FileSearch
+      },
+      {
+        title: 'MIS Reports',
+        detail: 'Export filtered records and review overall stakeholder network health.',
+        path: '/admin/reports',
+        icon: BarChart3
+      }
+    ];
+
     return (
       <div className="space-y-5 animate-in fade-in duration-500">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Government Procurement Administration</p>
             <h1 className="text-2xl font-extrabold text-[#12335f] uppercase tracking-tight">Admin Control Center</h1>
-            <p className="text-sm text-slate-500 font-medium">Manage the MSME Procurement Network</p>
+            <p className="text-sm text-slate-500 font-medium">Manage approvals, compliance review, stakeholder access, and MIS reporting.</p>
           </div>
-          <Link to="/admin/onboarding">
-            <Button className="bg-[#12335f] hover:bg-[#0b2445] text-white h-10 px-4 rounded-md space-x-2 font-bold uppercase tracking-wide text-xs">
-              <ShieldCheck className="h-4 w-4" />
-              <span>Review Submissions</span>
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/admin/procurement">
+              <Button variant="outline" className="h-10 rounded-md border-slate-200 px-4 text-xs font-bold uppercase tracking-wide">
+                Procurement Desk
+              </Button>
+            </Link>
+            <Link to="/admin/onboarding">
+              <Button className="bg-[#12335f] hover:bg-[#0b2445] text-white h-10 px-4 rounded-md space-x-2 font-bold uppercase tracking-wide text-xs">
+                <ShieldCheck className="h-4 w-4" />
+                <span>Review Submissions</span>
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            { label: 'Pending Approval', value: adminStats?.pendingApproval, path: '/admin/onboarding' },
-            { label: 'Active Sellers', value: adminStats?.activeSellers, path: '/admin/onboarding' },
-            { label: 'Active Buyers', value: adminStats?.activeBuyers, path: '/admin/onboarding' }
-          ].map(stat => (
-            <Link key={stat.label} to={stat.path} className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-[#12335f]/40 focus:outline-none focus:ring-2 focus:ring-[#12335f]">
-              <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">{stat.label}</div>
-              <div className="text-3xl font-extrabold tracking-tight text-slate-900">{stat.value ?? '0'}</div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {adminTiles.map(stat => (
+            <Link key={stat.label} to={stat.path} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-[#12335f]/40 focus:outline-none focus:ring-2 focus:ring-[#12335f]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">{stat.label}</div>
+                  <div className="text-3xl font-extrabold tracking-tight text-slate-900">{stat.value ?? '0'}</div>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">{stat.helper}</p>
+                </div>
+                <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-md', stat.tone)}>
+                  <stat.icon className="h-5 w-5" />
+                </div>
+              </div>
             </Link>
           ))}
         </div>
 
-        <Card className="rounded-lg border-slate-200 shadow-sm overflow-hidden">
-          <CardContent className="py-10 text-center space-y-4">
-             <div className="mx-auto w-14 h-14 bg-blue-50 rounded-lg flex items-center justify-center">
-                <ShieldCheck className="h-7 w-7 text-[#12335f]" />
-             </div>
-             <h2 className="text-xl font-extrabold text-slate-900 uppercase">Welcome back, Administrator</h2>
-             <p className="text-sm text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
-               Verified stakeholders are currently awaiting your review. Please ensure all document compliance before granting marketplace access.
-             </p>
-          </CardContent>
-        </Card>
+        <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-4 py-3">
+              <h2 className="text-sm font-black uppercase tracking-wide text-slate-900">Admin Work Areas</h2>
+              <p className="text-xs font-medium text-slate-500">Operational pages added to the sidebar for procurement portal control.</p>
+            </div>
+            <div className="grid gap-3 p-4 md:grid-cols-2">
+              {adminModules.map(module => (
+                <Link
+                  key={module.title}
+                  to={module.path}
+                  className="rounded-lg border border-slate-200 bg-slate-50 p-4 transition-all hover:border-[#12335f]/40 hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-[#12335f]"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white text-[#12335f] shadow-sm">
+                      <module.icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black uppercase tracking-wide text-slate-900">{module.title}</h3>
+                      <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500">{module.detail}</p>
+                      <span className="mt-3 inline-flex text-[10px] font-black uppercase tracking-widest text-blue-700">Open Module</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <aside className="rounded-lg border border-slate-200 bg-[#12335f] p-5 text-white shadow-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-white/10">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <h2 className="mt-4 text-lg font-black uppercase">Daily review checklist</h2>
+            <div className="mt-4 space-y-3">
+              {[
+                'Clear pending stakeholder approvals',
+                'Check resubmissions with remarks',
+                'Export MIS report for audit trail',
+                'Verify approved seller capacity'
+              ].map(item => (
+                <div key={item} className="flex items-start gap-2 text-xs font-semibold text-blue-50">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+            <Link to="/admin/compliance" className="mt-5 inline-flex text-xs font-black uppercase tracking-wide text-white underline">
+              Open compliance desk
+            </Link>
+          </aside>
+        </div>
       </div>
     );
   }

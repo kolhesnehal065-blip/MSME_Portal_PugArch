@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/button';
 import { api } from '../../lib/api';
@@ -25,7 +25,9 @@ import {
   ClipboardCheck,
   Truck,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  BarChart3,
+  FileSearch
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -44,12 +46,21 @@ interface SidebarProps {
   onClose: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  onHoverChange?: (isHovered: boolean) => void;
 }
 
-export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse, onHoverChange }: SidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const handleHover = (value: boolean) => {
+    setIsHovered(value);
+    onHoverChange?.(value);
+  };
+
+  const isActuallyCollapsed = isCollapsed && !isHovered;
 
   const handleLogout = () => {
     logout();
@@ -68,7 +79,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     { label: 'Purchase Orders', path: '/buyer/orders', icon: ShoppingCart, roles: ['buyer'] },
     { label: 'Parcel Tracking', path: '/buyer/tracking', icon: Truck, roles: ['buyer'] },
     { label: 'Profile', path: '/buyer/profile', icon: UserIcon, roles: ['buyer'] },
+    { label: 'Procurement Desk', path: '/admin/procurement', icon: ClipboardCheck, roles: ['admin'] },
+    { label: 'Compliance Desk', path: '/admin/compliance', icon: FileSearch, roles: ['admin'] },
     { label: 'Admin Console', path: '/admin/onboarding', icon: ShieldCheck, roles: ['admin'] },
+    { label: 'MIS Reports', path: '/admin/reports', icon: BarChart3, roles: ['admin'] },
   ];
 
   const filteredNav = navItems.filter(item => !user || item.roles.includes(user.role));
@@ -85,19 +99,19 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         />
       )}
 
-      <aside className={cn(
+      <aside onMouseEnter={() => handleHover(true)} onMouseLeave={() => handleHover(false)} className={cn(
         "w-64 bg-[#12335f] text-white flex flex-col shrink-0 h-full fixed left-0 top-0 z-50 transition-all duration-300 ease-in-out lg:translate-x-0 border-r border-[#0b2445]",
-        isCollapsed ? "lg:w-20" : "w-64",
-        !isCollapsed && "lg:w-64",
+        isActuallyCollapsed ? "lg:w-20" : "w-64",
+        !isActuallyCollapsed && "lg:w-64",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-      <div className={cn("h-14 px-3 border-b border-white/10 flex items-center", isCollapsed ? "justify-center" : "justify-between")}>
+      <div className={cn("h-14 px-3 border-b border-white/10 flex items-center", isActuallyCollapsed ? "justify-center" : "justify-between")}>
         <div
-          className={cn("flex items-center gap-3 min-w-0 select-none", isCollapsed && "lg:justify-center")}
+          className={cn("flex items-center gap-3 min-w-0 select-none", isActuallyCollapsed && "lg:justify-center")}
           title="MSME Portal"
         >
           <div className="w-8 h-8 bg-white text-[#12335f] rounded flex items-center justify-center font-black text-sm shadow-sm">MS</div>
-          <span className={cn("font-bold tracking-tight text-base truncate", isCollapsed && "lg:hidden")}>MSME Portal</span>
+          <span className={cn("font-bold tracking-tight text-base truncate", isActuallyCollapsed && "lg:hidden")}>MSME Portal</span>
         </div>
         <button onClick={onClose} className="lg:hidden p-2 text-blue-100 hover:text-white" aria-label="Close sidebar">
           <X className="h-5 w-5" />
@@ -105,39 +119,43 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
       </div>
 
-      <nav className={cn("flex-1 overflow-y-auto", isCollapsed ? "p-2 space-y-2" : "p-3 space-y-1")}>
-        <div className={cn("text-blue-200/70 text-[10px] font-bold uppercase tracking-widest px-3 mb-2", isCollapsed && "lg:hidden")}>Navigation</div>
+      <nav className={cn("flex-1 overflow-y-auto", isActuallyCollapsed ? "p-2 space-y-2" : "p-3 space-y-1")}>
+        <div className={cn("text-blue-200/70 text-[10px] font-bold uppercase tracking-widest px-3 mb-2", isActuallyCollapsed && "lg:hidden")}>Navigation</div>
         {filteredNav.map((item) => (
           <Link
             key={item.label}
             to={item.path}
             onClick={onClose}
-            title={isCollapsed ? item.label : undefined}
+            title={isActuallyCollapsed ? item.label : undefined}
             className={cn(
               "flex items-center gap-3 rounded-md transition-all duration-200 group",
-              isCollapsed ? "lg:justify-center lg:px-0 px-3 py-2.5 h-11" : "px-3 py-2.5",
+              isActuallyCollapsed ? "lg:justify-center lg:px-0 px-3 py-2.5 h-11" : "px-3 py-2.5",
               location.pathname === item.path
                 ? "bg-white text-[#12335f] shadow-sm"
                 : "text-blue-50/80 hover:bg-white/10 hover:text-white"
             )}
           >
             <item.icon className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", location.pathname === item.path ? "text-[#12335f]" : "text-blue-100")} />
-            <span className={cn("text-sm font-medium truncate", isCollapsed && "lg:hidden")}>{item.label}</span>
-            {location.pathname === item.path && <ChevronRight className={cn("ml-auto h-3 w-3 opacity-60", isCollapsed && "lg:hidden")} />}
+            <span className={cn("text-sm font-medium truncate", isActuallyCollapsed && "lg:hidden")}>{item.label}</span>
+            {location.pathname === item.path && <ChevronRight className={cn("ml-auto h-3 w-3 opacity-60", isActuallyCollapsed && "lg:hidden")} />}
           </Link>
         ))}
       </nav>
 
-      <div className={cn("border-t border-white/10 bg-[#0b2445]/40", isCollapsed ? "p-2" : "p-3")}>
+      <div className={cn("border-t border-white/10 bg-[#0b2445]/40", isActuallyCollapsed ? "p-2" : "p-3")}>
         <Link 
-          to="/profile"
+          to={location.pathname === '/profile' ? '/dashboard' : '/profile'}
           onClick={onClose}
-          className={cn("flex items-center gap-3 px-2 mb-3 py-1.5 rounded-md hover:bg-white/10 transition-colors", isCollapsed && "lg:justify-center lg:px-0")}
+          className={cn(
+            "flex items-center gap-3 px-2 mb-3 py-1.5 rounded-md hover:bg-white/10 transition-all duration-200", 
+            isActuallyCollapsed && "lg:justify-center lg:px-0",
+            location.pathname === '/profile' && "bg-white/10 ring-1 ring-white/30"
+          )}
         >
           <div className="w-8 h-8 rounded-full bg-[#f9a825] flex items-center justify-center text-xs font-bold text-[#12335f] shadow-inner">
             {user.name.charAt(0)}
           </div>
-          <div className={cn("flex flex-col min-w-0", isCollapsed && "lg:hidden")}>
+          <div className={cn("flex flex-col min-w-0", isActuallyCollapsed && "lg:hidden")}>
             <span className="text-sm font-medium truncate">{user.name}</span>
             <span className="text-[10px] text-blue-100/70 uppercase tracking-wide font-bold">{user.role} Account</span>
           </div>
@@ -147,10 +165,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           size="sm" 
           onClick={handleLogout} 
           title="Logout"
-          className={cn("w-full bg-white/10 border-white/10 text-blue-50 hover:bg-white hover:text-[#12335f] py-2", isCollapsed && "lg:px-0")}
+          className={cn("w-full bg-white/10 border-white/10 text-blue-50 hover:bg-white hover:text-[#12335f] py-2", isActuallyCollapsed && "lg:px-0")}
         >
-          <LogOut className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
-          <span className={cn(isCollapsed && "lg:hidden")}>Logout</span>
+          <LogOut className={cn("h-4 w-4", !isActuallyCollapsed && "mr-2")} />
+          <span className={cn(isActuallyCollapsed && "lg:hidden")}>Logout</span>
         </Button>
       </div>
     </aside>
@@ -167,8 +185,24 @@ interface HeaderProps {
 export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: HeaderProps) {
   const { user } = useAuth();
   const location = useLocation();
+
   const navigate = useNavigate();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    }
+    if (isNotificationsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNotificationsOpen]);
   const token = localStorage.getItem('token') || '';
   const authOptions = useMemo(() => ({
     headers: { Authorization: `Bearer ${token}` }
@@ -344,6 +378,9 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
       case '/seller/tenders': return 'Tender Marketplace';
       case '/seller/settings': return 'Account Settings';
       case '/admin/onboarding': return 'Onboarding Verification';
+      case '/admin/procurement': return 'Procurement Command';
+      case '/admin/compliance': return 'Compliance Desk';
+      case '/admin/reports': return 'MIS Reports';
       case '/profile': return 'My Profile';
       default: return 'Procurement ERP';
     }
@@ -382,7 +419,7 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
             className="pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs w-60 focus:ring-2 focus:ring-[#12335f] transition-all outline-none"
           />
         </div>
-        <div className="relative flex items-center gap-2">
+        <div ref={notificationRef} className="relative flex items-center gap-2">
           <button
             type="button"
             onClick={handleNotificationToggle}

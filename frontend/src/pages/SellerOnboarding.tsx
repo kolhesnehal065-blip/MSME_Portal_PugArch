@@ -20,6 +20,8 @@ export default function SellerOnboarding() {
   const isAccountSettings = ['sellerProfile', 'updateAadhaar', 'changePassword', 'changeEmail', 'closeAccount'].includes(currentSection);
   const [bankTab, setBankTab] = useState<'manage' | 'add'>('manage');
   const [officeTab, setOfficeTab] = useState<'manage' | 'add'>('manage');
+  const [officeSortKey, setOfficeSortKey] = useState<'name' | 'address' | 'gst'>('name');
+  const [bankSortKey, setBankSortKey] = useState<'ifsc' | 'bankName' | 'accountNumber' | 'holderName' | 'pfms' | 'primary'>('bankName');
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(!cachedMe);
   const [savedSections, setSavedSections] = useState<string[]>([]);
@@ -661,16 +663,17 @@ export default function SellerOnboarding() {
                             <table className="w-full text-left text-sm min-w-[600px]">
                               <thead className="bg-gray-50 border-b border-gray-200">
                                  <tr>
-                                    <th className="px-4 py-4 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight w-1/4">Office</th>
-                                    <th className="px-4 py-4 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight w-1/2">Address</th>
-                                    <th className="px-4 py-4 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">GSTIN</th>
+                                    <th className="px-4 py-4 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">Sr. No.</th>
+                                    <th className="px-4 py-4 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight w-1/4"><button type="button" onClick={() => setOfficeSortKey('name')}>Office SORT</button></th>
+                                    <th className="px-4 py-4 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight w-1/2"><button type="button" onClick={() => setOfficeSortKey('address')}>Address SORT</button></th>
+                                    <th className="px-4 py-4 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight"><button type="button" onClick={() => setOfficeSortKey('gst')}>GSTIN SORT</button></th>
                                     <th className="px-4 py-4 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">ACTION</th>
                                  </tr>
                               </thead>
                               <tbody>
                                  {formData.offices.length === 0 ? (
                                     <tr>
-                                       <td colSpan={4} className="py-6 px-0 text-gray-500">
+                                       <td colSpan={5} className="py-6 px-0 text-gray-500">
                                           <div className="flex flex-col sm:flex-row justify-between items-center gap-3 px-6">
                                             <span className="text-xs sm:text-sm">No offices added.</span>
                                             <button onClick={() => setOfficeTab('add')} className="text-blue-600 font-bold hover:underline uppercase text-[10px] sm:text-xs">ADD NEW OFFICE</button>
@@ -678,8 +681,9 @@ export default function SellerOnboarding() {
                                        </td>
                                     </tr>
                                  ) : (
-                                    formData.offices.map((office: any) => (
+                                    [...formData.offices].sort((a: any, b: any) => String(officeSortKey === 'address' ? a.address : officeSortKey === 'gst' ? a.gstNumber || '' : a.name || '').localeCompare(String(officeSortKey === 'address' ? b.address : officeSortKey === 'gst' ? b.gstNumber || '' : b.name || ''))).map((office: any, index: number) => (
                                        <tr key={office.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
+                                          <td className="px-4 py-4 font-mono text-xs font-bold text-gray-400">{String(index + 1).padStart(2, '0')}</td>
                                           <td className="px-4 py-4 text-gray-600 break-words max-w-[180px]">
                                             <div className="font-semibold">{office.name}</div>
                                             <div className="text-xs text-gray-400">{office.type}</div>
@@ -850,19 +854,20 @@ export default function SellerOnboarding() {
                             <table className="w-full text-left text-sm min-w-[640px]">
                               <thead className="bg-gray-50 border-b border-gray-200">
                                  <tr>
-                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">IFSC</th>
-                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">Bank Name</th>
-                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">Bank Account Number</th>
-                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">Account Holder</th>
-                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">PFMS</th>
-                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">Primary?</th>
+                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">Sr. No.</th>
+                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight"><button type="button" onClick={() => setBankSortKey('ifsc')}>IFSC SORT</button></th>
+                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight"><button type="button" onClick={() => setBankSortKey('bankName')}>Bank Name SORT</button></th>
+                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight"><button type="button" onClick={() => setBankSortKey('accountNumber')}>Bank Account Number SORT</button></th>
+                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight"><button type="button" onClick={() => setBankSortKey('holderName')}>Account Holder SORT</button></th>
+                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight"><button type="button" onClick={() => setBankSortKey('pfms')}>PFMS SORT</button></th>
+                                     <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight"><button type="button" onClick={() => setBankSortKey('primary')}>Primary SORT</button></th>
                                      <th className="px-3 py-3 font-semibold text-gray-800 text-[10px] sm:text-xs uppercase tracking-wider whitespace-normal leading-tight">ACTION</th>
                                  </tr>
                               </thead>
                               <tbody>
                                  {formData.bankAccounts.length === 0 ? (
                                     <tr>
-                                       <td colSpan={7} className="py-6 px-0 text-gray-500">
+                                       <td colSpan={8} className="py-6 px-0 text-gray-500">
                                           <div className="flex flex-col sm:flex-row justify-between items-center gap-3 px-6">
                                              <span className="text-xs sm:text-sm">No accounts added.</span>
                                              <button onClick={() => setBankTab('add')} className="text-blue-600 font-bold hover:underline uppercase text-[10px] sm:text-xs">ADD NEW BANK ACCOUNT</button>
@@ -870,8 +875,9 @@ export default function SellerOnboarding() {
                                        </td>
                                     </tr>
                                  ) : (
-                                    formData.bankAccounts.map((bank: any) => (
+                                    [...formData.bankAccounts].sort((a: any, b: any) => String(a[bankSortKey] ?? '').localeCompare(String(b[bankSortKey] ?? ''))).map((bank: any, index: number) => (
                                         <tr key={bank.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors text-xs">
+                                           <td className="px-3 py-3 font-mono font-bold text-gray-400">{String(index + 1).padStart(2, '0')}</td>
                                            <td className="px-3 py-3 text-gray-600 font-medium">{bank.ifsc}</td>
                                            <td className="px-3 py-3 text-gray-600 break-words max-w-[150px]">{bank.bankName}</td>
                                            <td className="px-3 py-3 text-gray-600 break-all font-mono">{bank.accountNumber}</td>

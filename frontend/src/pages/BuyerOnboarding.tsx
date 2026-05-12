@@ -302,7 +302,6 @@ export default function BuyerOnboarding() {
 
     try {
       const res = await api.fetch(`/api/utils/gst-verify/${gstin}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         skipCache: true
       } as RequestInit & { skipCache: boolean });
       
@@ -392,19 +391,26 @@ export default function BuyerOnboarding() {
     validate('industry', formData.industry || '');
   };
 
-  const validateWebsite = (value: string) => {
+  const isWebsiteUrlValid = (value: string) => {
     if (!value.trim()) return true;
     try {
       const normalizedValue = value.startsWith('http://') || value.startsWith('https://')
         ? value
         : `https://${value}`;
       new URL(normalizedValue);
-      setErrors(prev => ({ ...prev, website: '' }));
       return true;
     } catch {
-      setErrors(prev => ({ ...prev, website: 'Invalid Website URL' }));
       return false;
     }
+  };
+
+  const validateWebsite = (value: string) => {
+    if (isWebsiteUrlValid(value)) {
+      setErrors(prev => ({ ...prev, website: '' }));
+      return true;
+    }
+    setErrors(prev => ({ ...prev, website: 'Invalid Website URL' }));
+    return false;
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -639,6 +645,31 @@ export default function BuyerOnboarding() {
   };
 
   const validateSection = (sectionId: string) => {
+    if (sectionId === 'procurement') {
+      const validCats = (formData.procurementCategories.filter((cat: string) => cat !== 'Others').length > 0 || formData.customProcurementCategories.length > 0);
+      const validBudget = !!formData.annualBudget;
+      const validMethods = formData.preferredMethods.length > 0;
+      setErrors(prev => ({
+        ...prev,
+        procurementCategories: validCats ? '' : 'Required: select category',
+        annualBudget: validBudget ? '' : 'Required: select budget',
+        preferredMethods: validMethods ? '' : 'Required: select method'
+      }));
+      return validCats && validBudget && validMethods;
+    }
+    if (sectionId === 'docs') {
+      const hasPan = !!formData.documents?.panCard;
+      const hasReg = !!formData.documents?.regCert;
+      const hasAddr = !!formData.documents?.addressProof;
+      setErrors(prev => ({
+        ...prev,
+        'docs.panCard': hasPan ? '' : 'Required',
+        'docs.regCert': hasReg ? '' : 'Required',
+        'docs.addressProof': hasAddr ? '' : 'Required'
+      }));
+      return hasPan && hasReg && hasAddr;
+    }
+
     let fields: string[] = [];
     if (sectionId === 'org') fields = ['organizationName', 'businessType', 'industry', 'cin', 'pan', 'gst', 'website', 'state', 'city', 'pincode', 'registeredAddress'];
     if (sectionId === 'rep') fields = ['representativeName', 'email', 'mobile'];
@@ -678,7 +709,7 @@ export default function BuyerOnboarding() {
 
       const cinValid = !hasValue(formData.cin) || !validateField('cin', formData.cin);
       const gstValid = !hasValue(formData.gst) || !validateField('gst', formData.gst);
-      const websiteValid = !hasValue(formData.website) || validateWebsite(formData.website);
+      const websiteValid = !hasValue(formData.website) || isWebsiteUrlValid(formData.website);
 
       return hasRequiredOrganizationFields && cinValid && gstValid && websiteValid;
     }
@@ -758,6 +789,16 @@ export default function BuyerOnboarding() {
     toast.success('Draft saved');
   };
 
+  const handleFormKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
+    const target = event.target as HTMLElement;
+    const isTextArea = target.tagName === 'TEXTAREA';
+    const isSubmitControl = target instanceof HTMLButtonElement || (target instanceof HTMLInputElement && target.type === 'submit');
+
+    if (event.key === 'Enter' && !isTextArea && !isSubmitControl) {
+      event.preventDefault();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitAttempted(true);
@@ -831,18 +872,18 @@ export default function BuyerOnboarding() {
   if (isFetching) return <div className="buyer-font flex min-h-dvh items-center justify-center px-4 text-center font-bold  text-indigo-600">Loading form...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-3 sm:p-6 md:p-8">
+    <div className="min-h-screen bg-slate-50 text-slate-900 p-2 sm:p-4 md:p-5">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
-        <div className="mb-6 md:mb-10">
-          <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Buyer Registration</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Onboarding</h1>
+        <div className="mb-4 md:mb-5">
+          <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Buyer Registration</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">Onboarding</h1>
           <div className="flex items-center gap-3">
-            <p className="text-sm text-slate-500 font-medium">
+            <p className="text-[13px] text-slate-500 font-medium">
               Step {SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection) + 1} of {SIDEBAR_SECTIONS.length} — {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}
             </p>
           </div>
-          <div className="mt-4 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+          <div className="mt-2 h-1 w-full bg-slate-200 rounded-full overflow-hidden">
             <div
               className="h-full bg-[#12335f] transition-all duration-500"
               style={{ width: `${((SIDEBAR_SECTIONS.findIndex(s => s.id === activeSection) + 1) / SIDEBAR_SECTIONS.length) * 100}%` }}
@@ -851,7 +892,7 @@ export default function BuyerOnboarding() {
         </div>
 
         {/* Stepper Navigation */}
-        <div className="flex flex-wrap items-center gap-2 mb-10 overflow-x-auto pb-2 no-scrollbar">
+        <div className="flex flex-wrap items-center gap-1.5 mb-5 overflow-x-auto pb-1.5 no-scrollbar">
           {SIDEBAR_SECTIONS.map((section, idx) => {
             const isActive = activeSection === section.id;
             const isCompleted = getSectionCompletion(section.id);
@@ -884,13 +925,13 @@ export default function BuyerOnboarding() {
         </div>
 
         {/* Form Card */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
-          <div className="p-4 sm:p-8 md:p-10">
-            <div className="mb-8 md:mb-10">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
+          <div className="p-4 sm:p-6 md:p-7">
+            <div className="mb-5 md:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-0.5">
                 {SIDEBAR_SECTIONS.find(s => s.id === activeSection)?.label}
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-xs text-slate-500">
                 {activeSection === 'org' ? 'Tell us about your organization.' :
                   activeSection === 'rep' ? 'Contact details of the authorized person.' :
                     activeSection === 'address' ? 'Registered and corporate office locations.' :
@@ -899,19 +940,19 @@ export default function BuyerOnboarding() {
                           'Secure your account with a password.'}
               </p>
               {user?.onboardingStatus === 'approved_for_procurement' && (
-                <p className="mt-3 inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700 animate-pulse">
-                  Approved Profile: Unlocked for Manual Updates
+                <p className="mt-2 inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-700 animate-pulse">
+Approved Profile: Unlocked for Manual Updates
                 </p>
               )}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-6">
               <fieldset disabled={isProfileLocked} className={cn("min-h-[400px]", isProfileLocked && "opacity-70")}>
                 {/* Section Content */}
                 {activeSection === 'org' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Input label="Organization / Company Name" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={getFieldError('organizationName')} required className="h-12" />
-                    <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} onBlur={handleBlur} error={getFieldError('businessType')} required className="h-12">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Input label="Organization / Company Name" name="organizationName" value={formData.organizationName} onChange={handleChange} onBlur={handleBlur} error={getFieldError('organizationName')} required className="h-10" />
+                    <Select label="Business Type" name="businessType" value={formData.businessType} onChange={handleChange} onBlur={handleBlur} error={getFieldError('businessType')} required className="h-10">
                       <option value="Private Limited Company">Private Limited Company</option>
                       <option value="Public Limited Company">Public Limited Company</option>
                       <option value="Partnership Firm">Partnership Firm</option>
@@ -932,8 +973,8 @@ export default function BuyerOnboarding() {
                       required
                       disabled={isProfileLocked}
                     />
-                    <Input label="CIN / Registration Number (if applicable)" name="cin" value={formData.cin} onChange={handleChange} onBlur={handleBlur} error={getFieldError('cin')} placeholder="U12345KA2023PTC123456" className="h-12" />
-                    <Input label="PAN of Organization" name="pan" value={formData.pan} onChange={handleChange} onBlur={handleBlur} error={getFieldError('pan')} placeholder="ABCDE1234F" required className="h-12" />
+                    <Input label="CIN / Registration Number (if applicable)" name="cin" value={formData.cin} onChange={handleChange} onBlur={handleBlur} error={getFieldError('cin')} placeholder="U12345KA2023PTC123456" className="h-10" />
+                    <Input label="PAN of Organization" name="pan" value={formData.pan} onChange={handleChange} onBlur={handleBlur} error={getFieldError('pan')} placeholder="ABCDE1234F" required className="h-10" />
                     <div className="flex flex-col gap-1">
                       <div className="flex items-end gap-2">
                         <div className="flex-1">
@@ -945,7 +986,7 @@ export default function BuyerOnboarding() {
                             onBlur={handleBlur} 
                             error={getFieldError('gst')} 
                             placeholder="22ABCDE1234F1Z5" 
-                            className="h-12" 
+                            className="h-10" 
                           />
                         </div>
                         <Button
@@ -953,42 +994,42 @@ export default function BuyerOnboarding() {
                           variant="outline"
                           onClick={fetchGstDetails}
                           disabled={isFetchingGst || !formData.gst}
-                          className="h-12 px-4 rounded-xl border-indigo-200 text-indigo-600 font-bold uppercase text-[10px]  hover:bg-indigo-50"
+                          className="h-10 px-3 rounded-lg border-slate-200 text-[#12335f] font-bold uppercase text-[9px] hover:bg-slate-50"
                         >
-                          {isFetchingGst ? 'Fetching...' : 'Fetch Details'}
+                          {isFetchingGst ? 'Wait...' : 'Fetch Details'}
                         </Button>
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <Input label="Website URL (Optional)" name="website" value={formData.website} onChange={handleChange} onBlur={handleBlur} error={getFieldError('website')} placeholder="https://www.company.com" className="h-12" />
+                      <Input type="url" label="Website URL (Optional)" name="website" value={formData.website} onChange={handleChange} onBlur={handleBlur} error={getFieldError('website')} placeholder="https://www.company.com" className="h-10" />
                     </div>
 
                     {/* Organization Address Fields */}
-                    <div className="md:col-span-2 pt-6 mt-2 border-t border-slate-100">
-                      <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-[#12335f]" />
+                    <div className="md:col-span-2 pt-3 mt-1 border-t border-slate-100">
+                      <h3 className="text-[13px] font-bold text-slate-900 flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5 text-[#12335f]" />
                         Organization Address
                       </h3>
                     </div>
-                    <Input label="COUNTRY" name="country" value={formData.country} onChange={handleChange} onBlur={handleBlur} required className="h-12" />
-                    <Input label="STATE" name="state" value={formData.state} onChange={handleChange} onBlur={handleBlur} error={getFieldError('state')} required className="h-12" />
-                    <Input label="CITY" name="city" value={formData.city} onChange={handleChange} onBlur={handleBlur} error={getFieldError('city')} required className="h-12" />
-                    <Input label="PIN CODE" name="pincode" value={formData.pincode} onChange={handleChange} onBlur={handleBlur} error={getFieldError('pincode')} required className="h-12" />
+                    <Input label="COUNTRY" name="country" value={formData.country} onChange={handleChange} onBlur={handleBlur} required className="h-10" />
+                    <Input label="STATE" name="state" value={formData.state} onChange={handleChange} onBlur={handleBlur} error={getFieldError('state')} required className="h-10" />
+                    <Input label="CITY" name="city" value={formData.city} onChange={handleChange} onBlur={handleBlur} error={getFieldError('city')} required className="h-10" />
+                    <Input label="PIN CODE" name="pincode" value={formData.pincode} onChange={handleChange} onBlur={handleBlur} error={getFieldError('pincode')} required className="h-10" />
                     <div className="md:col-span-2">
-                      <Input label="REGISTERED OFFICE ADDRESS" name="registeredAddress" value={formData.registeredAddress} onChange={handleChange} onBlur={handleBlur} error={getFieldError('registeredAddress')} required className="h-12" />
+                      <Input label="REGISTERED OFFICE ADDRESS" name="registeredAddress" value={formData.registeredAddress} onChange={handleChange} onBlur={handleBlur} error={getFieldError('registeredAddress')} required className="h-10" />
                     </div>
                     <div className="md:col-span-2">
-                      <Input label="CORPORATE OFFICE ADDRESS (Optional - if different)" name="corporateAddress" value={formData.corporateAddress} onChange={handleChange} onBlur={handleBlur} placeholder="Enter corporate address if different from registered address" className="h-12" />
+                      <Input label="CORPORATE OFFICE ADDRESS (Optional - if different)" name="corporateAddress" value={formData.corporateAddress} onChange={handleChange} onBlur={handleBlur} placeholder="Enter corporate address if different from registered address" className="h-10" />
                     </div>
                   </div>
                 )}
 
                 {activeSection === 'rep' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Input label="FULL NAME" name="representativeName" value={formData.representativeName} onChange={handleChange} onBlur={handleBlur} error={touched.representativeName ? errors.representativeName : ''} required className="h-12" />
-                    <Input label="DESIGNATION" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Director" className="h-12" />
-                    <div className="space-y-4">
-                      <Select label="DEPARTMENT" name="department" value={formData.department} onChange={handleChange} className="h-12">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Input label="FULL NAME" name="representativeName" value={formData.representativeName} onChange={handleChange} onBlur={handleBlur} error={getFieldError('representativeName')} required className="h-10" />
+                    <Input label="DESIGNATION" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Director" className="h-10" />
+                    <div className="space-y-3">
+                      <Select label="DEPARTMENT" name="department" value={formData.department} onChange={handleChange} className="h-10">
                         {DEPARTMENT_OPTIONS.map((department) => (
                           <option key={department} value={department}>{department}</option>
                         ))}
@@ -1004,24 +1045,25 @@ export default function BuyerOnboarding() {
                         />
                       )}
                     </div>
-                    <Input label="OFFICIAL EMAIL ID" name="email" value={formData.email} onChange={handleChange} className="h-12" />
-                    <Input label="MOBILE NUMBER" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleBlur} error={touched.mobile ? errors.mobile : ''} required className="h-12" />
-                    <Input label="ALTERNATE NUMBER" name="alternateMobile" value={formData.alternateMobile} onChange={handleChange} className="h-12" />
+                    <Input label="OFFICIAL EMAIL ID" name="email" value={formData.email} onChange={handleChange} className="h-10" />
+                    <Input label="MOBILE NUMBER" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleBlur} error={getFieldError('mobile')} required className="h-10" />
+                    <Input label="ALTERNATE NUMBER" name="alternateMobile" value={formData.alternateMobile} onChange={handleChange} className="h-10" />
                   </div>
                 )}
 
 
 
                 {activeSection === 'procurement' && (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-4">
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                      <div className="space-y-3">
                         <Select
                           label="PROCUREMENT CATEGORY (Multiple)"
                           name="procurementCategoryPicker"
                           value=""
                           onChange={handleProcurementCategorySelect}
-                          className="h-12"
+                          error={submitAttempted ? errors.procurementCategories : ''}
+                          className="h-10"
                         >
                           <option value="" disabled>Select a category</option>
                           {PROCUREMENT_CATEGORY_OPTIONS.map((cat) => (
@@ -1031,9 +1073,9 @@ export default function BuyerOnboarding() {
                           ))}
                         </Select>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5">
                           {formData.procurementCategories.map((cat: string) => (
-                            <span key={cat} className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200">
+                            <span key={cat} className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-bold border border-slate-200">
                               {cat}
                               <button type="button" onClick={() => toggleTag('procurementCategories', cat)} className="text-slate-400 hover:text-slate-600">
                                 <X className="h-3 w-3" />
@@ -1043,29 +1085,29 @@ export default function BuyerOnboarding() {
                         </div>
 
                         {formData.procurementCategories.includes('Others') && (
-                          <div className="space-y-4 pt-2">
+                          <div className="space-y-3 pt-1">
                             <div className="flex gap-2">
                               <Input
                                 placeholder="Enter custom category"
                                 name="customProcurementCategoryInput"
                                 value={formData.customProcurementCategoryInput}
                                 onChange={handleChange}
-                                className="h-10"
+                                className="h-9"
                               />
                               <Button
                                 type="button"
                                 onClick={addCustomProcurementCategory}
-                                className="bg-slate-900 text-white h-10 px-4 rounded-lg"
+                                className="bg-slate-900 text-white h-9 px-3 rounded-md"
                               >
-                                <Plus className="h-4 w-4" />
+                                <Plus className="h-3.5 w-3.5" />
                               </Button>
                             </div>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5">
                               {formData.customProcurementCategories.map((cat: string) => (
-                                <span key={cat} className="inline-flex items-center gap-2 bg-slate-50 text-[#12335f] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase  border border-slate-200">
+                                <span key={cat} className="inline-flex items-center gap-1.5 bg-slate-50 text-[#12335f] px-2.5 py-1 rounded-md text-[10px] font-black uppercase  border border-slate-200">
                                   {cat}
                                   <button type="button" onClick={() => removeCustomProcurementCategory(cat)} className="text-teal-400 hover:text-[#12335f]">
-                                    <X className="h-3 w-3" />
+                                    <X className="h-2.5 w-2.5" />
                                   </button>
                                 </span>
                               ))}
@@ -1074,21 +1116,29 @@ export default function BuyerOnboarding() {
                         )}
                       </div>
 
-                      <div className="space-y-8">
-                        <Select label="ANNUAL PROCUREMENT BUDGET (Optional)" name="annualBudget" value={formData.annualBudget} onChange={handleChange} className="h-12">
+                      <div className="space-y-5">
+                        <Select 
+                          label="ANNUAL PROCUREMENT BUDGET" 
+                          name="annualBudget" 
+                          value={formData.annualBudget} 
+                          onChange={handleChange} 
+                          error={submitAttempted ? errors.annualBudget : ''}
+                          className="h-10"
+                        >
                           <option value="">Select Budget Range</option>
                           {ANNUAL_BUDGET_OPTIONS.map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
                           ))}
                         </Select>
 
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           <Select
                             label="PREFERRED PROCUREMENT METHODS (Multiple)"
                             name="preferredMethodPicker"
                             value=""
                             onChange={handleProcurementMethodSelect}
-                            className="h-12"
+                            error={submitAttempted ? errors.preferredMethods : ''}
+                            className="h-10"
                           >
                             <option value="" disabled>Select a method</option>
                             {PROCUREMENT_METHOD_OPTIONS.map((method) => (
@@ -1098,9 +1148,9 @@ export default function BuyerOnboarding() {
                             ))}
                           </Select>
 
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1.5">
                             {formData.preferredMethods.map((method: string) => (
-                              <span key={method} className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200">
+                              <span key={method} className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-bold border border-slate-200">
                                 {method}
                                 <button type="button" onClick={() => toggleTag('preferredMethods', method)} className="text-slate-400 hover:text-slate-600">
                                   <X className="h-3 w-3" />
@@ -1110,29 +1160,29 @@ export default function BuyerOnboarding() {
                           </div>
 
                           {formData.preferredMethods.includes('Others') && (
-                            <div className="space-y-4 pt-2">
+                            <div className="space-y-3 pt-1">
                               <div className="flex gap-2">
                                 <Input
                                   placeholder="Enter custom method"
                                   name="customProcurementMethodInput"
                                   value={formData.customProcurementMethodInput}
                                   onChange={handleChange}
-                                  className="h-10"
+                                  className="h-9"
                                 />
                                 <Button
                                   type="button"
                                   onClick={addCustomPreferredMethod}
-                                  className="bg-slate-900 text-white h-10 px-4 rounded-lg"
+                                  className="bg-slate-900 text-white h-9 px-3 rounded-md"
                                 >
-                                  <Plus className="h-4 w-4" />
+                                  <Plus className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
-                              <div className="flex flex-wrap gap-2">
+                              <div className="flex flex-wrap gap-1.5">
                                 {formData.customPreferredMethods.map((method: string) => (
-                                  <span key={method} className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase  border border-indigo-100">
+                                  <span key={method} className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md text-[10px] font-black uppercase  border border-indigo-100">
                                     {method}
                                     <button type="button" onClick={() => removeCustomPreferredMethod(method)} className="text-indigo-400 hover:text-indigo-600">
-                                      <X className="h-3 w-3" />
+                                      <X className="h-2.5 w-2.5" />
                                     </button>
                                   </span>
                                 ))}
@@ -1147,9 +1197,9 @@ export default function BuyerOnboarding() {
 
                 {activeSection === 'docs' && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-slate-100 p-4 rounded-xl text-xs text-slate-600 mb-6 border border-slate-200">
-                      <p className="font-bold mb-2">Required documents for verification:</p>
-                      <ul className="list-disc list-inside mb-2 space-y-1">
+                    <div className="bg-slate-100 p-3 rounded-lg text-[11px] text-slate-600 mb-4 border border-slate-200">
+                      <p className="font-bold mb-1">Required documents for verification:</p>
+                      <ul className="list-disc list-inside mb-1 space-y-0.5">
                         <li>PAN Card of Organization</li>
                         <li>Company Registration Certificate (CIN / Partnership Deed / Shop Act / Trust Registration)</li>
                         <li>GST Certificate (if applicable)</li>
@@ -1158,7 +1208,7 @@ export default function BuyerOnboarding() {
                       </ul>
                       <p className="font-bold text-[#12335f]">Allowed formats: PDF / JPG / PNG</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {[
                         { label: 'PAN Card of Organization', field: 'panCard' },
                         { label: 'Company Registration Certificate (CIN / Partnership Deed / Shop Act / Trust Registration)', field: 'regCert' },
@@ -1166,15 +1216,23 @@ export default function BuyerOnboarding() {
                         { label: 'Address Proof', field: 'addressProof' },
                         { label: 'Authorization Letter of Representative (Optional)', field: 'authLetter' }
                       ].map(doc => (
-                        <div key={doc.field} className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 flex flex-col gap-4">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{doc.label}</span>
-                          <div className="flex items-center justify-between gap-4">
+                        <div 
+                          key={doc.field} 
+                          className={cn(
+                            "p-4 rounded-xl border flex flex-col gap-3 transition-all",
+                            submitAttempted && !formData.documents[doc.field] && ['panCard', 'regCert', 'addressProof'].includes(doc.field) 
+                              ? "border-red-400 bg-red-50/30" 
+                              : "border-slate-100 bg-slate-50/50"
+                          )}
+                        >
+                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{doc.label}</span>
+                          <div className="flex items-center justify-between gap-3">
                             <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload(e, `documents.${doc.field}`)} id={`upload-${doc.field}`} className="hidden" />
-                            <label htmlFor={`upload-${doc.field}`} className="cursor-pointer text-xs font-bold text-[#12335f] hover:text-[#12335f] underline">
+                            <label htmlFor={`upload-${doc.field}`} className="cursor-pointer text-[11px] font-bold text-[#12335f] hover:text-[#12335f] underline">
                               {isUploading === `documents.${doc.field}` ? 'Uploading...' : formData.documents[doc.field] ? 'Change File' : 'Upload File'}
                             </label>
                             {formData.documents[doc.field] && (
-                              <button type="button" onClick={() => openDocumentPreview(doc.label, formData.documents[doc.field])} className="text-xs font-bold text-slate-500 hover:text-slate-700">
+                              <button type="button" onClick={() => openDocumentPreview(doc.label, formData.documents[doc.field])} className="text-[11px] font-bold text-slate-500 hover:text-slate-700">
                                 View
                               </button>
                             )}
@@ -1186,16 +1244,16 @@ export default function BuyerOnboarding() {
                 )}
 
                 {activeSection === 'account' && (
-                  <div className="max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Input label="PASSWORD" name="password" type="password" value={formData.password} onChange={handleChange} onBlur={handleBlur} error={touched.password ? errors.password : ''} className="h-12" />
-                    <Input label="CONFIRM PASSWORD" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} error={touched.confirmPassword ? (formData.password !== formData.confirmPassword ? 'Passwords do not match' : '') : ''} className="h-12" />
-                    <div className="space-y-4">
+                  <div className="max-w-md space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Input label="PASSWORD" name="password" type="password" value={formData.password} onChange={handleChange} onBlur={handleBlur} error={getFieldError('password')} className="h-10" />
+                    <Input label="CONFIRM PASSWORD" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} error={getFieldError('confirmPassword')} className="h-10" />
+                    <div className="space-y-3">
                       <label className="flex items-start gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={formData.declaration} onChange={(e) => setFormData({ ...formData, declaration: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-[#12335f] focus:ring-[#12335f]" />
+                        <input type="checkbox" checked={formData.declaration} onChange={(e) => setFormData({ ...formData, declaration: e.target.checked })} className="mt-0.5 w-3.5 h-3.5 rounded border-slate-300 text-[#12335f] focus:ring-[#12335f]" />
                         <span className="text-xs text-slate-600 font-medium">I confirm that the information provided is accurate.</span>
                       </label>
                       <label className="flex items-start gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={formData.agreeTerms} onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-[#12335f] focus:ring-[#12335f]" />
+                        <input type="checkbox" checked={formData.agreeTerms} onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })} className="mt-0.5 w-3.5 h-3.5 rounded border-slate-300 text-[#12335f] focus:ring-[#12335f]" />
                         <span className="text-xs text-slate-600 font-medium">I agree to the platform Terms & Conditions.</span>
                       </label>
                     </div>
@@ -1204,7 +1262,7 @@ export default function BuyerOnboarding() {
               </fieldset>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-10 border-t border-slate-100">
+              <div className="flex items-center justify-between pt-6 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {

@@ -103,6 +103,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
     industry: '',
     cin: '',
     gstin: '',
+    udyamNumber: '',
     website: '',
     orgPan: '',
     personalVerificationMethod: role === 'buyer' ? 'aadhaar' : '', // 'aadhaar' | 'pan'
@@ -133,9 +134,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
 
     setIsFetchingGst(true);
     try {
-      const res = await api.fetch(`/api/utils/gst-verify/${formData.gstin}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const res = await api.fetch(`/api/utils/gst-verify/${formData.gstin}`);
       
       if (res.ok) {
         const data = await res.json();
@@ -343,6 +342,10 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
         toast.error('Please enter Organization Name');
         return;
       }
+      if (role === 'seller' && !formData.udyamNumber) {
+        toast.error('Please enter Udyam Number');
+        return;
+      }
     }
     if (currentSubStep === 2) {
       if (!formData.personalVerificationMethod) {
@@ -458,6 +461,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
           isAadhaarVerified: isAadhaarVerified,
           pan: formData.panNumber,
           roleInOrg: formData.roleInOrg,
+          udyamNumber: formData.udyamNumber,
           accountName
         }
       });
@@ -676,6 +680,21 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                       />
                       {!formData.businessName && (
                         <p className="text-[10px] text-red-500 mt-1 font-medium tracking-tight">Please enter Business / Organisation Name.</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+                        Udyam Number * <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </label>
+                      <Input
+                        placeholder="e.g., UDYAM-XX-00-0000000"
+                        value={formData.udyamNumber}
+                        onChange={(e) => setFormData({...formData, udyamNumber: e.target.value.toUpperCase()})}
+                        className="h-10 rounded border-slate-300 bg-white text-[13px]"
+                      />
+                      {!formData.udyamNumber && (
+                        <p className="text-[10px] text-red-500 mt-1 font-medium tracking-tight">Please enter valid Udyam Number.</p>
                       )}
                     </div>
                   </div>

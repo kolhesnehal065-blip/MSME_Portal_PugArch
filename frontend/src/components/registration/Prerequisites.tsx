@@ -54,10 +54,10 @@ const prerequisiteDocs: Record<string, { personal: string[], business: string[],
       'Business PAN details (4th character of your PAN number should be P or H)',
       'Bank account number and IFSC (Not mandatory for Vivad se Vishwas)',
       'Income tax returns of last 3 years (It is required for BID participation if your business is older than 24 months) (Not mandatory for Vivad se Vishwas)',
-      'Registered Address (Not mandatory for Vivad se Vishwas)'
+      'Registered Address (Not mandatory for Vivad se Vishwas)',
+      'Udyam number for MSME (EMD exemption in BID) (Required for Vivad se Vishwas)'
     ],
     optional: [
-      'Udyam number for MSME (EMD exemption in BID) (Required for Vivad se Vishwas)',
       'DIPP number for startup (EMD exemption for eligible start ups)',
       'GST number for inter state business'
     ]
@@ -71,10 +71,10 @@ const prerequisiteDocs: Record<string, { personal: string[], business: string[],
       'Business PAN details',
       'Bank account number and IFSC',
       'Income tax returns of last 3 years',
-      'Registered Address'
+      'Registered Address',
+      'Udyam number'
     ],
     optional: [
-      'Udyam number',
       'DIPP number',
       'GST number'
     ]

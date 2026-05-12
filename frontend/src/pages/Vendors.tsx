@@ -16,12 +16,18 @@ import {
   Loader2,
   Info,
   ShieldCheck,
-  Clock
+  Clock,
+  Upload,
+  Paperclip,
+  LayoutGrid,
+  List,
+  Filter
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
+import { indiaStatesDistricts } from '../data/indiaStatesDistricts';
 
 interface Vendor {
   _id: string;
@@ -50,8 +56,13 @@ const Vendors = () => {
   const [loading, setLoading] = useState(!cachedVendors);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All categories');
-  const [selectedSize, setSelectedSize] = useState('All sizes');
+  const [selectedSize, setSelectedSize] = useState('All MSME categories');
+  const [selectedStateFilter, setSelectedStateFilter] = useState('All states');
+  const [selectedDistrictFilter, setSelectedDistrictFilter] = useState('All districts');
   const [verifiedOnly, setVerifiedOnly] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortKey, setSortKey] = useState<'name' | 'region' | 'gst' | 'capability'>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Modal states
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -62,9 +73,40 @@ const Vendors = () => {
   // Quote form state
   const [quoteForm, setQuoteForm] = useState({
     subject: '',
-    message: ''
+    message: '',
+    documentUrl: ''
   });
   const [submittingQuote, setSubmittingQuote] = useState(false);
+  const [isUploadingQuoteDoc, setIsUploadingQuoteDoc] = useState(false);
+
+  const handleUploadQuoteDoc = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingQuoteDoc(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await api.fetch('/api/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setQuoteForm(prev => ({ ...prev, documentUrl: data.url }));
+        toast.success('Specifications document attached');
+      } else {
+        toast.error('Upload failed');
+      }
+    } catch (err) {
+      toast.error('Upload error');
+    } finally {
+      setIsUploadingQuoteDoc(false);
+    }
+  };
 
   const categories = [
     'All categories',
@@ -80,13 +122,26 @@ const Vendors = () => {
     'Catering'
   ];
 
-  const sizes = [
-    'All sizes',
+  const msmeCategories = [
+    'All MSME categories',
     'Micro',
     'Small',
     'Medium',
     'Large'
   ];
+
+  const statesList = [
+    'All states', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 
+    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 
+    'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 
+    'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 
+    'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 
+    'Delhi', 'Jammu & Kashmir', 'Ladakh'
+  ];
+
+  const districtOptions = selectedStateFilter === 'All states'
+    ? []
+    : indiaStatesDistricts[selectedStateFilter.toUpperCase()] || [];
 
   useEffect(() => {
     fetchVendors();
@@ -150,7 +205,7 @@ const Vendors = () => {
       if (res.ok) {
         toast.success(`Quote request sent to ${selectedVendor.sellerProfile?.businessName || selectedVendor.name}`);
         setIsQuoteModalOpen(false);
-        setQuoteForm({ subject: '', message: '' });
+        setQuoteForm({ subject: '', message: '', documentUrl: '' });
       } else {
         const error = await res.json();
         toast.error(error.message || 'Failed to send request');
@@ -162,6 +217,22 @@ const Vendors = () => {
     }
   };
 
+  const toggleSort = (key: typeof sortKey) => {
+    setSortDirection(prev => sortKey === key && prev === 'asc' ? 'desc' : 'asc');
+    setSortKey(key);
+  };
+
+  const SortHeader = ({ label, field, align = 'left' }: { label: string; field: typeof sortKey; align?: 'left' | 'right' }) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(field)}
+      className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-[#12335f] hover:text-[#0b2445] ${align === 'right' ? 'justify-end' : ''}`}
+    >
+      {label}
+      <span className="text-[9px]">{sortKey === field ? sortDirection.toUpperCase() : 'SORT'}</span>
+    </button>
+  );
+
   const filteredVendors = vendors.filter(vendor => {
     const profile = vendor.sellerProfile || {};
     const matchesSearch = (profile.businessName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -171,162 +242,293 @@ const Vendors = () => {
     const matchesCategory = selectedCategory === 'All categories' || 
                            (profile.productCategories || []).includes(selectedCategory);
     
-    const matchesSize = selectedSize === 'All sizes' || 
+    const matchesSize = selectedSize === 'All MSME categories' || 
                        (profile.msmeCategory || '') === selectedSize;
+
+    const matchesState = selectedStateFilter === 'All states' ||
+                       (profile.state || '').toLowerCase() === selectedStateFilter.toLowerCase();
+
+    const profileDistrict = String((profile as any).district || profile.city || '').toLowerCase();
+    const matchesDistrict = selectedDistrictFilter === 'All districts' ||
+                       profileDistrict === selectedDistrictFilter.toLowerCase();
     
     const matchesVerification = !verifiedOnly || Boolean(profile.gst || profile.pan);
-    return matchesSearch && matchesCategory && matchesSize && matchesVerification;
+    return matchesSearch && matchesCategory && matchesSize && matchesState && matchesDistrict && matchesVerification;
+  }).sort((a, b) => {
+    const valueFor = (vendor: Vendor) => {
+      const profile = (vendor.sellerProfile || {}) as Partial<Vendor['sellerProfile']>;
+      if (sortKey === 'region') return `${profile.state || ''} ${profile.city || ''}`;
+      if (sortKey === 'gst') return profile.gst || profile.pan || '';
+      if (sortKey === 'capability') return (profile.productCategories || []).join(', ');
+      return profile.businessName || vendor.name || '';
+    };
+    return valueFor(a).localeCompare(valueFor(b)) * (sortDirection === 'asc' ? 1 : -1);
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-8">
-      {/* Search and Filters */}
-      <div className="flex flex-col lg:flex-row gap-4 mb-8">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input 
-            placeholder="Search by name, city, or category..."
-            className="pl-11 bg-white border-slate-200 h-11 rounded-lg focus:ring-[#12335f]/10 text-slate-900 placeholder:text-slate-400"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-center">
-          <div className="relative group flex-1 sm:flex-none sm:min-w-[180px]">
-            <select 
-              className="w-full appearance-none bg-white border border-slate-200 h-11 px-6 pr-12 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#12335f]/10 cursor-pointer transition-all hover:border-teal-500/30 text-slate-700"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none group-hover:text-[#12335f] transition-colors" />
+    <div className="min-h-screen bg-[#f1f3f5] text-[#1a1c21]">
+      {/* Main Header Container */}
+      <div className="bg-white border-b border-[#dfe3e8] px-6 py-4 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-[#1a1c21] uppercase">Supplier Registry</h1>
+            <p className="text-xs text-slate-500 font-medium">Locate and engage verified MSME vendors across nationwide sectors.</p>
           </div>
-
-          <div className="relative group flex-1 sm:flex-none sm:min-w-[140px]">
-            <select 
-              className="w-full appearance-none bg-white border border-slate-200 h-11 px-6 pr-12 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#12335f]/10 cursor-pointer transition-all hover:border-teal-500/30 text-slate-700"
-              value={selectedSize}
-              onChange={(e) => setSelectedSize(e.target.value)}
-            >
-              {sizes.map(size => (
-                <option key={size} value={size}>{size}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none group-hover:text-[#12335f] transition-colors" />
+          <div className="flex items-center gap-2 bg-[#f1f3f4] p-1 rounded-lg border border-[#dadce0]">
+             <button 
+               onClick={() => setViewMode('grid')}
+               className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${viewMode === 'grid' ? 'bg-white text-[#12335f] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+             >
+               <LayoutGrid className="h-3.5 w-3.5" /> Grid
+             </button>
+             <button 
+               onClick={() => setViewMode('list')}
+               className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${viewMode === 'list' ? 'bg-white text-[#12335f] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+             >
+               <List className="h-3.5 w-3.5" /> List
+             </button>
           </div>
-
-          <Button
-            variant="outline"
-            onClick={() => setVerifiedOnly(prev => !prev)}
-            className={`h-11 bg-white border-slate-200 rounded-lg px-6 gap-2 font-medium hover:bg-slate-50 transition-all flex justify-center items-center ${verifiedOnly ? 'text-[#12335f] border-[#12335f]/40' : 'text-slate-700'}`}
-          >
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-slate-400" />
-            <span>{verifiedOnly ? 'Verified only' : 'All vendors'}</span>
-          </Button>
         </div>
       </div>
 
-      {/* Results Count */}
-      <div className="mb-6 text-sm font-medium text-slate-500 flex items-center gap-2">
-        {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <span>{filteredVendors.length} vendors found</span>}
-      </div>
+      <div className="p-3 md:p-4 flex flex-col lg:flex-row gap-4 items-start">
+        {/* Sidebar Filters (Government Style: Boxy, Rigid, Informative) */}
+        <div className="w-full lg:w-64 bg-white border border-[#dadce0] rounded-lg overflow-hidden flex-shrink-0 sticky top-3">
+          <div className="bg-[#f8f9fa] border-b border-[#dadce0] px-3 py-2.5 flex items-center gap-2">
+            <Filter className="h-4 w-4 text-[#12335f]" />
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#12335f]">Search Parameters</h3>
+          </div>
+          
+          <div className="p-3 space-y-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Keyword Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Input 
+                  placeholder="Name, city, or ID..."
+                  className="pl-9 h-8 bg-white border-[#dadce0] rounded text-xs placeholder:text-slate-400 focus:ring-1 focus:ring-[#12335f]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
 
-      {/* Vendors Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="h-64 bg-white border border-slate-100 rounded-2xl animate-pulse" />
-          ))}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Product Category</label>
+              <select 
+                className="w-full h-8 px-2 bg-white border border-[#dadce0] rounded text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#12335f] cursor-pointer"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">State</label>
+              <select 
+                className="w-full h-8 px-2 bg-white border border-[#dadce0] rounded text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#12335f] cursor-pointer"
+                value={selectedStateFilter}
+                onChange={(e) => {
+                  setSelectedStateFilter(e.target.value);
+                  setSelectedDistrictFilter('All districts');
+                }}
+              >
+                {statesList.map(st => (
+                  <option key={st} value={st}>{st}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">District</label>
+              <select 
+                className="w-full h-8 px-2 bg-white border border-[#dadce0] rounded text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#12335f] cursor-pointer disabled:bg-slate-50 disabled:text-slate-400"
+                value={selectedDistrictFilter}
+                onChange={(e) => setSelectedDistrictFilter(e.target.value)}
+                disabled={selectedStateFilter === 'All states'}
+              >
+                <option value="All districts">{selectedStateFilter === 'All states' ? 'Select state first' : 'All districts'}</option>
+                {districtOptions.map(district => (
+                  <option key={district} value={district}>{district}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">MSME Category</label>
+              <select
+                className="w-full h-8 px-2 bg-white border border-[#dadce0] rounded text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#12335f] cursor-pointer"
+                value={selectedSize}
+                onChange={(e) => setSelectedSize(e.target.value)}
+              >
+                {msmeCategories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="pt-2 border-t border-[#f1f3f4]">
+              <button 
+                onClick={() => setVerifiedOnly(!verifiedOnly)}
+                className="flex items-center gap-2 w-full text-left"
+              >
+                <div className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${verifiedOnly ? 'bg-[#12335f] border-[#12335f]' : 'border-[#dadce0]'}`}>
+                  {verifiedOnly && <CheckCircle2 className="h-3 w-3 text-white" />}
+                </div>
+                <span className="text-[11px] font-bold text-slate-700 uppercase">Show Verified Only</span>
+              </button>
+            </div>
+          </div>
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVendors.map((vendor) => (
-              <div key={vendor._id} className="group relative bg-white border border-slate-200 rounded-2xl p-6 transition-all hover:shadow-lg hover:shadow-slate-200/50">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex gap-4">
-                    <div className="h-12 w-12 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 font-bold text-lg border border-slate-100 group-hover:border-slate-200 group-hover:bg-slate-50 group-hover:text-[#12335f] transition-all">
+
+        {/* Results Space */}
+        <div className="flex-1 w-full">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <span>Found {filteredVendors.length} registered vendors matching criteria</span>}
+            </div>
+          </div>
+
+          {loading ? (
+            <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" : "space-y-3"}>
+              {[1,2,3,4].map(i => (
+                <div key={i} className="h-40 bg-white border border-[#dadce0] rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : filteredVendors.length === 0 ? (
+            <div className="bg-white border border-[#dadce0] rounded-xl p-12 text-center">
+              <div className="h-16 w-16 bg-[#f8f9fa] border border-[#dadce0] rounded-full flex items-center justify-center mx-auto mb-4">
+                <Building2 className="h-8 w-8 text-[#12335f]/30" />
+              </div>
+              <h3 className="text-lg font-black uppercase tracking-tight text-[#1a1c21]">No results returned</h3>
+              <p className="text-xs text-slate-500 font-medium mt-1">Try relaxing the search criteria or expanding state selection.</p>
+            </div>
+          ) : viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredVendors.map((vendor) => (
+                <div key={vendor._id} className="bg-white border border-[#dadce0] rounded-xl p-5 flex flex-col shadow-sm hover:shadow transition-all">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="h-10 w-10 shrink-0 rounded bg-[#f1f3f5] border border-[#dadce0] flex items-center justify-center text-[#12335f] font-black text-sm uppercase">
                       {vendor.sellerProfile?.businessName?.charAt(0) || vendor.name?.charAt(0) || 'V'}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className="font-bold text-slate-900 group-hover:text-teal-900 transition-colors">{vendor.sellerProfile?.businessName || vendor.name}</h3>
-                        <span className="flex items-center gap-1 text-[11px] text-[#12335f] font-semibold">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Verified
-                        </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <h3 className="font-black text-xs uppercase tracking-tight truncate text-[#1a1c21]">{vendor.sellerProfile?.businessName || vendor.name}</h3>
+                        {vendor.sellerProfile?.gst && <CheckCircle2 className="h-3 w-3 text-[#12335f] shrink-0" />}
                       </div>
-                      <p className="flex items-center gap-1 text-[13px] text-slate-500">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {vendor.sellerProfile?.city || 'India'}, {vendor.sellerProfile?.state || 'Verified'}
+                      <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase">
+                        <MapPin className="h-2.5 w-2.5 shrink-0" />
+                        {vendor.sellerProfile?.city || 'City'}, {vendor.sellerProfile?.state || 'State'}
                       </p>
                     </div>
                   </div>
-                </div>
 
-                <p className="text-[13px] text-slate-600 mb-6 leading-relaxed line-clamp-2">
-                  Specialized in {vendor.sellerProfile?.productCategories?.join(', ') || 'multiple categories'}. Providing high-quality services to enterprise buyers since 2018.
-                </p>
+                  <p className="text-[11px] leading-relaxed text-slate-600 mb-4 flex-1 line-clamp-2 border-t border-b border-[#f1f3f5] py-3 my-2">
+                    Specialized provider in {(vendor.sellerProfile?.productCategories || []).join(', ') || 'Enterprise Supplies'}. Recognized for reliability.
+                  </p>
 
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {(vendor.sellerProfile?.productCategories || []).slice(0, 2).map(cat => (
-                    <span key={cat} className="text-[11px] bg-slate-50 text-slate-600 px-3 py-1 rounded-md font-medium border border-slate-100">
-                      {cat}
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[9px] font-mono font-bold text-slate-500 uppercase bg-[#f8f9fa] border border-[#dadce0] px-2 py-0.5 rounded">
+                      {vendor.sellerProfile?.gst || 'NOT AVAILABLE'}
                     </span>
+                    <div className="flex items-center gap-1 text-[11px] font-black text-[#1a1c21]">
+                      <Star className="h-3 w-3 text-amber-500 fill-current" />
+                      4.6
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button 
+                      onClick={() => handleViewProfile(vendor)}
+                      disabled={fetchingDetails}
+                      className="h-8 border border-[#dadce0] text-[#12335f] rounded text-[10px] font-black uppercase tracking-wider hover:bg-[#f8f9fa] transition-all flex items-center justify-center"
+                    >
+                      Profile
+                    </button>
+                    <button 
+                      onClick={() => handleOpenQuoteModal(vendor)}
+                      className="h-8 bg-[#12335f] text-white rounded text-[10px] font-black uppercase tracking-wider hover:bg-[#0b2445] shadow-sm shadow-[#12335f]/20 transition-all flex items-center justify-center"
+                    >
+                      Request Quote
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* LIST VIEW (Table style high density) */
+            <div className="bg-white border border-[#dadce0] rounded-xl overflow-hidden shadow-sm">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-[#f8f9fa] border-b border-[#dadce0]">
+                  <tr>
+                    <th className="p-3 text-[10px] font-black uppercase tracking-wider text-[#12335f]">Sr. No.</th>
+                    <th className="p-3"><SortHeader label="Vendor Identity" field="name" /></th>
+                    <th className="p-3"><SortHeader label="Region" field="region" /></th>
+                    <th className="p-3"><SortHeader label="Registration (GST)" field="gst" /></th>
+                    <th className="p-3"><SortHeader label="Capability" field="capability" /></th>
+                    <th className="p-3 text-right text-[10px] font-black uppercase tracking-wider text-[#12335f]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f1f3f5]">
+                  {filteredVendors.map((vendor, index) => (
+                    <tr key={vendor._id} className="hover:bg-[#fcfcfd] transition-colors">
+                      <td className="p-3 font-mono text-[11px] font-black text-slate-400">{String(index + 1).padStart(2, '0')}</td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded bg-[#f1f3f5] border border-[#dadce0] flex items-center justify-center text-[#12335f] font-black text-xs shrink-0">
+                            {vendor.sellerProfile?.businessName?.charAt(0) || 'V'}
+                          </div>
+                          <div>
+                            <p className="font-black text-xs uppercase tracking-tight text-[#1a1c21]">{vendor.sellerProfile?.businessName || vendor.name}</p>
+                            <p className="text-[9px] font-bold text-[#12335f] uppercase flex items-center gap-1">
+                              {vendor.sellerProfile?.msmeCategory || 'Registered'} Enterprise
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3 text-[11px] font-bold text-slate-600 uppercase">
+                        {vendor.sellerProfile?.city || 'N/A'}, {vendor.sellerProfile?.state || 'N/A'}
+                      </td>
+                      <td className="p-3">
+                        <span className="text-[10px] font-mono font-bold text-slate-600 uppercase bg-[#f1f3f5] border border-[#dadce0] px-2 py-0.5 rounded inline-block">
+                          {vendor.sellerProfile?.gst || 'PENDING'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex gap-1 flex-wrap">
+                          {(vendor.sellerProfile?.productCategories || []).slice(0, 2).map(c => (
+                            <span key={c} className="text-[9px] font-bold text-slate-500 border border-[#dadce0] rounded px-1.5 py-0.5 uppercase">{c}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="p-3 text-right">
+                         <div className="flex items-center justify-end gap-2">
+                           <button 
+                             onClick={() => handleViewProfile(vendor)}
+                             className="h-7 px-3 border border-[#dadce0] text-[#12335f] rounded text-[9px] font-black uppercase tracking-wider hover:bg-[#f8f9fa]"
+                           >
+                             Info
+                           </button>
+                           <button 
+                             onClick={() => handleOpenQuoteModal(vendor)}
+                             className="h-7 px-3 bg-[#12335f] text-white rounded text-[9px] font-black uppercase tracking-wider hover:bg-[#0b2445]"
+                           >
+                             Quote
+                           </button>
+                         </div>
+                      </td>
+                    </tr>
                   ))}
-                  {vendor.sellerProfile?.productCategories?.length > 2 && (
-                    <span className="text-[11px] bg-slate-50 text-slate-400 px-2 py-1 rounded-md font-medium border border-slate-100">
-                      +{vendor.sellerProfile.productCategories.length - 2} more
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between pt-6 border-t border-slate-50 mb-6">
-                  <div className="text-[12px] font-mono text-slate-400 uppercase tracking-tight">
-                    {vendor.sellerProfile?.gst || '29ABCDE1234F1Z5'}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[13px] font-medium text-amber-500">
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                    <span className="text-slate-900">4.6</span>
-                    <span className="text-slate-400 font-normal ml-0.5">· 184 reviews</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleViewProfile(vendor)}
-                    disabled={fetchingDetails}
-                    className="h-10 border-slate-200 bg-white rounded-lg font-semibold text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    {fetchingDetails && selectedVendor?._id === vendor._id ? <Loader2 className="h-3 w-3 animate-spin" /> : "View profile"}
-                  </Button>
-                  <Button 
-                    onClick={() => handleOpenQuoteModal(vendor)}
-                    className="h-10 bg-[#12335f] hover:bg-[#0b2445] text-white rounded-lg font-semibold text-xs transition-all"
-                  >
-                    Request quote
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {filteredVendors.length === 0 && (
-            <div className="text-center py-24">
-              <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Building2 className="h-8 w-8 text-slate-300" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">No vendors found</h3>
-              <p className="text-slate-500 text-sm">Try adjusting your filters or search terms.</p>
+                </tbody>
+              </table>
             </div>
           )}
-        </>
-      )}
+        </div>
+      </div>
+
 
       {/* Vendor Profile Modal */}
       {isProfileModalOpen && selectedVendor && (
@@ -502,6 +704,39 @@ const Vendors = () => {
                     rows={3}
                     className="w-full bg-slate-50 border-slate-200 border rounded-lg py-2 px-3 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#12335f] transition-all resize-none text-slate-900"
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 ml-1">Specifications (Optional)</label>
+                  <div className={`relative flex items-center justify-between w-full bg-slate-50 border border-slate-200 border-dashed rounded-lg p-3 transition-all ${quoteForm.documentUrl ? 'bg-emerald-50/40 border-emerald-200' : ''}`}>
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-1.5 rounded-md ${quoteForm.documentUrl ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
+                        <Paperclip className="h-3.5 w-3.5" />
+                      </div>
+                      <span className={`text-xs font-semibold ${quoteForm.documentUrl ? 'text-emerald-700' : 'text-slate-600'}`}>
+                        {quoteForm.documentUrl ? "Document attached" : "Attach requirement PDF"}
+                      </span>
+                    </div>
+                    
+                    <input 
+                      type="file" 
+                      id="quote-doc" 
+                      accept=".pdf,.doc,.docx,.xls,.xlsx" 
+                      className="hidden" 
+                      onChange={handleUploadQuoteDoc}
+                      disabled={isUploadingQuoteDoc}
+                    />
+                    <label 
+                      htmlFor="quote-doc"
+                      className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wide cursor-pointer transition-all ${
+                        quoteForm.documentUrl 
+                          ? "bg-white border border-emerald-200 text-emerald-700"
+                          : "bg-[#12335f] text-white hover:bg-[#0b2445]"
+                      }`}
+                    >
+                      {isUploadingQuoteDoc ? "Wait..." : quoteForm.documentUrl ? "Change" : "Upload"}
+                    </label>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-2">

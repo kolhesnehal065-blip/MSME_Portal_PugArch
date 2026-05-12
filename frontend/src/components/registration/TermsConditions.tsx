@@ -76,15 +76,7 @@ export default function TermsConditions({ onAccept, onBack, role }: TermsConditi
         )}
       >
         <div className="mb-4 flex flex-col gap-4 md:mb-7 md:flex-row md:items-center md:justify-between">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={isTransitioning}
-            className="inline-flex h-10 w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-widest text-slate-600 shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {transitionState === 'back' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowLeft className="h-4 w-4" />}
-            Back
-          </button>
+          
           <h3 className="text-sm font-black tracking-tight text-slate-800 uppercase sm:text-base md:text-2xl underline decoration-blue-500 decoration-4 underline-offset-8">
             General Terms & Conditions (GTC)
           </h3>
@@ -277,7 +269,7 @@ function PdfToolbar({ role }: { role: 'buyer' | 'seller' }) {
         <div className="flex min-w-0 items-center gap-3">
           <FileText className="hidden h-5 w-5 shrink-0 text-blue-400 sm:block" />
           <span className="truncate text-xs font-bold uppercase tracking-tight text-slate-200">
-            GTC_GeM_4.0_{role === 'buyer' ? 'Buyer' : 'Seller'}_Registration.pdf
+            GTC_4.0_{role === 'buyer' ? 'Buyer' : 'Seller'}_Registration.pdf
           </span>
         </div>
       </div>

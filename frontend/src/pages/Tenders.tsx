@@ -15,7 +15,9 @@ import {
   ChevronRight,
   FileText,
   AlertCircle,
-  X
+  X,
+  Upload,
+  Paperclip
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -53,15 +55,50 @@ export default function Tenders() {
   const [tenders, setTenders] = useState<Tender[]>(cachedTenders || []);
   const [loading, setLoading] = useState(!cachedTenders);
   const [activeTab, setActiveTab] = useState<string>('published');
+  const [searchText, setSearchText] = useState('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
+  const [budgetFilter, setBudgetFilter] = useState('All');
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'created', direction: 'desc' });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTender, setNewTender] = useState({
     title: '',
     category: '',
     budget: '',
-    description: ''
+    description: '',
+    documentUrl: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [publishingId, setPublishingId] = useState<number | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+
+    try {
+      const res = await api.fetch('/api/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: formDataUpload
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setNewTender(prev => ({ ...prev, documentUrl: data.url }));
+        toast.success('Specifications document uploaded successfully');
+      } else {
+        toast.error('Failed to upload document');
+      }
+    } catch (err) {
+      toast.error('Network error during upload');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   useEffect(() => {
     fetchTenders();
@@ -122,7 +159,7 @@ export default function Tenders() {
       if (res.ok) {
         toast.success('Tender created successfully');
         setIsModalOpen(false);
-        setNewTender({ title: '', category: '', budget: '', description: '' });
+        setNewTender({ title: '', category: '', budget: '', description: '', documentUrl: '' });
         fetchTenders();
       } else {
         toast.error('Failed to create tender');
@@ -140,11 +177,59 @@ export default function Tenders() {
     return days > 0 ? `${days}d` : 'Expired';
   };
 
-  const currentTenders = activeTab === 'published' 
+  const toggleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const SortHeader = ({ label, sortKey, className = '' }: { label: string; sortKey: string; className?: string }) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(sortKey)}
+      className={cn("inline-flex items-center gap-1 text-xs font-bold uppercase text-slate-500 hover:text-[#12335f]", className)}
+    >
+      {label}
+      <span className="text-[9px]">{sortConfig.key === sortKey ? (sortConfig.direction === 'asc' ? 'ASC' : 'DESC') : 'SORT'}</span>
+    </button>
+  );
+
+  const currentTenders = (activeTab === 'published' 
     ? tenders.filter(t => t.status === 'published' || t.status === 'bid_submission' || t.status.startsWith('tech') || t.status.startsWith('fin'))
     : activeTab === 'closed'
     ? tenders.filter(t => t.status === 'closed' || t.status === 'awarded' || t.status === 'po_generated')
-    : tenders.filter(t => t.status === activeTab);
+    : tenders.filter(t => t.status === activeTab)
+  ).filter(t => {
+    const matchesSearch = !searchText || 
+      t.title.toLowerCase().includes(searchText.toLowerCase()) || 
+      (t.tenderId && t.tenderId.toLowerCase().includes(searchText.toLowerCase()));
+    
+    const matchesCategory = selectedCategoryFilter === 'All' || t.category === selectedCategoryFilter;
+    const matchesBudget =
+      budgetFilter === 'All' ||
+      (budgetFilter === 'under_10l' && Number(t.budget || 0) < 1000000) ||
+      (budgetFilter === '10l_50l' && Number(t.budget || 0) >= 1000000 && Number(t.budget || 0) <= 5000000) ||
+      (budgetFilter === 'above_50l' && Number(t.budget || 0) > 5000000);
+    
+    return matchesSearch && matchesCategory && matchesBudget;
+  }).sort((a, b) => {
+    const direction = sortConfig.direction === 'asc' ? 1 : -1;
+    const valueFor = (tender: Tender) => {
+      if (sortConfig.key === 'tenderId') return tender.tenderId || `T-2026-01${tender.id}`;
+      if (sortConfig.key === 'title') return tender.title || '';
+      if (sortConfig.key === 'category') return tender.category || '';
+      if (sortConfig.key === 'budget') return Number(tender.budget || 0);
+      if (sortConfig.key === 'bids') return Number(tender.bidsCount || 0);
+      if (sortConfig.key === 'closes') return new Date(tender.closesAt || 0).getTime();
+      if (sortConfig.key === 'status') return tender.status || '';
+      return tender.id;
+    };
+    const aValue = valueFor(a);
+    const bValue = valueFor(b);
+    if (typeof aValue === 'number' && typeof bValue === 'number') return (aValue - bValue) * direction;
+    return String(aValue).localeCompare(String(bValue)) * direction;
+  });
 
   if (loading) {
     return (
@@ -155,19 +240,25 @@ export default function Tenders() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 p-3 md:p-5">
-      <div className="max-w-6xl mx-auto space-y-5">
-        {/* Create Tender Button */}
+    <div className="min-h-screen bg-[#f8f9fa] text-slate-900">
+      {/* Page Header */}
+      <div className="bg-white border-b border-[#dfe3e8] px-6 py-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-black tracking-tight text-[#1a1c21] uppercase">Tender Management</h1>
+          <p className="text-xs text-slate-500 font-medium">Create and manage your corporate tenders efficiently.</p>
+        </div>
         <Button 
           onClick={() => setIsModalOpen(true)}
-          className="w-full bg-[#12335f] hover:bg-[#0b2445] text-white h-11 rounded-md font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all uppercase tracking-wide"
+          className="bg-[#12335f] hover:bg-[#0b2445] text-white h-9 px-4 rounded-md font-black text-[11px] flex items-center gap-2 shadow-sm transition-all uppercase tracking-wide shrink-0"
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-3.5 w-3.5" />
           Create Tender
         </Button>
+      </div>
 
-        {/* Tab Selection */}
-        <div className="flex justify-start">
+      <div className="p-4 md:p-6 space-y-4">
+        {/* Actions bar: Tabs and Compact Action Button */}
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-1 bg-[#f1f3f4] p-1 rounded-lg border border-[#e8eaed]">
             {[
               { id: 'draft', label: 'Draft', count: tenders.filter(t => t.status === 'draft').length },
@@ -191,18 +282,70 @@ export default function Tenders() {
           </div>
         </div>
 
+        {/* Filters and Search Row */}
+        <div className="grid grid-cols-1 gap-3 pt-1 pb-1 lg:grid-cols-[minmax(260px,1fr)_220px_180px_170px]">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input 
+              placeholder="Quick search by Tender ID or Title..."
+              className="pl-9 h-10 border-slate-200 bg-slate-50/50 text-sm font-medium focus:bg-white transition-all"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </div>
+          <div>
+            <select 
+              className="w-full bg-white border border-slate-200 rounded-md h-10 px-3 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#12335f] transition-all cursor-pointer"
+              value={selectedCategoryFilter}
+              onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+            >
+              <option value="All">All Categories</option>
+              <option value="Furniture">Furniture</option>
+              <option value="Software & Cloud">Software & Cloud</option>
+              <option value="Catering">Catering</option>
+              <option value="Construction">Construction</option>
+              <option value="Services">Services</option>
+            </select>
+          </div>
+          <div>
+            <select
+              className="w-full bg-white border border-slate-200 rounded-md h-10 px-3 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#12335f] transition-all cursor-pointer"
+              value={budgetFilter}
+              onChange={(e) => setBudgetFilter(e.target.value)}
+            >
+              <option value="All">All Budgets</option>
+              <option value="under_10l">Under Rs. 10 Lakh</option>
+              <option value="10l_50l">Rs. 10-50 Lakh</option>
+              <option value="above_50l">Above Rs. 50 Lakh</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchText('');
+              setSelectedCategoryFilter('All');
+              setBudgetFilter('All');
+              setSortConfig({ key: 'created', direction: 'desc' });
+            }}
+            className="h-10 rounded-md border border-slate-200 bg-white px-4 text-[10px] font-black uppercase tracking-wide text-slate-500 hover:text-[#12335f]"
+          >
+            Reset Filters
+          </button>
+        </div>
+
         {/* Tenders Table */}
         <div className="border border-[#dadce0] rounded-lg overflow-hidden bg-white shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead className="bg-white border-b border-[#dadce0]">
               <tr>
-                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500 w-32">Tender ID</th>
-                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Title</th>
-                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Category</th>
-                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500 text-right">Budget</th>
-                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500 text-center">Bids</th>
-                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Closes</th>
-                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Status</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500 w-20">Sr. No.</th>
+                <th className="px-4 py-3 w-32"><SortHeader label="Tender ID" sortKey="tenderId" /></th>
+                <th className="px-4 py-3"><SortHeader label="Title" sortKey="title" /></th>
+                <th className="px-4 py-3"><SortHeader label="Category" sortKey="category" /></th>
+                <th className="px-4 py-3 text-right"><SortHeader label="Budget" sortKey="budget" className="justify-end" /></th>
+                <th className="px-4 py-3 text-center"><SortHeader label="Bids" sortKey="bids" /></th>
+                <th className="px-4 py-3"><SortHeader label="Closes" sortKey="closes" /></th>
+                <th className="px-4 py-3"><SortHeader label="Status" sortKey="status" /></th>
                 <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500 text-right">Actions</th>
               </tr>
             </thead>
@@ -210,12 +353,12 @@ export default function Tenders() {
               {loading ? (
                 [1,2,3].map(i => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={8} className="px-8 py-10"><div className="h-4 bg-slate-50 rounded w-full"></div></td>
+                    <td colSpan={9} className="px-8 py-10"><div className="h-4 bg-slate-50 rounded w-full"></div></td>
                   </tr>
                 ))
               ) : currentTenders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-8 py-20 text-center">
+                  <td colSpan={9} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-4 opacity-30">
                       <FileText className="h-12 w-12" />
                       <p className="text-sm font-bold uppercase tracking-widest">No Tenders Found</p>
@@ -223,8 +366,11 @@ export default function Tenders() {
                   </td>
                 </tr>
               ) : (
-                currentTenders.map((tender) => (
+                currentTenders.map((tender, index) => (
                   <tr key={tender.id} className="hover:bg-slate-50/30 transition-colors">
+                    <td className="px-4 py-4 text-xs font-mono font-bold text-slate-400">
+                      {String(index + 1).padStart(2, '0')}
+                    </td>
                     <td className="px-4 py-4 text-xs font-mono text-slate-500">
                       {tender.tenderId || `T-2026-01${tender.id}`}
                     </td>
@@ -351,6 +497,55 @@ export default function Tenders() {
                     rows={4}
                     className="w-full bg-slate-50 border-slate-200 border rounded-md py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#12335f]/20 transition-all resize-none text-slate-900"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 ml-1">Specification Document</label>
+                  <div className={cn(
+                    "relative flex items-center justify-between w-full bg-slate-50 border border-slate-200 border-dashed rounded-md p-4 transition-all",
+                    newTender.documentUrl && "bg-green-50/30 border-green-200"
+                  )}>
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "p-2 rounded-lg",
+                        newTender.documentUrl ? "bg-green-100 text-green-600" : "bg-slate-200 text-slate-500"
+                      )}>
+                        <Paperclip className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">
+                          {newTender.documentUrl ? "Document attached" : "Upload Specifications PDF"}
+                        </p>
+                        <p className="text-[10px] font-medium text-slate-500">Maximum size 5MB (PDF/DOC)</p>
+                      </div>
+                    </div>
+                    
+                    <input 
+                      type="file" 
+                      id="spec-upload" 
+                      accept=".pdf,.doc,.docx" 
+                      className="hidden" 
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                    />
+                    <label 
+                      htmlFor="spec-upload"
+                      className={cn(
+                        "px-4 py-2 rounded-md text-[10px] font-bold uppercase tracking-wide cursor-pointer transition-all flex items-center gap-2",
+                        newTender.documentUrl 
+                          ? "bg-white border border-green-200 text-green-700 shadow-sm"
+                          : "bg-[#12335f] text-white shadow-sm hover:bg-[#0b2445]"
+                      )}
+                    >
+                      {isUploading ? (
+                        <>Processing...</>
+                      ) : newTender.documentUrl ? (
+                        <>Change File</>
+                      ) : (
+                        <><Upload className="h-3 w-3" /> Select File</>
+                      )}
+                    </label>
+                  </div>
                 </div>
               </div>
 

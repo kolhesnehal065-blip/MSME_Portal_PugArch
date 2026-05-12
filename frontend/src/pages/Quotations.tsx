@@ -11,7 +11,10 @@ import {
   Search,
   Send,
   Trophy,
-  XCircle
+  XCircle,
+  LayoutGrid,
+  List,
+  FileSpreadsheet
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { Button } from '../components/ui/button';
@@ -78,6 +81,7 @@ export default function Quotations() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | BidStatus>('all');
   const [selectedTenderId, setSelectedTenderId] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     if (user?.role === 'seller') fetchMyBids();
@@ -219,8 +223,8 @@ export default function Quotations() {
 
         <Card className="rounded-lg border border-slate-200 shadow-sm">
           <CardContent className="p-4">
-            <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
-              <div className="relative">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="relative flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   value={searchTerm}
@@ -230,29 +234,56 @@ export default function Quotations() {
                 />
               </div>
 
-              {user?.role === 'buyer' && (
+              <div className="flex flex-wrap items-center gap-2">
+                {user?.role === 'buyer' && (
+                  <select
+                    value={selectedTenderId}
+                    onChange={(event) => setSelectedTenderId(event.target.value)}
+                    className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:ring-2 focus:ring-[#12335f]"
+                  >
+                    <option value="all">All tenders</option>
+                    {tenders.map(tender => (
+                      <option key={tender.id} value={tender.id}>{tender.tenderId} - {tender.title}</option>
+                    ))}
+                  </select>
+                )}
+
                 <select
-                  value={selectedTenderId}
-                  onChange={(event) => setSelectedTenderId(event.target.value)}
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as 'all' | BidStatus)}
                   className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:ring-2 focus:ring-[#12335f]"
                 >
-                  <option value="all">All tenders</option>
-                  {tenders.map(tender => (
-                    <option key={tender.id} value={tender.id}>{tender.tenderId} - {tender.title}</option>
-                  ))}
+                  <option value="all">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="rejected">Rejected</option>
                 </select>
-              )}
 
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as 'all' | BidStatus)}
-                className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:ring-2 focus:ring-[#12335f]"
-              >
-                <option value="all">All statuses</option>
-                <option value="pending">Pending</option>
-                <option value="accepted">Accepted</option>
-                <option value="rejected">Rejected</option>
-              </select>
+                <div className="h-10 w-px bg-slate-200 mx-1 hidden md:block" />
+
+                <div className="flex items-center gap-1 rounded-lg bg-[#f1f3f4] p-1 border border-[#dadce0] h-10">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    className={cn(
+                      "flex h-8 w-9 items-center justify-center rounded transition-all",
+                      viewMode === 'grid' ? "bg-white shadow-sm border border-[#dadce0] text-[#12335f]" : "text-slate-500 hover:text-slate-700"
+                    )}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    className={cn(
+                      "flex h-8 w-9 items-center justify-center rounded transition-all",
+                      viewMode === 'list' ? "bg-white shadow-sm border border-[#dadce0] text-[#12335f]" : "text-slate-500 hover:text-slate-700"
+                    )}
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -270,13 +301,84 @@ export default function Quotations() {
             hasQuotes={quotes.length > 0}
             onPrimary={() => navigate(user?.role === 'seller' ? '/seller/tenders' : '/buyer/tenders')}
           />
+        ) : viewMode === 'list' ? (
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left">
+                <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 w-12">Sr.No</th>
+                    <th className="px-4 py-3 w-24">Bid ID</th>
+                    <th className="px-4 py-3">Tender</th>
+                    <th className="px-4 py-3">Supplier</th>
+                    <th className="px-4 py-3 text-right">Rate</th>
+                    <th className="px-4 py-3 text-center">Qty</th>
+                    <th className="px-4 py-3 text-right">Net Value</th>
+                    <th className="px-4 py-3 text-center">Status</th>
+                    {user?.role === 'buyer' && <th className="px-4 py-3 text-right">Manage</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-xs">
+                  {filteredQuotes.map((quote, index) => {
+                    const StatusIcon = statusIcons[quote.status] || Clock;
+                    const totalValue = Number(quote.unitPrice || 0) * Number(quote.quantity || 0);
+                    return (
+                      <tr key={quote.id} className="hover:bg-slate-50/50 transition-colors group">
+                        <td className="px-4 py-4 font-black text-slate-400">{String(index + 1).padStart(2, '0')}</td>
+                        <td className="px-4 py-4 font-mono font-bold text-[#12335f]">
+                          BID-{String(quote.id).padStart(4, '0')}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="font-bold text-slate-800 line-clamp-1">{quote.tender?.title || '-'}</div>
+                          <div className="text-[10px] font-medium text-slate-500">{quote.tender?.tenderId} | {quote.tender?.category}</div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="font-semibold text-slate-700">{quote.seller?.sellerProfile?.businessName || quote.seller?.name || '-'}</div>
+                        </td>
+                        <td className="px-4 py-4 text-right font-semibold text-slate-600">{formatMoney(quote.unitPrice)}</td>
+                        <td className="px-4 py-4 text-center font-medium">{quote.quantity}</td>
+                        <td className="px-4 py-4 text-right font-black text-[#12335f]">
+                          <div className="flex items-center justify-end gap-1">
+                            {quote.isLowest && <Trophy className="h-3 w-3 text-amber-500" />}
+                            {formatMoney(totalValue)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <span className={cn('inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold uppercase border shadow-sm', statusStyles[quote.status])}>
+                            {quote.status}
+                          </span>
+                        </td>
+                        {user?.role === 'buyer' && (
+                          <td className="px-4 py-4 text-right">
+                            {quote.status === 'pending' ? (
+                              <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => handleStatusUpdate(quote.id, 'rejected')} className="h-7 w-7 rounded border border-red-200 bg-white flex items-center justify-center text-red-600 hover:bg-red-50">
+                                  <XCircle className="h-3.5 w-3.5" />
+                                </button>
+                                <button onClick={() => handleStatusUpdate(quote.id, 'accepted')} className="h-7 w-7 rounded border border-emerald-200 bg-white flex items-center justify-center text-emerald-600 hover:bg-emerald-50">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="text-[10px] font-bold text-slate-400">-</div>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {filteredQuotes.map(quote => (
+            {filteredQuotes.map((quote, index) => (
               <React.Fragment key={quote.id}>
                 <QuotationCard
                   quote={quote}
                   role={user?.role}
+                  index={index}
                   onAccept={() => handleStatusUpdate(quote.id, 'accepted')}
                   onReject={() => handleStatusUpdate(quote.id, 'rejected')}
                 />
@@ -307,14 +409,14 @@ function SummaryTile({
       : 'bg-blue-50 text-[#12335f]';
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
-          <p className="mt-2 text-xl font-extrabold text-slate-900">{value}</p>
+          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
+          <p className="mt-0.5 text-lg font-black text-slate-900 tracking-tight">{value}</p>
         </div>
-        <div className={cn('flex h-10 w-10 items-center justify-center rounded-md', toneClass)}>
-          <Icon className="h-5 w-5" />
+        <div className={cn('flex h-8 w-8 items-center justify-center rounded-md shrink-0', toneClass)}>
+          <Icon className="h-4 w-4" />
         </div>
       </div>
     </div>
@@ -324,11 +426,13 @@ function SummaryTile({
 function QuotationCard({
   quote,
   role,
+  index,
   onAccept,
   onReject
 }: {
   quote: Quotation;
   role?: string;
+  index: number;
   onAccept: () => void;
   onReject: () => void;
 }) {
@@ -338,7 +442,7 @@ function QuotationCard({
 
   return (
     <Card className={cn(
-      'overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:shadow-md',
+      'overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:shadow-md relative',
       quote.status === 'accepted' && 'border-emerald-300'
     )}>
       <CardContent className="p-0">
@@ -346,8 +450,11 @@ function QuotationCard({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-black text-[#12335f] bg-slate-200/70 px-1.5 py-0.5 rounded min-w-[20px] text-center">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
                 <p className="font-mono text-[11px] font-bold uppercase text-slate-500">
-                  BID-{String(quote.id).padStart(5, '0')}
+                  BID-{String(quote.id).padStart(4, '0')}
                 </p>
                 {quote.isLowest && (
                   <span className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">

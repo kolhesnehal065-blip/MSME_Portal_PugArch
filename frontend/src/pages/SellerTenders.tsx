@@ -10,7 +10,10 @@ import {
   Building2,
   ChevronRight,
   FileText,
-  BadgeInfo
+  BadgeInfo,
+  Users,
+  Calendar,
+  Paperclip
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -24,7 +27,10 @@ interface PublicTender {
   budget: number;
   status: string;
   closesAt: string;
+  createdAt?: string;
   description: string;
+  bidsCount?: number;
+  documentUrl?: string;
   buyer: {
     name: string;
     buyerProfile?: {
@@ -40,8 +46,14 @@ export default function SellerTenders() {
   const cachedTenders = api.peek('/api/tenders/public', authOptions);
   const [tenders, setTenders] = useState<PublicTender[]>(cachedTenders || []);
   const [loading, setLoading] = useState(!cachedTenders);
+  
+  // Enhanced Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [budgetRange, setBudgetRange] = useState('All');
+  const [selectedState, setSelectedState] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,20 +76,36 @@ export default function SellerTenders() {
   };
 
   const uniqueCategories = ['All', ...Array.from(new Set(tenders.map(t => t.category).filter(Boolean)))];
+  const uniqueStates = ['All', ...Array.from(new Set(tenders.map(t => t.buyer.buyerProfile?.state).filter(Boolean)))];
 
   const filteredTenders = tenders.filter(t => {
     const matchesSearch = 
       t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.tenderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.buyer.buyerProfile?.organizationName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.category.toLowerCase().includes(searchTerm.toLowerCase());
+      
     const matchesCategory = selectedCategory === 'All' || t.category === selectedCategory;
+    const matchesState = selectedState === 'All' || t.buyer.buyerProfile?.state === selectedState;
     
-    return matchesSearch && matchesCategory;
+    let matchesBudget = true;
+    if (budgetRange === 'under_10l') matchesBudget = t.budget < 1000000;
+    else if (budgetRange === '10l_50l') matchesBudget = t.budget >= 1000000 && t.budget <= 5000000;
+    else if (budgetRange === 'above_50l') matchesBudget = t.budget > 5000000;
+
+    return matchesSearch && matchesCategory && matchesState && matchesBudget;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    if (sortBy === 'budget_high') return b.budget - a.budget;
+    if (sortBy === 'budget_low') return a.budget - b.budget;
+    if (sortBy === 'deadline') return new Date(a.closesAt).getTime() - new Date(b.closesAt).getTime();
+    return 0;
   });
 
   const getDaysLeft = (date: string) => {
     const diff = new Date(date).getTime() - new Date().getTime();
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
     return days > 0 ? `${days}d` : 'Closing soon';
   };
 
@@ -106,30 +134,59 @@ export default function SellerTenders() {
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-            <div className="relative w-full sm:w-64">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto lg:flex-nowrap justify-end">
+            <div className="relative flex-1 min-w-[200px] max-w-full lg:w-64">
               <Search className="absolute inset-y-0 left-3 flex items-center h-full w-3.5 text-slate-400 pointer-events-none" />
               <input 
                 type="text" 
-                placeholder="Search tenders..." 
+                placeholder="Search keyword, ID or company..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-9 bg-white border border-slate-200 rounded-lg pl-9 pr-3 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500/30 outline-none shadow-sm"
               />
             </div>
 
-            <div className="relative w-full sm:w-48">
-              <Filter className="absolute inset-y-0 left-3 flex items-center h-full w-3.5 text-slate-400 pointer-events-none" />
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full h-9 bg-white border border-slate-200 rounded-lg pl-9 pr-3 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500/30 outline-none shadow-sm appearance-none"
-              >
-                {uniqueCategories.map(cat => (
-                  <option key={cat} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-1 focus:ring-indigo-500/30 outline-none shadow-sm min-w-[110px] cursor-pointer"
+            >
+              <option value="All">All Sectors</option>
+              {uniqueCategories.filter(c => c !== 'All').map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
+
+            <select
+              value={budgetRange}
+              onChange={(e) => setBudgetRange(e.target.value)}
+              className="h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-1 focus:ring-indigo-500/30 outline-none shadow-sm min-w-[110px] cursor-pointer"
+            >
+              <option value="All">All Budgets</option>
+              <option value="under_10l">Under 10 Lakh</option>
+              <option value="10l_50l">10L - 50L</option>
+              <option value="above_50l">Above 50L</option>
+            </select>
+
+            <select
+              value={selectedState}
+              onChange={(e) => setSelectedState(e.target.value)}
+              className="h-9 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-1 focus:ring-indigo-500/30 outline-none shadow-sm min-w-[100px] cursor-pointer"
+            >
+              <option value="All">All Locations</option>
+              {uniqueStates.filter(s => s !== 'All').map(st => <option key={st} value={st}>{st}</option>)}
+            </select>
+
+            <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="h-9 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-black uppercase text-slate-600 hover:bg-slate-100 focus:ring-1 focus:ring-indigo-500/30 outline-none shadow-sm cursor-pointer tracking-wide"
+            >
+              <option value="newest">Newest Posted</option>
+              <option value="deadline">Expiring Soonest</option>
+              <option value="budget_high">Budget (High to Low)</option>
+              <option value="budget_low">Budget (Low to High)</option>
+            </select>
           </div>
         </div>
 
@@ -159,6 +216,16 @@ export default function SellerTenders() {
                         <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border border-indigo-100 uppercase">
                           {tender.category}
                         </span>
+                        {tender.documentUrl && (
+                          <span className="flex items-center gap-1 text-[9px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100 uppercase">
+                            <Paperclip className="h-2.5 w-2.5" /> Specs
+                          </span>
+                        )}
+                        {(tender.bidsCount ?? 0) > 0 && (
+                          <span className="flex items-center gap-1 text-[9px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100 uppercase">
+                            <Users className="h-2.5 w-2.5" /> {tender.bidsCount} {tender.bidsCount === 1 ? 'Bid' : 'Bids'}
+                          </span>
+                        )}
                         <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 ml-auto md:ml-0">
                           <Clock className="h-3 w-3" />
                           {getDaysLeft(tender.closesAt)}
@@ -189,6 +256,19 @@ export default function SellerTenders() {
                             {tender.buyer.buyerProfile?.city}, {tender.buyer.buyerProfile?.state}
                           </p>
                         </div>
+                        {tender.createdAt && (
+                          <div className="flex items-center gap-2 border-l border-slate-200 pl-6 hidden sm:flex">
+                            <div className="h-7 w-7 rounded bg-slate-100 flex items-center justify-center shrink-0">
+                              <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black text-slate-400 uppercase">Posted On</p>
+                              <p className="text-[10px] font-bold text-slate-600">
+                                {new Date(tender.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 

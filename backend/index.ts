@@ -461,7 +461,7 @@ async function startServer() {
   });
 
   // GST Verification Utility
-  app.get('/api/utils/gst-verify/:gstin', authenticate, async (req, res) => {
+  app.get('/api/utils/gst-verify/:gstin', async (req, res) => {
     const rawGstin = String(req.params.gstin || '');
     const gstin = rawGstin.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!/^[0-9]{2}[A-Z0-9]{10}[0-9A-Z]{1}[Zz]{1}[0-9A-Z]{1}$/.test(gstin)) {
@@ -716,7 +716,7 @@ async function startServer() {
       }
 
       const tenderId = `T-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-      const { title, category, budget, description } = req.body;
+      const { title, category, budget, description, documentUrl } = req.body;
 
       const tender = await prisma.tender.create({
         data: {
@@ -724,6 +724,7 @@ async function startServer() {
           category,
           budget: Number(budget),
           description,
+          documentUrl,
           buyerId: Number(req.user.id),
           tenderId,
           closesAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
@@ -1566,7 +1567,7 @@ async function startServer() {
   // --- Quote Request APIs ---
   app.post('/api/quotes', authenticate, authorize('buyer'), async (req: AuthRequest, res) => {
     try {
-      const { sellerId, subject, message } = req.body;
+      const { sellerId, subject, message, documentUrl } = req.body;
       const buyerId = Number(req.user?.id);
 
       if (req.user?.role !== 'buyer') {
@@ -1579,6 +1580,7 @@ async function startServer() {
           sellerId: Number(sellerId),
           subject,
           message,
+          documentUrl,
           status: 'pending'
         },
         include: { buyer: true }

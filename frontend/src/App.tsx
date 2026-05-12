@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import SellerOnboarding from './pages/SellerOnboarding';
 import BuyerOnboarding from './pages/BuyerOnboarding';
 import AdminOnboarding from './pages/AdminOnboarding';
+import AdminOperations from './pages/AdminOperations';
 import SellerRegistrationFlow from './pages/SellerRegistrationFlow';
 import BuyerRegistrationFlow from './pages/BuyerRegistrationFlow';
 import BuyerProfile from './pages/BuyerProfile';
@@ -41,9 +42,26 @@ function AppRoutes() {
   const { user } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  
+  const visualCollapsed = isSidebarCollapsed && !isSidebarHovered;
+  
   const fixedAuthRoutes = ['/', '/login', '/seller/register', '/buyer/register', '/admin/register'];
   const isFixedAuthRoute = !user && fixedAuthRoutes.includes(location.pathname);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setIsSidebarCollapsed(false); // reset on mobile
+      } else if (window.innerWidth < 1280) {
+        setIsSidebarCollapsed(true); // collapse implicitly on medium desktops
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <div className="flex min-h-dvh bg-slate-50 font-sans text-slate-900">
@@ -52,10 +70,11 @@ function AppRoutes() {
         onClose={() => setIsSidebarOpen(false)}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+        onHoverChange={setIsSidebarHovered}
       />
       <div className={cn(
         "flex-1 flex flex-col min-w-0 transition-all duration-300",
-        user && (isSidebarCollapsed ? "lg:pl-20" : "lg:pl-64")
+        user && (visualCollapsed ? "lg:pl-20" : "lg:pl-64")
       )}>
         <Header
           onMenuClick={() => setIsSidebarOpen(true)}
@@ -154,6 +173,24 @@ function AppRoutes() {
             <Route path="/admin/onboarding" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminOnboarding />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/procurement" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminOperations section="procurement" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/compliance" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminOperations section="compliance" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/reports" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminOperations section="reports" />
               </ProtectedRoute>
             } />
             

@@ -1,32 +1,36 @@
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { 
-  ShoppingCart, 
-  Search, 
-  Filter, 
-  FileText, 
-  Truck, 
-  CheckCircle2, 
-  XCircle, 
-  Clock,
+import {
   ArrowUpRight,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
   Download,
-  Eye,
-  MoreVertical,
-  ChevronRight
+  Filter,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Truck,
+  X,
+  XCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
-import { createPortal } from 'react-dom';
 
 interface PurchaseOrder {
   id: string;
   vendorName: string;
   itemDescription: string;
+  category: string;
   value: number;
   expectedDate: string;
   status: 'In transit' | 'Pending approval' | 'Out for delivery' | 'Delivered' | 'Cancelled';
+  department: string;
+  paymentMode: string;
+  consignee: string;
 }
 
 const SAMPLE_ORDERS: PurchaseOrder[] = [
@@ -34,337 +38,413 @@ const SAMPLE_ORDERS: PurchaseOrder[] = [
     id: 'PO-2026-0091',
     vendorName: 'Bharat Office Solutions',
     itemDescription: 'Supply of 500 ergonomic office chairs',
+    category: 'Office Furniture',
     value: 2400000,
-    expectedDate: '14 May',
-    status: 'In transit'
+    expectedDate: '14 May 2026',
+    status: 'In transit',
+    department: 'Administration',
+    paymentMode: 'PFMS',
+    consignee: 'Regional Office, Pune'
   },
   {
     id: 'PO-2026-0089',
     vendorName: 'Green Earth Catering',
-    itemDescription: 'Quarterly catering services — HQ campus',
+    itemDescription: 'Quarterly catering services - HQ campus',
+    category: 'Facility Services',
     value: 4200000,
-    expectedDate: '11 May',
-    status: 'Pending approval'
+    expectedDate: '11 May 2026',
+    status: 'Pending approval',
+    department: 'General Services',
+    paymentMode: 'Treasury',
+    consignee: 'Head Office Campus'
   },
   {
     id: 'PO-2026-0088',
     vendorName: 'Heritage Furniture Co.',
-    itemDescription: 'Modular workstations — Phase II',
+    itemDescription: 'Modular workstations - Phase II',
+    category: 'Workspace',
     value: 11400000,
-    expectedDate: '5 May',
-    status: 'Out for delivery'
+    expectedDate: '5 May 2026',
+    status: 'Out for delivery',
+    department: 'Infrastructure',
+    paymentMode: 'PFMS',
+    consignee: 'Procurement Store, Mumbai'
+  },
+  {
+    id: 'PO-2026-0085',
+    vendorName: 'Narmada IT Systems',
+    itemDescription: 'Network switches and installation support',
+    category: 'IT Equipment',
+    value: 18000000,
+    expectedDate: '1 May 2026',
+    status: 'Delivered',
+    department: 'Information Technology',
+    paymentMode: 'PFMS',
+    consignee: 'Data Centre, Delhi'
   }
 ];
+
+const formatCurrency = (value: number) => new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0
+}).format(value);
+
+const openStatuses = ['In transit', 'Pending approval', 'Out for delivery'];
 
 export default function PurchaseOrders() {
   const [orders, setOrders] = useState<PurchaseOrder[]>(SAMPLE_ORDERS);
   const [activeTab, setActiveTab] = useState<'Open' | 'Delivered' | 'Cancelled' | 'All'>('Open');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [trackingOrder, setTrackingOrder] = useState<PurchaseOrder | null>(null);
+
+  const categories = useMemo(() => Array.from(new Set(orders.map(order => order.category))), [orders]);
+  const paymentModes = useMemo(() => Array.from(new Set(orders.map(order => order.paymentMode))), [orders]);
+
+  const toggleSort = (key: string) => {
+    const directionMap: Record<string, string> = {
+      id: 'newest',
+      vendor: 'vendor',
+      value: sortBy === 'value_high' ? 'value_low' : 'value_high',
+      expected: 'expected',
+      status: 'status',
+      department: 'department'
+    };
+    setSortBy(directionMap[key] || 'newest');
+  };
+
+  const SortHeader = ({ label, sortKey, className = '' }: { label: string; sortKey: string; className?: string }) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(sortKey)}
+      className={cn("inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-[#12335f]", className)}
+    >
+      {label}
+      <span className="text-[9px] text-slate-400">SORT</span>
+    </button>
+  );
+
+  const filteredOrders = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return orders.filter(order => {
+      const matchesTab =
+        activeTab === 'All' ||
+        (activeTab === 'Open' && openStatuses.includes(order.status)) ||
+        order.status === activeTab;
+      const matchesSearch = !term ||
+        order.id.toLowerCase().includes(term) ||
+        order.vendorName.toLowerCase().includes(term) ||
+        order.itemDescription.toLowerCase().includes(term) ||
+        order.department.toLowerCase().includes(term);
+      const matchesCategory = categoryFilter === 'all' || order.category === categoryFilter;
+      const matchesPayment = paymentFilter === 'all' || order.paymentMode === paymentFilter;
+      return matchesTab && matchesSearch && matchesCategory && matchesPayment;
+    }).sort((a, b) => {
+      if (sortBy === 'value_high') return b.value - a.value;
+      if (sortBy === 'value_low') return a.value - b.value;
+      if (sortBy === 'vendor') return a.vendorName.localeCompare(b.vendorName);
+      if (sortBy === 'department') return a.department.localeCompare(b.department);
+      if (sortBy === 'status') return a.status.localeCompare(b.status);
+      if (sortBy === 'expected') return new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime();
+      return b.id.localeCompare(a.id);
+    });
+  }, [activeTab, categoryFilter, orders, paymentFilter, searchTerm, sortBy]);
+
+  const openCount = orders.filter(order => openStatuses.includes(order.status)).length;
+  const deliveredCount = orders.filter(order => order.status === 'Delivered').length;
+  const pendingCount = orders.filter(order => order.status === 'Pending approval').length;
+  const totalSpend = orders.filter(order => order.status !== 'Cancelled').reduce((sum, order) => sum + order.value, 0);
 
   const handleApprove = (id: string) => {
-    toast.success(`Purchase Order ${id} approved.`);
-    setOrders(orders.map(o => o.id === id ? { ...o, status: 'In transit' } : o));
+    setOrders(current => current.map(order => order.id === id ? { ...order, status: 'In transit' } : order));
+    toast.success(`${id} approved and released for fulfilment.`);
+  };
+
+  const handleCancel = (id: string) => {
+    setOrders(current => current.map(order => order.id === id ? { ...order, status: 'Cancelled' } : order));
+    toast.success(`${id} cancelled.`);
   };
 
   const handleDownloadPDF = (order: PurchaseOrder) => {
-    toast.info(`Generating PDF for ${order.id}...`);
-    
-    // Create a temporary container for the print template
-    const printContainer = document.createElement('div');
-    printContainer.id = 'po-print-container';
-    document.body.appendChild(printContainer);
+    const doc = new jsPDF();
+    doc.setFillColor(18, 51, 95);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.text('PURCHASE ORDER', 14, 18);
+    doc.setFontSize(10);
+    doc.text(order.id, 165, 18);
 
-    const root = (window as any).createRoot ? (window as any).createRoot(printContainer) : null;
-    
-    // Since we are in a React environment, we can use a simpler approach:
-    // We'll add a hidden component to the page and use a media query to show it only on print.
-    window.print();
-    
-    document.body.removeChild(printContainer);
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(11);
+    doc.text(`Vendor: ${order.vendorName}`, 14, 45);
+    doc.text(`Department: ${order.department}`, 14, 53);
+    doc.text(`Consignee: ${order.consignee}`, 14, 61);
+    doc.text(`Expected Delivery: ${order.expectedDate}`, 120, 45);
+    doc.text(`Payment Mode: ${order.paymentMode}`, 120, 53);
+    doc.text(`Status: ${order.status}`, 120, 61);
+
+    autoTable(doc, {
+      startY: 75,
+      head: [['Sr. No.', 'Description', 'Category', 'Value']],
+      body: [[1, order.itemDescription, order.category, formatCurrency(order.value)]],
+      foot: [['', '', 'Grand Total', formatCurrency(order.value)]],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [18, 51, 95] },
+      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] }
+    });
+
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text('System generated document for MSME Portal procurement workflow.', 14, 285);
+    doc.save(`${order.id}.pdf`);
+    toast.success(`Downloaded ${order.id}.pdf`);
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('all');
+    setPaymentFilter('all');
+    setSortBy('newest');
+    setActiveTab('Open');
   };
 
   const stats = [
-    { label: 'OPEN POS', value: '3', icon: Clock, color: 'text-amber-500' },
-    { label: 'DELIVERED', value: '1', icon: CheckCircle2, color: 'text-teal-500' },
-    { label: 'TOTAL SPEND', value: '₹3,60,00,000', icon: ArrowUpRight, color: 'text-indigo-500' },
+    { label: 'Open POs', value: openCount, hint: `${pendingCount} awaiting approval`, icon: Clock, tab: 'Open' as const },
+    { label: 'Delivered', value: deliveredCount, hint: 'Completed fulfilment', icon: CheckCircle2, tab: 'Delivered' as const },
+    { label: 'Total Spend', value: formatCurrency(totalSpend), hint: 'Excluding cancelled POs', icon: ArrowUpRight, tab: 'All' as const },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+    <div className="min-h-[calc(100vh-56px)] bg-slate-50 px-3 py-4 text-slate-900 sm:px-4 md:px-5">
+      <div className="mx-auto max-w-7xl space-y-4">
+        <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 md:flex-row md:items-end md:justify-between">
           <div className="space-y-1">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Procurement</p>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Purchase Orders</h1>
-            <p className="text-sm text-slate-500 font-medium">
-              Once a quotation is accepted, a draft PO is created here for approval and fulfilment.
+          
+            <h1 className="text-2xl font-black tracking-tight text-slate-950">Purchase Orders</h1>
+            <p className="max-w-2xl text-xs font-semibold text-slate-500">
+              Monitor approved quotations, PO release, delivery status, and procurement spend from one compact register.
             </p>
           </div>
+        
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-10">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {stats.map((stat) => (
-            <Card key={stat.label} className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-5 sm:p-8 flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                  <p className="text-2xl font-black text-slate-900">{stat.value}</p>
-                </div>
-                <div className={cn("p-4 rounded-2xl bg-slate-50", stat.color)}>
-                  <stat.icon className="h-6 w-6" />
-                </div>
-              </CardContent>
-            </Card>
+            <button key={stat.label} type="button" onClick={() => setActiveTab(stat.tab)} className="text-left">
+              <Card className={cn(
+                "rounded-xl border-slate-200 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                activeTab === stat.tab && "border-[#12335f] ring-1 ring-[#12335f]/10"
+              )}>
+                <CardContent className="flex items-center justify-between p-4">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{stat.label}</p>
+                    <p className="mt-1 text-xl font-black text-slate-950">{stat.value}</p>
+                    <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{stat.hint}</p>
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#12335f] text-white">
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            </button>
           ))}
         </div>
 
-        {/* Filters & Tabs */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
-          <div className="flex items-center gap-2 bg-slate-100/50 p-1.5 rounded-xl w-full md:w-fit">
-            {['Open', 'Delivered', 'Cancelled', 'All'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab as any)}
-                className={cn(
-                  "flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all",
-                  activeTab === tab 
-                    ? "bg-white text-slate-900 shadow-sm border border-slate-200" 
-                    : "text-slate-500 hover:text-slate-700"
-                )}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+        <Card className="rounded-xl border-slate-200 shadow-sm">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center gap-2 text-[#12335f]">
+              <Filter className="h-4 w-4" />
+              <p className="text-[10px] font-black uppercase tracking-widest">PO Register Filters</p>
+              <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-slate-400">{filteredOrders.length} records</span>
+            </div>
 
-          <div className="relative w-full md:w-64">
-            <Search className="absolute inset-y-0 left-3 flex items-center h-full w-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search POs, vendors..." 
-              className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
-            />
-          </div>
-        </div>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(240px,1fr)_180px_160px_160px_auto]">
+              <div className="relative">
+                <Search className="absolute inset-y-0 left-3 h-full w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search PO, vendor, item, department..."
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-xs font-semibold outline-none transition-all focus:ring-2 focus:ring-[#12335f]/20"
+                />
+              </div>
+              <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-[10px] font-black uppercase tracking-wide text-slate-600 outline-none">
+                <option value="all">All Categories</option>
+                {categories.map(category => <option key={category} value={category}>{category}</option>)}
+              </select>
+              <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-[10px] font-black uppercase tracking-wide text-slate-600 outline-none">
+                <option value="all">All Payments</option>
+                {paymentModes.map(mode => <option key={mode} value={mode}>{mode}</option>)}
+              </select>
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-[10px] font-black uppercase tracking-wide text-slate-600 outline-none">
+                <option value="newest">Newest PO</option>
+                <option value="value_high">Value High</option>
+                <option value="value_low">Value Low</option>
+                <option value="vendor">Vendor A-Z</option>
+              </select>
+              <Button variant="outline" onClick={resetFilters} className="h-10 rounded-lg border-slate-200 text-[10px] font-black uppercase tracking-wide text-slate-600">
+                <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                Reset
+              </Button>
+            </div>
 
-        {/* PO Table */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[900px]">
-            <thead>
-              <tr className="border-b border-slate-50 bg-slate-50/50">
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">PO #</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendor / Item</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Value</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Expected</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {orders.map((order) => (
-                <tr key={order.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-8 py-6 text-xs font-mono text-slate-400">{order.id}</td>
-                  <td className="px-8 py-6">
-                    <div className="space-y-1">
-                      <p className="text-sm font-bold text-slate-900">{order.vendorName}</p>
-                      <p className="text-[10px] font-semibold text-slate-500">{order.itemDescription}</p>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-sm font-black text-slate-900 text-right">₹{order.value.toLocaleString()}</td>
-                  <td className="px-8 py-6 text-sm font-semibold text-slate-500">{order.expectedDate}</td>
-                  <td className="px-8 py-6">
-                    <div className="flex justify-center">
-                      <span className={cn(
-                        "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border",
-                        order.status === 'In transit' ? "bg-[#E6F3F2] text-[#008080] border-[#CCE7E6]" :
-                        order.status === 'Pending approval' ? "bg-[#FFF8E6] text-[#B28900] border-[#FFEBB3]" :
-                        order.status === 'Out for delivery' ? "bg-[#E6F3F2] text-[#008080] border-[#CCE7E6]" :
-                        "bg-slate-50 text-slate-500 border-slate-100"
-                      )}>
-                        {order.status}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center justify-end gap-2">
-                      {order.status === 'Pending approval' ? (
-                        <>
-                          <Button 
-                            onClick={() => handleApprove(order.id)}
-                            className="bg-[#008080] hover:bg-[#006666] text-white text-[10px] font-black uppercase tracking-wider h-9 px-6 rounded-xl"
-                          >
+            <div className="flex flex-wrap gap-2 pt-1">
+              {(['Open', 'Delivered', 'Cancelled', 'All'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    "rounded-lg px-4 py-2 text-[10px] font-black uppercase tracking-wide transition-all",
+                    activeTab === tab ? "bg-[#12335f] text-white shadow-sm" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  )}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="w-full overflow-x-hidden">
+            <table className="w-full table-fixed border-collapse text-left">
+              <colgroup>
+                <col className="w-[8%]" />
+                <col className="w-[13%]" />
+                <col className="w-[22%]" />
+                <col className="w-[15%]" />
+                <col className="w-[12%]" />
+                <col className="w-[11%]" />
+                <col className="w-[11%]" />
+                <col className="w-[18%]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-[#f8fafc]">
+                  <th className="break-words px-3 py-3 text-[10px] font-black uppercase tracking-wider text-slate-400 sm:px-4">Sr. No.</th>
+                  <th className="break-words px-3 py-3 sm:px-4"><SortHeader label="PO No." sortKey="id" /></th>
+                  <th className="break-words px-3 py-3 sm:px-4"><SortHeader label="Vendor / Item" sortKey="vendor" /></th>
+                  <th className="break-words px-3 py-3 sm:px-4"><SortHeader label="Department" sortKey="department" /></th>
+                  <th className="break-words px-3 py-3 sm:px-4"><SortHeader label="Value" sortKey="value" /></th>
+                  <th className="break-words px-3 py-3 sm:px-4"><SortHeader label="Expected" sortKey="expected" /></th>
+                  <th className="break-words px-3 py-3 text-center sm:px-4"><SortHeader label="Status" sortKey="status" /></th>
+                  <th className="break-words px-3 py-3 text-right text-[10px] font-black uppercase tracking-wider text-slate-400 sm:px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-12 text-center text-sm font-bold text-slate-400">
+                      No purchase orders match the selected filters.
+                    </td>
+                  </tr>
+                ) : filteredOrders.map((order, index) => (
+                  <tr key={order.id} className="transition-colors hover:bg-slate-50/80">
+                    <td className="break-words px-3 py-4 font-mono text-xs font-black text-slate-400 sm:px-4">{String(index + 1).padStart(2, '0')}</td>
+                    <td className="break-words px-3 py-4 font-mono text-[11px] font-bold text-[#12335f] sm:px-4">{order.id}</td>
+                    <td className="min-w-0 px-3 py-4 sm:px-4">
+                      <p className="break-words text-sm font-black leading-snug text-slate-900">{order.vendorName}</p>
+                      <p className="mt-1 break-words text-[10px] font-semibold leading-snug text-slate-500">{order.itemDescription}</p>
+                      <p className="mt-1 break-words text-[9px] font-black uppercase tracking-wide text-slate-400">{order.category}</p>
+                    </td>
+                    <td className="min-w-0 px-3 py-4 sm:px-4">
+                      <p className="break-words text-xs font-bold leading-snug text-slate-700">{order.department}</p>
+                      <p className="mt-1 break-words text-[10px] font-bold uppercase tracking-wide text-slate-400">{order.paymentMode}</p>
+                    </td>
+                    <td className="break-words px-3 py-4 text-xs font-black leading-snug text-slate-900 sm:px-4">{formatCurrency(order.value)}</td>
+                    <td className="break-words px-3 py-4 text-xs font-bold leading-snug text-slate-500 sm:px-4">{order.expectedDate}</td>
+                    <td className="px-3 py-4 text-center sm:px-4">
+                      <StatusPill status={order.status} />
+                    </td>
+                    <td className="px-3 py-4 sm:px-4">
+                      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                        {order.status === 'Pending approval' && (
+                          <Button onClick={() => handleApprove(order.id)} className="h-auto min-h-8 whitespace-normal rounded-lg bg-[#008080] px-3 py-2 text-[10px] font-black uppercase tracking-wide text-white hover:bg-[#006b6b]">
+                            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
                             Approve
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            className="border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider h-9 px-4 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2"
-                            onClick={() => handleDownloadPDF(order)}
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                            PDF
+                        )}
+                        {order.status !== 'Pending approval' && order.status !== 'Cancelled' && (
+                          <Button variant="outline" onClick={() => setTrackingOrder(order)} className="h-auto min-h-8 whitespace-normal rounded-lg border-slate-200 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-slate-600">
+                            <Truck className="mr-1.5 h-3.5 w-3.5" />
+                            Track
+                            <ChevronRight className="ml-1 h-3 w-3" />
                           </Button>
-                          <Button variant="outline" className="border-slate-200 text-red-500 text-[10px] font-black uppercase tracking-wider h-9 px-4 rounded-xl hover:bg-red-50 hover:border-red-100 transition-all flex items-center gap-2">
-                            <XCircle className="h-3.5 w-3.5" />
+                        )}
+                        <Button variant="outline" onClick={() => handleDownloadPDF(order)} className="h-auto min-h-8 whitespace-normal rounded-lg border-slate-200 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-slate-600">
+                          <Download className="mr-1.5 h-3.5 w-3.5" />
+                          PDF
+                        </Button>
+                        {order.status !== 'Cancelled' && order.status !== 'Delivered' && (
+                          <Button variant="outline" onClick={() => handleCancel(order.id)} className="h-auto min-h-8 whitespace-normal rounded-lg border-red-100 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-red-600 hover:bg-red-50">
+                            <XCircle className="mr-1.5 h-3.5 w-3.5" />
                             Cancel
                           </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button variant="outline" className="border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider h-9 px-4 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 group/btn">
-                            <Truck className="h-4 w-4 text-slate-400 group-hover/btn:text-indigo-600 transition-colors" />
-                            Track
-                            <ChevronRight className="h-3.5 w-3.5 ml-1 opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            className="border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider h-9 px-4 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2"
-                            onClick={() => handleDownloadPDF(order)}
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                            PDF
-                          </Button>
-                        </>
-                      )}
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {trackingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between bg-[#12335f] px-5 py-4 text-white">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-100">Fulfilment Tracking</p>
+                <h2 className="text-base font-black">{trackingOrder.id}</h2>
+              </div>
+              <button onClick={() => setTrackingOrder(null)} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-5 p-5">
+              <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                <p className="text-sm font-black text-slate-900">{trackingOrder.vendorName}</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">{trackingOrder.itemDescription}</p>
+                <p className="mt-2 text-[10px] font-black uppercase tracking-wide text-[#12335f]">Consignee: {trackingOrder.consignee}</p>
+              </div>
+              <div className="space-y-3">
+                {['PO issued', 'Vendor acknowledged', trackingOrder.status === 'Delivered' ? 'Delivered' : trackingOrder.status, `Expected: ${trackingOrder.expectedDate}`].map((step, index) => (
+                  <div key={step} className="flex items-center gap-3">
+                    <div className={cn("flex h-8 w-8 items-center justify-center rounded-full border text-[10px] font-black", index < 3 ? "border-[#12335f] bg-[#12335f] text-white" : "border-slate-200 bg-white text-slate-400")}>
+                      {index + 1}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* GeM Style PO Print Template - Hidden by default, shown only on print */}
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #po-print-template, #po-print-template * {
-            visibility: visible;
-          }
-          #po-print-template {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            background: white;
-          }
-          @page {
-            size: A4;
-            margin: 0;
-          }
-        }
-      `}</style>
-      
-      <div id="po-print-template" className="hidden print:block p-0 m-0 font-sans text-slate-900 bg-white min-h-screen">
-        {/* Header */}
-        <div className="bg-[#004d40] text-white p-12 flex justify-between items-start">
-           <div className="space-y-1">
-              <h1 className="text-4xl font-bold tracking-tight">PURCHASE ORDER</h1>
-              <p className="text-sm font-medium opacity-80">Buyer Portal</p>
-           </div>
-           <div className="text-right space-y-1">
-              <p className="text-xl font-bold">PO-2026-0088</p>
-              <p className="text-sm opacity-80">Issued 10 April 2026</p>
-           </div>
-        </div>
-
-        <div className="p-12 space-y-12">
-           {/* Details Grid */}
-           <div className="grid grid-cols-2 gap-12">
-              <div className="space-y-4">
-                 <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">VENDOR</p>
-                    <p className="text-lg font-bold">Heritage Furniture Co.</p>
-                 </div>
-                 <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">STATUS</p>
-                    <p className="text-sm font-bold text-emerald-600">Out for delivery</p>
-                 </div>
+                    <div>
+                      <p className="text-xs font-black text-slate-800">{step}</p>
+                      <p className="text-[10px] font-semibold text-slate-400">Procurement fulfilment log</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="space-y-4">
-                 <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">SHIP TO</p>
-                    <p className="text-sm font-bold">Regional Office, Pune 411001</p>
-                 </div>
-                 <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">EXPECTED DELIVERY</p>
-                    <p className="text-sm font-bold">5 May 2026</p>
-                 </div>
-              </div>
-           </div>
-
-           {/* Items Table */}
-           <div className="overflow-hidden rounded-lg border border-slate-200">
-              <table className="w-full text-left border-collapse">
-                 <thead className="bg-[#004d40] text-white">
-                    <tr>
-                       <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest w-12">#</th>
-                       <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Description</th>
-                       <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Category</th>
-                       <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-right">Qty</th>
-                       <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-right">Total</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-slate-100">
-                    <tr className="bg-slate-50/30">
-                       <td className="px-6 py-5 text-sm font-bold text-slate-400">1</td>
-                       <td className="px-6 py-5 text-sm font-bold">Modular workstations — Phase II</td>
-                       <td className="px-6 py-5 text-sm font-medium text-slate-500">Furniture</td>
-                       <td className="px-6 py-5 text-sm font-bold text-right">240</td>
-                       <td className="px-6 py-5 text-sm font-black text-right">₹ 1,14,00,000</td>
-                    </tr>
-                 </tbody>
-                 <tfoot>
-                    <tr className="bg-white">
-                       <td colSpan={4} className="px-6 py-6 text-right text-lg font-bold">Grand Total</td>
-                       <td className="px-6 py-6 text-right text-xl font-black">₹ 1,14,00,000</td>
-                    </tr>
-                 </tfoot>
-              </table>
-           </div>
-
-           {/* Tracking History */}
-           <div className="space-y-4">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tracking History</h3>
-              <div className="overflow-hidden rounded-lg border border-slate-100">
-                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-slate-50">
-                       <tr>
-                          <th className="px-6 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest">Date</th>
-                          <th className="px-6 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                          <th className="px-6 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest">Location</th>
-                          <th className="px-6 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest">Note</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50 text-[11px]">
-                       {[
-                          { date: '10 Apr, 07:03 am', status: 'Order placed', loc: 'Jaipur, RJ', note: '-' },
-                          { date: '18 Apr, 07:03 am', status: 'Manufacturing', loc: 'Jaipur, RJ', note: '-' },
-                          { date: '6 May, 07:03 am', status: 'Dispatched', loc: 'Jaipur hub', note: '-' },
-                          { date: '9 May, 11:03 pm', status: 'Arrived at destination hub', loc: 'Pune hub', note: '-' },
-                          { date: '10 May, 06:03 am', status: 'Out for delivery', loc: 'Pune, MH', note: 'Driver: Ramesh · +91 90000 12345' }
-                       ].map((step, i) => (
-                          <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/30"}>
-                             <td className="px-6 py-3 font-medium text-slate-500">{step.date}</td>
-                             <td className="px-6 py-3 font-bold text-slate-700">{step.status}</td>
-                             <td className="px-6 py-3 font-medium text-slate-500">{step.loc}</td>
-                             <td className="px-6 py-3  text-slate-400">{step.note}</td>
-                          </tr>
-                       ))}
-                    </tbody>
-                 </table>
-              </div>
-           </div>
+            </div>
+          </div>
         </div>
-        
-        {/* Footer */}
-        <div className="mt-20 px-12 pb-12 text-center">
-           <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest ">This is a system generated document. No signature required.</p>
-        </div>
-      </div>
+      )}
     </div>
+  );
+}
+
+function StatusPill({ status }: { status: PurchaseOrder['status'] }) {
+  return (
+    <span className={cn(
+      "inline-flex rounded-lg border px-3 py-1 text-[10px] font-black uppercase tracking-wide",
+      status === 'Delivered' && "border-green-200 bg-green-50 text-green-700",
+      status === 'Cancelled' && "border-red-200 bg-red-50 text-red-700",
+      status === 'Pending approval' && "border-amber-200 bg-amber-50 text-amber-700",
+      (status === 'In transit' || status === 'Out for delivery') && "border-teal-200 bg-teal-50 text-teal-700"
+    )}>
+      {status}
+    </span>
   );
 }
