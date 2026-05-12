@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node ./static-dev.cjs",
-    "build": "vite build",
+    "build": "vite build --configLoader runner",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
