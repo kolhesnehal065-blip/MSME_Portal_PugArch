@@ -32,12 +32,12 @@ const getBuyerRequiredDocs = (selectedType: string) => [
     id: 'active-email',
     content: selectedType === 'Primary User (Co-operative)' ? (
       <>
-        Active Email Id:- Use E-mail ID, Company/ organisation E-mail ID and ID from whitelisted domains to verify the OTP. To view list of whitelisted domains (Accepted by GeM),{' '}
+        Active Email Id:- Use E-mail ID, Company/ organisation E-mail ID and ID from whitelisted domains to verify the OTP. To view list of whitelisted domains (Accepted by MSME Portal),{' '}
         <button type="button" className="font-bold text-indigo-600 hover:underline">Click Here</button>
       </>
     ) : (
       <>
-        Government email id - preferably designation based. To view list of whitelisted domains (accepted at GeM),{' '}
+        Government email id - preferably designation based. To view list of whitelisted domains (accepted at MSME Portal),{' '}
         <button type="button" className="font-bold text-indigo-600 hover:underline">Click Here</button>
       </>
     ),

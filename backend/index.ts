@@ -980,6 +980,24 @@ async function startServer() {
     }
   });
 
+  app.get('/api/auth/mobile-exists', async (req, res) => {
+    try {
+      const mobile = String(req.query.mobile || '').trim();
+      if (!/^[6-9]\d{9}$/.test(mobile) || /^(\d)\1{9}$/.test(mobile)) {
+        return res.status(400).json({ message: 'Enter a valid 10 digit Indian mobile number' });
+      }
+
+      const existingUser = await prisma.user.findFirst({
+        where: { mobile },
+        select: { id: true }
+      });
+
+      res.json({ exists: Boolean(existingUser) });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post('/api/auth/register', async (req, res) => {
     try {
       const { password, role, registrationDetails, mobile, dob } = req.body;

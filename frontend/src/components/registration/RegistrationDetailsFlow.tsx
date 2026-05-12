@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -168,6 +168,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
   const [simulatedAadhaarOtp, setSimulatedAadhaarOtp] = useState('');
   const [aadhaarConsent, setAadhaarConsent] = useState(false);
   const [isPanVerified, setIsPanVerified] = useState(false);
+  const [mobileAvailability, setMobileAvailability] = useState<'idle' | 'checking' | 'available' | 'exists'>('idle');
 
   const [emailOtp, setEmailOtp] = useState('');
   const [isEmailVerified, setIsEmailVerified] = useState(false);
@@ -256,9 +257,60 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
   const isAadhaarReady = isAadhaarOrVidValid && isMobileValid && aadhaarConsent;
   const isPanReady = panNumberValid && panNameValid && dobValid;
   const maskedAadhaar = isAadhaarOrVidValid ? `${'X'.repeat(aadhaarValue.length - 4).replace(/(.{4})/g, '$1 ').trim()} ${aadhaarValue.slice(-4)}` : '';
+  const mobileAlreadyRegistered = mobileAvailability === 'exists';
+
+  useEffect(() => {
+    if (!mobileValue || !isMobileValid) {
+      setMobileAvailability('idle');
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setMobileAvailability('checking');
+      try {
+        const response = await api.fetch(`/api/auth/mobile-exists?mobile=${encodeURIComponent(mobileValue)}`, {
+          skipCache: true
+        });
+        if (cancelled) return;
+        if (response.ok) {
+          const data = await response.json();
+          setMobileAvailability(data.exists ? 'exists' : 'available');
+        } else {
+          setMobileAvailability('idle');
+        }
+      } catch {
+        if (!cancelled) setMobileAvailability('idle');
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [isMobileValid, mobileValue]);
+
+  const handleAadhaarFieldChange = (patch: Partial<typeof formData>) => {
+    setFormData({ ...formData, ...patch });
+    setIsAadhaarVerified(false);
+    setAadhaarOtpSent(false);
+    setAadhaarOtp('');
+    setSimulatedAadhaarOtp('');
+  };
+
+  const handleEditAadhaarDetails = () => {
+    setFormData({ ...formData, aadhaarNumber: '', mobile: '' });
+    setAadhaarConsent(false);
+    setIsAadhaarVerified(false);
+    setAadhaarOtpSent(false);
+    setAadhaarOtp('');
+    setSimulatedAadhaarOtp('');
+    setMobileAvailability('idle');
+  };
 
   const handleSendAadhaarOtp = () => {
     if (!isAadhaarReady) return toast.error('Please complete valid Aadhaar details and consent');
+    if (mobileAlreadyRegistered) return toast.error('This Aadhaar-linked mobile number is already registered. Please edit Aadhaar details.');
     
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     setSimulatedAadhaarOtp(otp);
@@ -430,7 +482,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
            /[A-Z]/.test(pw) && /[a-z]/.test(pw) && 
            /[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw);
   };
-  const isBuyerAadhaarReady = formData.aadhaarNumber.length === 12 && formData.mobile.length === 10 && aadhaarConsent;
+  const isBuyerAadhaarReady = formData.aadhaarNumber.length === 12 && formData.mobile.length === 10 && aadhaarConsent && !mobileAlreadyRegistered && mobileAvailability !== 'checking';
   const isBuyerEmailReady = Boolean(formData.email && formData.verifyEmail && formData.email === formData.verifyEmail);
 
   return (
@@ -651,7 +703,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                             placeholder="Enter Aadhaar number / Virtual ID"
                             maxLength={12}
                             value={formData.aadhaarNumber}
-                            onChange={(e) => setFormData({...formData, aadhaarNumber: e.target.value.replace(/\D/g, '')})}
+                            onChange={(e) => handleAadhaarFieldChange({ aadhaarNumber: e.target.value.replace(/\D/g, '') })}
                             disabled={isAadhaarVerified || aadhaarOtpSent}
                             className="h-11 w-full rounded-lg border border-slate-200 bg-white px-4 pr-11 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                           />
@@ -664,11 +716,32 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                         placeholder="Enter mobile number linked with Aadhaar"
                         maxLength={10}
                         value={formData.mobile}
-                        onChange={(e) => setFormData({...formData, mobile: e.target.value.replace(/\D/g, '')})}
+                        onChange={(e) => handleAadhaarFieldChange({ mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                         disabled={isAadhaarVerified || aadhaarOtpSent}
-                        className="h-11 rounded-lg border-slate-200 bg-white"
+                        error={mobileAlreadyRegistered ? 'This mobile number is already registered.' : undefined}
+                        className={cn(
+                          "h-11 rounded-lg bg-white",
+                          mobileAlreadyRegistered ? "border-red-400" : "border-slate-200"
+                        )}
                       />
                     </div>
+
+                    {isMobileValid && mobileAvailability === 'checking' && (
+                      <p className="text-xs font-medium text-slate-500">Checking mobile number...</p>
+                    )}
+
+                    {mobileAlreadyRegistered && (
+                      <div className="flex flex-col gap-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="font-semibold">This Aadhaar-linked mobile number already exists in the database.</span>
+                        <button
+                          type="button"
+                          onClick={handleEditAadhaarDetails}
+                          className="inline-flex items-center gap-1 font-bold text-red-700 hover:underline"
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> Edit Aadhaar Details
+                        </button>
+                      </div>
+                    )}
 
                     {!aadhaarOtpSent && !isAadhaarVerified && (
                       <>
@@ -681,12 +754,12 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                               className="mt-1 h-5 w-5 rounded border-slate-300 accent-indigo-600"
                             />
                             <span>
-                              I, the holder of the above Aadhaar, hereby give my consent to GeM ( Government e Marketplace), for using my Aadhaar number as allotted by UIDAI for GeM Registration. GeM ( Government e Marketplace),have informed me that my aadhaar data will not be stored/shared.
+                              I, the holder of the above Aadhaar, hereby give my consent to MSME Portal, for using my Aadhaar number as allotted by UIDAI for MSME Portal Registration. MSME Portal,have informed me that my aadhaar data will not be stored/shared.
                             </span>
                           </label>
 
                           <p className="pl-8 text-xs leading-relaxed text-slate-700">
-                            मैं, उपर्युक्त आधार का धारक, भारतीय विशिष्ट पहचान प्राधिकरण द्वारा आवंटित अपने आधार नंबर को जेम पंजीकरण हेतु प्रयोग में लाने हेतु जेम (गवर्नमेंट ई-मार्केटप्लेस) को एतदद्वारा अपनी सहमति प्रदान करता हूं। जेम (गवर्नमेंट ई-मार्केटप्लेस) ने मुझे अवगत कराया है कि मेरे आधार डेटा को संग्रहीत/साझा नहीं किया जाएगा।
+                            मैं, उपर्युक्त आधार का धारक, भारतीय विशिष्ट पहचान प्राधिकरण द्वारा आवंटित अपने आधार नंबर को एमएसएमई पोर्टल पंजीकरण हेतु प्रयोग में लाने हेतु एमएसएमई पोर्टल को एतदद्वारा अपनी सहमति प्रदान करता हूं। एमएसएमई पोर्टल,ने मुझे अवगत कराया है कि मेरे आधार डेटा को संग्रहीत/साझा नहीं किया जाएगा।
                           </p>
 
                           <div className="space-y-3">
@@ -704,7 +777,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                               isBuyerAadhaarReady ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-500"
                             )}
                           >
-                            Verify Aadhaar
+                            {mobileAvailability === 'checking' ? 'Checking...' : 'Verify Aadhaar'}
                           </Button>
                         </div>
                       </>
@@ -715,7 +788,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                          <div className="flex items-center justify-between">
                             <h4 className="text-[10px] font-bold text-indigo-600  ">Enter OTP sent to your Aadhaar-linked mobile</h4>
                             <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-bold animate-pulse">
-                               SIMULATION OTP: {simulatedAadhaarOtp}
+                               {simulatedAadhaarOtp}
                             </div>
                          </div>
                          <div className="flex flex-col sm:flex-row gap-2">
@@ -730,7 +803,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                              onClick={() => setAadhaarOtp(simulatedAadhaarOtp)}
                              className="h-12 px-4 rounded border border-indigo-200 text-indigo-600 font-bold  text-[10px] "
                            >
-                             Auto-fill Simulation
+                             Auto-fill
                            </Button>
                          </div>
                          <Button
@@ -828,7 +901,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                                 placeholder="Enter Aadhaar number / Virtual ID"
                                 maxLength={16}
                                 value={formData.aadhaarNumber}
-                                onChange={(event) => setFormData({...formData, aadhaarNumber: event.target.value.replace(/\D/g, '').slice(0, 16)})}
+                                onChange={(event) => handleAadhaarFieldChange({ aadhaarNumber: event.target.value.replace(/\D/g, '').slice(0, 16) })}
                                 disabled={isAadhaarVerified || aadhaarOtpSent}
                                 className={cn(
                                   "h-11 w-full rounded border bg-white px-4 pr-11 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-60",
@@ -847,16 +920,31 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                               placeholder="Enter mobile number linked with Aadhaar"
                               maxLength={10}
                               value={formData.mobile}
-                              onChange={(event) => setFormData({...formData, mobile: event.target.value.replace(/\D/g, '').slice(0, 10)})}
+                              onChange={(event) => handleAadhaarFieldChange({ mobile: event.target.value.replace(/\D/g, '').slice(0, 10) })}
                               disabled={isAadhaarVerified || aadhaarOtpSent}
                               className={cn(
                                 "h-11 w-full rounded border bg-white px-4 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-60",
-                                aadhaarErrors.mobile ? "border-red-400 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
+                                aadhaarErrors.mobile || mobileAlreadyRegistered ? "border-red-400 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
                               )}
                             />
                             {aadhaarErrors.mobile && <p className="text-xs font-medium text-red-600">{aadhaarErrors.mobile}</p>}
+                            {isMobileValid && mobileAvailability === 'checking' && <p className="text-xs font-medium text-slate-500">Checking mobile number...</p>}
+                            {mobileAlreadyRegistered && <p className="text-xs font-medium text-red-600">This mobile number is already registered.</p>}
                           </div>
                         </div>
+
+                        {mobileAlreadyRegistered && (
+                          <div className="flex flex-col gap-3 rounded border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
+                            <span className="font-semibold">This Aadhaar-linked mobile number already exists in the database.</span>
+                            <button
+                              type="button"
+                              onClick={handleEditAadhaarDetails}
+                              className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-red-700 hover:underline"
+                            >
+                              <Pencil className="h-3.5 w-3.5" /> Edit Aadhaar Details
+                            </button>
+                          </div>
+                        )}
 
                         {!aadhaarOtpSent && !isAadhaarVerified && (
                           <>
@@ -868,7 +956,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                                 className="mt-1 h-5 w-5 rounded border-slate-300 accent-blue-600"
                               />
                               <span>
-                                I, the holder of the above Aadhaar, hereby give my consent to GeM (Government e Marketplace), for using my Aadhaar number as allotted by UIDAI for GeM Registration. GeM has informed me that my Aadhaar data will not be stored/shared.
+                                I, the holder of the above Aadhaar, hereby give my consent to MSME Portal,for using my Aadhaar number as allotted by UIDAI for MSME Portal Registration. MSME Portal,has informed me that my Aadhaar data will not be stored/shared.
                               </span>
                             </label>
                             {aadhaarErrors.consent && <p className="pl-8 text-xs font-medium text-red-600">{aadhaarErrors.consent}</p>}
@@ -882,13 +970,13 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                             <div className="flex justify-end">
                               <Button
                                 onClick={handleSendAadhaarOtp}
-                                disabled={!isAadhaarReady}
+                                disabled={!isAadhaarReady || mobileAlreadyRegistered || mobileAvailability === 'checking'}
                                 className={cn(
                                   "h-11 w-full rounded font-bold uppercase tracking-wide sm:w-52",
-                                  isAadhaarReady ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                                  isAadhaarReady && !mobileAlreadyRegistered && mobileAvailability !== 'checking' ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-slate-200 text-slate-500 cursor-not-allowed"
                                 )}
                               >
-                                Verify Aadhaar
+                                {mobileAvailability === 'checking' ? 'Checking...' : 'Verify Aadhaar'}
                               </Button>
                             </div>
                           </>
@@ -899,7 +987,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                              <div className="flex items-center justify-between">
                                 <h4 className="text-xs font-bold text-indigo-600">Enter OTP sent to your Aadhaar-linked mobile</h4>
                                 <div className="rounded bg-amber-50 px-3 py-1 text-[10px] font-bold text-amber-600 animate-pulse">
-                                   SIMULATION OTP: {simulatedAadhaarOtp}
+                                   {simulatedAadhaarOtp}
                                 </div>
                              </div>
                              <div className="flex flex-col gap-2 sm:flex-row">
@@ -911,7 +999,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                                  className="h-12 flex-1 rounded border border-slate-200 px-4 text-center font-bold"
                                />
                                <Button onClick={() => setAadhaarOtp(simulatedAadhaarOtp)} className="h-12 rounded border border-indigo-200 px-4 text-xs font-bold text-indigo-600">
-                                 Auto-fill Simulation
+                                 Auto-fill
                                </Button>
                              </div>
                              <Button onClick={handleVerifyAadhaarOtp} className="h-12 w-full rounded bg-slate-900 text-xs font-bold text-white">
@@ -1027,7 +1115,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                   <>
                     <h2 className="text-base md:text-base font-bold text-slate-800">Email Verification</h2>
                     <div className="rounded-md bg-sky-100 px-5 py-4 text-xs font-medium text-slate-700">
-                      To view list of whitelisted domains (accepted at GeM),{' '}
+                      To view list of whitelisted domains (accepted at MSME Portal),{' '}
                       <button type="button" className="font-bold text-blue-600 hover:underline">Click here</button>
                     </div>
 
@@ -1310,8 +1398,7 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
             )}
 
             <div className="mt-10 flex items-center justify-end gap-4 pt-6">
-              {currentSubStep > 1 && (
-                <Button 
+              <Button 
                   variant="ghost" 
                   onClick={handleBack}
                   disabled={isLoading}
@@ -1319,7 +1406,6 @@ export default function RegistrationDetailsFlow({ businessType, onBack, role }: 
                 >
                   Back
                 </Button>
-              )}
               
               {currentSubStep === 2 && role === 'buyer' && isAadhaarVerified ? null : currentSubStep === 4 && role === 'buyer' ? null : currentSubStep < 4 ? (
                 <Button 

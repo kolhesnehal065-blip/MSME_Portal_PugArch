@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import {
+  ArrowLeft,
   Check,
   Download,
   FileText,
+  Loader2,
   Maximize2,
   Menu,
   MoreVertical,
@@ -23,9 +25,23 @@ interface TermsConditionsProps {
 
 const pages = Array.from({ length: 8 }, (_, i) => i + 1);
 
-export default function TermsConditions({ onAccept, role }: TermsConditionsProps) {
+export default function TermsConditions({ onAccept, onBack, role }: TermsConditionsProps) {
   const [accepted, setAccepted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [transitionState, setTransitionState] = useState<'idle' | 'back' | 'accept'>('idle');
+  const isTransitioning = transitionState !== 'idle';
+
+  const handleBack = () => {
+    if (isTransitioning) return;
+    setTransitionState('back');
+    window.setTimeout(onBack, 450);
+  };
+
+  const handleAccept = () => {
+    if (!accepted || isTransitioning) return;
+    setTransitionState('accept');
+    window.setTimeout(onAccept, 650);
+  };
 
   return (
     <div
@@ -34,20 +50,51 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
         isFullscreen && 'fixed inset-0 z-50 max-w-none overflow-y-auto bg-white p-3 sm:p-4 md:p-8'
       )}
     >
+      {isTransitioning && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/25 backdrop-blur-[2px]">
+          <div className="flex min-w-64 flex-col items-center gap-4 rounded-xl border border-white/40 bg-white px-8 py-7 text-center shadow-2xl">
+            <div className="relative flex h-14 w-14 items-center justify-center">
+              <span className="absolute h-full w-full animate-ping rounded-full bg-blue-500/20" />
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </span>
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-wide text-slate-900">
+                {transitionState === 'accept' ? 'Preparing Registration' : 'Returning to Pre-requisites'}
+              </p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">Please wait...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section
         className={cn(
           'rounded-xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-100 sm:p-4 md:p-9',
           isFullscreen && 'flex h-full flex-col'
         )}
       >
-        <h2 className="mb-4 text-sm font-black  tracking-tight text-slate-800 uppercase sm:text-base md:mb-7 md:text-2xl underline decoration-blue-500 decoration-4 underline-offset-8">
-          General Terms & Conditions (GTC)
-        </h2>
+        <div className="mb-4 flex flex-col gap-4 md:mb-7 md:flex-row md:items-center md:justify-between">
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={isTransitioning}
+            className="inline-flex h-10 w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-widest text-slate-600 shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {transitionState === 'back' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowLeft className="h-4 w-4" />}
+            Back
+          </button>
+          <h3 className="text-sm font-black tracking-tight text-slate-800 uppercase sm:text-base md:text-2xl underline decoration-blue-500 decoration-4 underline-offset-8">
+            General Terms & Conditions (GTC)
+          </h3>
+          <div className="hidden h-10 w-[92px] md:block" />
+        </div>
 
         <div className={cn('overflow-hidden rounded-xl border border-slate-300 bg-[#262626] shadow-inner', isFullscreen && 'min-h-0 flex-1')}>
           <PdfToolbar role={role} />
 
-          <div className={cn('grid bg-[#242424] md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[250px_minmax(0,1fr)]', isFullscreen ? 'h-[calc(100dvh-180px)] min-h-[400px]' : 'h-[60dvh] min-h-[450px] md:h-[650px]')}>
+          <div className={cn('grid bg-[#242424] md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[250px_minmax(0,1fr)]', isFullscreen ? 'h-[calc(100dvh-180px)] min-h-[200px]' : 'h-[40dvh] min-h-[300px] md:h-[450px]')}>
             <aside className="hidden overflow-y-auto border-r border-slate-700 bg-[#262626] px-4 py-6 md:block no-scrollbar">
               <div className="space-y-6">
                 {pages.map((page) => (
@@ -66,11 +113,11 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
               </div>
             </aside>
 
-            <main className="overflow-y-auto bg-slate-100/50 px-4 py-8 sm:px-6 md:px-12 lg:px-20 scroll-smooth">
-              <article className="mx-auto min-h-full max-w-[850px] bg-white px-10 py-12 shadow-2xl shadow-slate-300/50 font-serif text-[15px] leading-relaxed text-slate-900 sm:text-[17px] md:py-16 md:text-[18px] border border-slate-100">
+            <main className="overflow-y-auto bg-slate-100/50 px-2 py-6 sm:px-4 md:px-8 lg:px-12 scroll-smooth">
+              <article className="mx-auto min-h-full max-w-[850px] bg-white px-6 py-8 shadow-xl shadow-slate-300/50 font-serif text-[13px] leading-relaxed text-slate-900 sm:text-[14px] md:py-10 md:text-[15px] border border-slate-100">
                 <div className="mb-12 border-b-2 border-slate-900 pb-8 text-center">
-                   <h1 className="text-2xl font-black uppercase tracking-tighter sm:text-3xl">GOVERNMENT E-MARKETPLACE</h1>
-                   <p className="mt-2 text-sm font-bold uppercase tracking-widest text-slate-500 ">Department of Commerce, Ministry of Commerce & Industry</p>
+                   <h1 className="text-base font-black uppercase tracking-tight sm:text-2xl">MSME-PugArch</h1>
+                   <p className="mt-2 text-xs font-bold uppercase tracking-widest text-slate-500 ">PugArch MSME Marketplace</p>
                 </div>
 
                 <p className="text-center font-bold leading-snug underline underline-offset-4">
@@ -81,8 +128,8 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                   Terms and Conditions (ATC) as applicable.
                 </p>
 
-                <p className="mt-8 text-justify first-letter:text-5xl first-letter:font-black first-letter:mr-3 first-letter:float-left first-letter:text-blue-600">
-                  Government e-Marketplace (GeM) is the National Public Procurement Portal; an end-to-end online
+                <p className="mt-8 text-justify first-letter:text-3xl first-letter:font-black first-letter:mr-3 first-letter:float-left first-letter:text-blue-600">
+                  MSME PugArch is the National Public Procurement Portal; an end-to-end online
                   Marketplace for Central and State Government Ministries / Departments, Central & State Public Sector
                   Undertakings and autonomous institutions for procurement of common use goods & services.
                 </p>
@@ -94,7 +141,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </p>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">2. General Terms and Definitions:</h3>
+                  <h3 className="text-base font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">2. General Terms and Definitions:</h3>
                   <div className="space-y-4 ml-4">
                     <p className="text-justify">
                       a. <strong>&ldquo;APPLICABLE LAWS&rdquo;</strong> shall mean any statute, law, ordinance, notification,
@@ -110,7 +157,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </section>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">3. Registration and Verification:</h3>
+                  <h3 className="text-base font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">3. Registration and Verification:</h3>
                   <p className="ml-4 text-justify">
                     Users agree that identity, email, mobile number, Aadhaar, PAN, business registration and other
                     submitted details may be verified through appropriate authorities or approved verification services.
@@ -119,7 +166,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </section>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">4. Procurement Guidelines:</h3>
+                  <h3 className="text-base font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">4. Procurement Guidelines:</h3>
                   <p className="ml-4 text-justify">
                     The platform ensures that all procurement activities conducted through the MSME Marketplace 
                     comply with the General Financial Rules (GFR), 2017 and any specific guidelines issued by 
@@ -130,7 +177,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </section>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">5. Code of Conduct:</h3>
+                  <h3 className="text-base font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">5. Code of Conduct:</h3>
                   <p className="ml-4 text-justify">
                     All users are expected to maintain the highest standards of integrity and transparency. 
                     Collusion, price manipulation, or any fraudulent activity is strictly prohibited and will 
@@ -139,7 +186,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </section>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">6. Data Privacy and Security:</h3>
+                  <h3 className="text-base font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">6. Data Privacy and Security:</h3>
                   <p className="ml-4 text-justify">
                     We value your data privacy. All sensitive information including PAN, Aadhaar (masked), 
                     and Bank Details are stored using industry-standard encryption. By using this portal, 
@@ -148,7 +195,7 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
                 </section>
 
                 <section className="mt-10 space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">7. Liability and Indemnity:</h3>
+                  <h3 className="text-base font-black uppercase tracking-tight  border-l-4 border-blue-600 pl-4">7. Liability and Indemnity:</h3>
                   <p className="ml-4 text-justify">
                     The portal provides a marketplace interface and shall not be held liable for defaults 
                     by third-party service providers. Users agree to indemnify and hold PugArch harmless 
@@ -178,29 +225,42 @@ export default function TermsConditions({ onAccept, role }: TermsConditionsProps
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-black uppercase tracking-tight  group-hover:text-blue-600 transition-colors">* Acceptance of Terms</span>
-              <span className="text-xs font-bold text-slate-500 ">I have read and agree to the Terms & Conditions of Government e-Marketplace (GeM)</span>
+              <span className="text-xs font-bold text-slate-500 ">I have read and agree to the Terms & Conditions of MSME-PugArch</span>
             </div>
           </label>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center md:justify-end">
             <button
               type="button"
+              onClick={handleBack}
+              disabled={isTransitioning}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {transitionState === 'back' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowLeft className="h-4 w-4" />}
+              Back
+            </button>
+            <button
+              type="button"
               onClick={() => setIsFullscreen((value) => !value)}
+              disabled={isTransitioning}
               className="h-12 rounded-xl px-6 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all "
             >
               {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen View'}
             </button>
             <Button
-              onClick={onAccept}
-              disabled={!accepted}
+              onClick={handleAccept}
+              disabled={!accepted || isTransitioning}
               className={cn(
-                'h-14 w-full rounded-xl px-12 text-xs font-black uppercase tracking-[0.2em]  shadow-xl transition-all active:scale-95 sm:w-auto',
+                'h-14 w-full rounded-xl px-12 text-xs font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 sm:w-auto',
                 accepted
                   ? 'bg-blue-600 text-white shadow-blue-600/20 hover:bg-blue-700'
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
               )}
             >
-              Proceed to Registration
+              <span className="inline-flex items-center justify-center gap-2">
+                {transitionState === 'accept' && <Loader2 className="h-4 w-4 animate-spin" />}
+                {transitionState === 'accept' ? 'Preparing...' : 'Proceed to Registration'}
+              </span>
             </Button>
           </div>
         </div>
