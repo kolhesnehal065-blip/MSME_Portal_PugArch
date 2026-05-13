@@ -13,6 +13,8 @@ import SellerOnboarding from './pages/SellerOnboarding';
 import BuyerOnboarding from './pages/BuyerOnboarding';
 import AdminOnboarding from './pages/AdminOnboarding';
 import AdminOperations from './pages/AdminOperations';
+import ProcurementModules from './pages/ProcurementModules';
+import AdminRBAC from './pages/AdminRBAC';
 import SellerRegistrationFlow from './pages/SellerRegistrationFlow';
 import BuyerRegistrationFlow from './pages/BuyerRegistrationFlow';
 import BuyerProfile from './pages/BuyerProfile';
@@ -116,6 +118,42 @@ function AppRoutes() {
               </ProtectedRoute>
             } />
 
+            <Route path="/seller/catalog/products" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <ProcurementModules module="products" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/seller/catalog/services" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <ProcurementModules module="services" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/seller/contracts" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <ProcurementModules module="contracts" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/seller/orders" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <ProcurementModules module="orders" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/seller/shipments" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <ProcurementModules module="shipments" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/seller/invoices" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <ProcurementModules module="invoices" />
+              </ProtectedRoute>
+            } />
+
             <Route path="/seller/tenders/:id/bid" element={
               <ProtectedRoute allowedRoles={['seller']}>
                 <CreateQuotation />
@@ -146,6 +184,30 @@ function AppRoutes() {
               </ProtectedRoute>
             } />
 
+            <Route path="/buyer/requirements" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <ProcurementModules module="requirements" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/direct-purchase" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <ProcurementModules module="direct" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/evaluations" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <ProcurementModules module="evaluations" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/contracts" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <ProcurementModules module="contracts" />
+              </ProtectedRoute>
+            } />
+
             <Route path="/quotations" element={
               <ProtectedRoute allowedRoles={['buyer', 'seller']}>
                 <Quotations />
@@ -154,13 +216,31 @@ function AppRoutes() {
 
             <Route path="/buyer/orders" element={
               <ProtectedRoute allowedRoles={['buyer']}>
-                <PurchaseOrders />
+                <ProcurementModules module="orders" />
               </ProtectedRoute>
             } />
 
             <Route path="/buyer/tracking" element={
               <ProtectedRoute allowedRoles={['buyer']}>
                 <ParcelTracking />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/shipments" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <ProcurementModules module="shipments" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/inspections" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <ProcurementModules module="inspections" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/buyer/invoices" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <ProcurementModules module="invoices" />
               </ProtectedRoute>
             } />
             
@@ -191,6 +271,24 @@ function AppRoutes() {
             <Route path="/admin/reports" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminOperations section="reports" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/categories" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <ProcurementModules module="categories" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/auctions" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <ProcurementModules module="auctions" />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/rbac" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminRBAC />
               </ProtectedRoute>
             } />
             

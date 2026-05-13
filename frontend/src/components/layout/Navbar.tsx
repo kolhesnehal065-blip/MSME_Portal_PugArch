@@ -27,7 +27,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   BarChart3,
-  FileSearch
+  FileSearch,
+  Lock,
+  Boxes,
+  Gavel,
+  Tags,
+  FileCheck2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -70,18 +75,34 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['seller', 'buyer', 'admin'] },
     { label: 'Seller Portal', path: '/seller/onboarding', icon: Store, roles: ['seller'] },
+    { label: 'Product Catalogue', path: '/seller/catalog/products', icon: Boxes, roles: ['seller'] },
+    { label: 'Service Catalogue', path: '/seller/catalog/services', icon: ClipboardCheck, roles: ['seller'] },
     { label: 'Tenders', path: '/seller/tenders', icon: FileText, roles: ['seller'] },
+    { label: 'Seller Orders', path: '/seller/orders', icon: ShoppingCart, roles: ['seller'] },
+    { label: 'Seller Shipments', path: '/seller/shipments', icon: Truck, roles: ['seller'] },
+    { label: 'Seller Invoices', path: '/seller/invoices', icon: FileCheck2, roles: ['seller'] },
+    { label: 'Seller Contracts', path: '/seller/contracts', icon: FileText, roles: ['seller'] },
     { label: 'Account Settings', path: '/seller/settings', icon: Settings, roles: ['seller'] },
     { label: 'Quotations', path: '/quotations', icon: ClipboardCheck, roles: ['seller', 'buyer'] },
     { label: 'Buyer Hub', path: '/buyer/onboarding', icon: Building2, roles: ['buyer'] },
     { label: 'Vendors', path: '/buyer/vendors', icon: Users, roles: ['buyer'] },
+    { label: 'Requirements', path: '/buyer/requirements', icon: FileSearch, roles: ['buyer'] },
+    { label: 'Direct Purchase', path: '/buyer/direct-purchase', icon: ShoppingCart, roles: ['buyer'] },
     { label: 'Tenders', path: '/buyer/tenders', icon: FileText, roles: ['buyer'] },
+    { label: 'Evaluations', path: '/buyer/evaluations', icon: BarChart3, roles: ['buyer'] },
+    { label: 'Contracts', path: '/buyer/contracts', icon: FileText, roles: ['buyer'] },
     { label: 'Purchase Orders', path: '/buyer/orders', icon: ShoppingCart, roles: ['buyer'] },
     { label: 'Parcel Tracking', path: '/buyer/tracking', icon: Truck, roles: ['buyer'] },
+    { label: 'Shipments', path: '/buyer/shipments', icon: Truck, roles: ['buyer'] },
+    { label: 'Inspections', path: '/buyer/inspections', icon: FileCheck2, roles: ['buyer'] },
+    { label: 'Invoices', path: '/buyer/invoices', icon: FileText, roles: ['buyer'] },
     { label: 'Profile', path: '/buyer/profile', icon: UserIcon, roles: ['buyer'] },
     { label: 'Procurement Desk', path: '/admin/procurement', icon: ClipboardCheck, roles: ['admin'] },
+    { label: 'Taxonomy', path: '/admin/categories', icon: Tags, roles: ['admin'] },
+    { label: 'Auctions', path: '/admin/auctions', icon: Gavel, roles: ['admin'] },
     { label: 'Compliance Desk', path: '/admin/compliance', icon: FileSearch, roles: ['admin'] },
     { label: 'Admin Console', path: '/admin/onboarding', icon: ShieldCheck, roles: ['admin'] },
+    { label: 'RBAC Management', path: '/admin/rbac', icon: Lock, roles: ['admin'] },
     { label: 'MIS Reports', path: '/admin/reports', icon: BarChart3, roles: ['admin'] },
   ];
 
@@ -369,18 +390,34 @@ export function Header({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: Hea
     switch (location.pathname) {
       case '/dashboard': return 'Dashboard Overview';
       case '/seller/onboarding': return 'Seller Onboarding';
+      case '/seller/catalog/products': return 'Product Catalogue';
+      case '/seller/catalog/services': return 'Service Catalogue';
+      case '/seller/orders': return 'Seller Orders';
+      case '/seller/shipments': return 'Seller Shipments';
+      case '/seller/invoices': return 'Seller Invoices';
+      case '/seller/contracts': return 'Seller Contracts';
       case '/buyer/onboarding': return 'Buyer Onboarding';
       case '/buyer/vendors': return 'Vendor Discovery';
+      case '/buyer/requirements': return 'Requirement Management';
+      case '/buyer/direct-purchase': return 'Direct Purchase';
       case '/buyer/tenders': return 'Procurement ERP';
       case '/quotations': return user.role === 'buyer' ? 'Bid Evaluation' : 'My Bids';
+      case '/buyer/evaluations': return 'Evaluation System';
+      case '/buyer/contracts': return 'Contracts';
       case '/buyer/orders': return 'Order Management';
       case '/buyer/tracking': return 'Shipment Tracking';
+      case '/buyer/shipments': return 'Shipment Register';
+      case '/buyer/inspections': return 'Inspection & QC';
+      case '/buyer/invoices': return 'Invoice Management';
       case '/seller/tenders': return 'Tender Marketplace';
       case '/seller/settings': return 'Account Settings';
       case '/admin/onboarding': return 'Onboarding Verification';
       case '/admin/procurement': return 'Procurement Command';
       case '/admin/compliance': return 'Compliance Desk';
+      case '/admin/rbac': return 'RBAC Configuration';
       case '/admin/reports': return 'MIS Reports';
+      case '/admin/categories': return 'Category Taxonomy';
+      case '/admin/auctions': return 'Reverse Auctions';
       case '/profile': return 'My Profile';
       default: return 'Procurement ERP';
     }

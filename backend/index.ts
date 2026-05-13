@@ -25,7 +25,7 @@ import bcrypt from 'bcryptjs';
 // Import Prisma Client
 import prisma from './src/lib/prisma.js';
 import { Role, RegistrationStatus } from '@prisma/client';
-import { authenticate, authorize, authorizeAdmin } from './src/middleware/auth.js';
+import { authenticate, authorize, authorizeAdmin, hasPermission } from './src/middleware/auth.js';
 import type { AuthRequest } from './src/middleware/auth.js';
 import nodemailer from 'nodemailer';
 import multer from 'multer';
@@ -1767,6 +1767,764 @@ async function startServer() {
     }
   });
 
+  // --- Procurement Lifecycle APIs ---
+  const procurementPrisma = prisma as any;
+  const makeDocumentNo = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+  const toOptionalDate = (value: unknown) => value ? new Date(String(value)) : undefined;
+  const toNumberOrUndefined = (value: unknown) => value === undefined || value === null || value === '' ? undefined : Number(value);
+
+  const requireNumericUserId = (req: AuthRequest) => {
+    const userId = Number(req.user?.id);
+    if (!userId) throw new Error('Invalid user session');
+    return userId;
+  };
+
+  app.get('/api/categories', authenticate, authorize('buyer', 'seller', 'admin'), async (req, res) => {
+    try {
+      const categories = await procurementPrisma.procurementCategory.findMany({
+        where: { isActive: true },
+        include: { children: true, parent: true },
+        orderBy: [{ parentId: 'asc' }, { name: 'asc' }]
+      });
+      res.json(categories);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/admin/categories', authenticate, authorizeAdmin, async (req, res) => {
+    try {
+      const { name, code, parentId, industry, hsnSac, description, isActive = true } = req.body;
+      if (!name || !code) return res.status(400).json({ message: 'Category name and code are required' });
+      const category = await procurementPrisma.procurementCategory.create({
+        data: { name, code, parentId: toNumberOrUndefined(parentId), industry, hsnSac, description, isActive }
+      });
+      res.status(201).json(category);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put('/api/admin/categories/:id', authenticate, authorizeAdmin, async (req, res) => {
+    try {
+      const { name, code, parentId, industry, hsnSac, description, isActive } = req.body;
+      const category = await procurementPrisma.procurementCategory.update({
+        where: { id: Number(req.params.id) },
+        data: { name, code, parentId: toNumberOrUndefined(parentId), industry, hsnSac, description, isActive }
+      });
+      res.json(category);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/catalog/products', authenticate, authorize('buyer', 'seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const userId = requireNumericUserId(req);
+      const where = req.user?.role === 'seller' ? { sellerId: userId } : { status: 'active' };
+      const products = await procurementPrisma.productCatalogueItem.findMany({
+        where,
+        include: { category: true, seller: { include: { sellerProfile: true } } },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(products);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/catalog/products', authenticate, authorize('seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const sellerId = req.user?.role === 'admin' && req.body.sellerId ? Number(req.body.sellerId) : requireNumericUserId(req);
+      const { name, categoryId, sku, hsnCode, brand, description, technicalSpecs, unitOfMeasure, basePrice, certifications, complianceDocs, standardTemplate, status } = req.body;
+      if (!name) return res.status(400).json({ message: 'Product name is required' });
+      const product = await procurementPrisma.productCatalogueItem.create({
+        data: {
+          sellerId,
+          categoryId: toNumberOrUndefined(categoryId),
+          name,
+          sku,
+          hsnCode,
+          brand,
+          description,
+          technicalSpecs,
+          unitOfMeasure: unitOfMeasure || 'Unit',
+          basePrice: toNumberOrUndefined(basePrice),
+          certifications,
+          complianceDocs,
+          standardTemplate,
+          status: status || 'active'
+        }
+      });
+      res.status(201).json(product);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put('/api/catalog/products/:id', authenticate, authorize('seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (req.user?.role === 'seller') {
+        const existing = await procurementPrisma.productCatalogueItem.findUnique({ where: { id } });
+        if (!existing || existing.sellerId !== requireNumericUserId(req)) return res.status(404).json({ message: 'Product not found' });
+      }
+      const data = { ...req.body };
+      if ('categoryId' in data) data.categoryId = toNumberOrUndefined(data.categoryId);
+      if ('basePrice' in data) data.basePrice = toNumberOrUndefined(data.basePrice);
+      delete data.id;
+      delete data.sellerId;
+      const product = await procurementPrisma.productCatalogueItem.update({ where: { id }, data });
+      res.json(product);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete('/api/catalog/products/:id', authenticate, authorize('seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await procurementPrisma.productCatalogueItem.findUnique({ where: { id } });
+      if (req.user?.role === 'seller' && (!existing || existing.sellerId !== requireNumericUserId(req))) return res.status(404).json({ message: 'Product not found' });
+      await procurementPrisma.productCatalogueItem.delete({ where: { id } });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/catalog/services', authenticate, authorize('buyer', 'seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const userId = requireNumericUserId(req);
+      const where = req.user?.role === 'seller' ? { sellerId: userId } : { status: 'active' };
+      const services = await procurementPrisma.serviceCatalogueItem.findMany({
+        where,
+        include: { category: true, seller: { include: { sellerProfile: true } } },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(services);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/catalog/services', authenticate, authorize('seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const sellerId = req.user?.role === 'admin' && req.body.sellerId ? Number(req.body.sellerId) : requireNumericUserId(req);
+      const { name, categoryId, sacCode, description, scopeDefinition, pricingModel, basePrice, serviceLevel, complianceDocs, status } = req.body;
+      if (!name) return res.status(400).json({ message: 'Service name is required' });
+      const service = await procurementPrisma.serviceCatalogueItem.create({
+        data: {
+          sellerId,
+          categoryId: toNumberOrUndefined(categoryId),
+          name,
+          sacCode,
+          description,
+          scopeDefinition,
+          pricingModel: pricingModel || 'fixed',
+          basePrice: toNumberOrUndefined(basePrice),
+          serviceLevel,
+          complianceDocs,
+          status: status || 'active'
+        }
+      });
+      res.status(201).json(service);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put('/api/catalog/services/:id', authenticate, authorize('seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (req.user?.role === 'seller') {
+        const existing = await procurementPrisma.serviceCatalogueItem.findUnique({ where: { id } });
+        if (!existing || existing.sellerId !== requireNumericUserId(req)) return res.status(404).json({ message: 'Service not found' });
+      }
+      const data = { ...req.body };
+      if ('categoryId' in data) data.categoryId = toNumberOrUndefined(data.categoryId);
+      if ('basePrice' in data) data.basePrice = toNumberOrUndefined(data.basePrice);
+      delete data.id;
+      delete data.sellerId;
+      const service = await procurementPrisma.serviceCatalogueItem.update({ where: { id }, data });
+      res.json(service);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete('/api/catalog/services/:id', authenticate, authorize('seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await procurementPrisma.serviceCatalogueItem.findUnique({ where: { id } });
+      if (req.user?.role === 'seller' && (!existing || existing.sellerId !== requireNumericUserId(req))) return res.status(404).json({ message: 'Service not found' });
+      await procurementPrisma.serviceCatalogueItem.delete({ where: { id } });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/requirements', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const where = req.user?.role === 'buyer' ? { buyerId: requireNumericUserId(req) } : {};
+      const requirements = await procurementPrisma.purchaseRequest.findMany({
+        where,
+        include: { category: true, boqItems: true, purchaseOrders: true },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(requirements);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/requirements', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const buyerId = req.user?.role === 'admin' && req.body.buyerId ? Number(req.body.buyerId) : requireNumericUserId(req);
+      const { title, description, categoryId, procurementMethod, estimatedValue, boqDocumentUrl, requiredBy, department, deliveryLocation, boqItems = [] } = req.body;
+      if (!title) return res.status(400).json({ message: 'Requirement title is required' });
+      const requirement = await procurementPrisma.purchaseRequest.create({
+        data: {
+          requestNo: makeDocumentNo('PR'),
+          buyerId,
+          categoryId: toNumberOrUndefined(categoryId),
+          title,
+          description,
+          procurementMethod: procurementMethod || 'tender',
+          estimatedValue: toNumberOrUndefined(estimatedValue),
+          boqDocumentUrl,
+          requiredBy: toOptionalDate(requiredBy),
+          department,
+          deliveryLocation,
+          boqItems: {
+            create: (Array.isArray(boqItems) ? boqItems : []).map((item: any, index: number) => ({
+              lineNo: Number(item.lineNo || index + 1),
+              itemName: item.itemName || item.name || 'BOQ Item',
+              description: item.description,
+              quantity: Number(item.quantity || 1),
+              unit: item.unit || 'Unit',
+              estimatedRate: toNumberOrUndefined(item.estimatedRate),
+              specifications: item.specifications || {}
+            }))
+          }
+        },
+        include: { boqItems: true, category: true }
+      });
+      res.status(201).json(requirement);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put('/api/requirements/:id', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await procurementPrisma.purchaseRequest.findUnique({ where: { id } });
+      if (req.user?.role === 'buyer' && (!existing || existing.buyerId !== requireNumericUserId(req))) return res.status(404).json({ message: 'Requirement not found' });
+      const data = { ...req.body };
+      if ('categoryId' in data) data.categoryId = toNumberOrUndefined(data.categoryId);
+      if ('estimatedValue' in data) data.estimatedValue = toNumberOrUndefined(data.estimatedValue);
+      if ('requiredBy' in data) data.requiredBy = toOptionalDate(data.requiredBy);
+      delete data.id;
+      delete data.boqItems;
+      const requirement = await procurementPrisma.purchaseRequest.update({ where: { id }, data, include: { boqItems: true, category: true } });
+      res.json(requirement);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/requirements/:id/boq', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await procurementPrisma.purchaseRequest.findUnique({ where: { id } });
+      if (req.user?.role === 'buyer' && (!existing || existing.buyerId !== requireNumericUserId(req))) return res.status(404).json({ message: 'Requirement not found' });
+      await procurementPrisma.bOQItem.deleteMany({ where: { purchaseRequestId: id } });
+      const items = Array.isArray(req.body.items) ? req.body.items : [];
+      await procurementPrisma.bOQItem.createMany({
+        data: items.map((item: any, index: number) => ({
+          purchaseRequestId: id,
+          lineNo: Number(item.lineNo || index + 1),
+          itemName: item.itemName || item.name || 'BOQ Item',
+          description: item.description,
+          quantity: Number(item.quantity || 1),
+          unit: item.unit || 'Unit',
+          estimatedRate: toNumberOrUndefined(item.estimatedRate),
+          specifications: item.specifications || {}
+        }))
+      });
+      const requirement = await procurementPrisma.purchaseRequest.findUnique({ where: { id }, include: { boqItems: true, category: true } });
+      res.json(requirement);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/direct-purchase', authenticate, authorize('buyer'), async (req: AuthRequest, res) => {
+    try {
+      const buyerId = requireNumericUserId(req);
+      const { sellerId, title, itemName, quantity = 1, unitPrice = 0, deliveryAddress, expectedDelivery } = req.body;
+      const totalValue = Number(quantity) * Number(unitPrice);
+      const requirement = await procurementPrisma.purchaseRequest.create({
+        data: {
+          requestNo: makeDocumentNo('DPR'),
+          buyerId,
+          title: title || itemName || 'Direct Purchase',
+          procurementMethod: 'direct_purchase',
+          estimatedValue: totalValue,
+          deliveryLocation: deliveryAddress,
+          status: 'approved'
+        }
+      });
+      const order = await procurementPrisma.purchaseOrder.create({
+        data: {
+          poNumber: makeDocumentNo('PO'),
+          buyerId,
+          sellerId: toNumberOrUndefined(sellerId),
+          purchaseRequestId: requirement.id,
+          title: title || itemName || 'Direct Purchase Order',
+          totalValue,
+          status: 'pending_approval',
+          deliveryAddress,
+          expectedDelivery: toOptionalDate(expectedDelivery),
+          items: {
+            create: [{
+              itemName: itemName || title || 'Direct Purchase Item',
+              quantity: Number(quantity),
+              unitPrice: Number(unitPrice),
+              totalPrice: totalValue
+            }]
+          }
+        },
+        include: { items: true, purchaseRequest: true }
+      });
+      res.status(201).json({ requirement, order });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/purchase-orders', authenticate, authorize('buyer', 'seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const userId = requireNumericUserId(req);
+      const where = req.user?.role === 'buyer' ? { buyerId: userId } : req.user?.role === 'seller' ? { sellerId: userId } : {};
+      const orders = await procurementPrisma.purchaseOrder.findMany({
+        where,
+        include: { items: true, buyer: true, seller: true, shipments: true, inspections: true, invoices: true },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(orders);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/purchase-orders', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const buyerId = req.user?.role === 'admin' && req.body.buyerId ? Number(req.body.buyerId) : requireNumericUserId(req);
+      const items = Array.isArray(req.body.items) ? req.body.items : [];
+      const totalValue = toNumberOrUndefined(req.body.totalValue) ?? items.reduce((sum: number, item: any) => sum + Number(item.totalPrice || Number(item.quantity || 1) * Number(item.unitPrice || 0)), 0);
+      const order = await procurementPrisma.purchaseOrder.create({
+        data: {
+          poNumber: req.body.poNumber || makeDocumentNo('PO'),
+          buyerId,
+          sellerId: toNumberOrUndefined(req.body.sellerId),
+          purchaseRequestId: toNumberOrUndefined(req.body.purchaseRequestId),
+          contractId: toNumberOrUndefined(req.body.contractId),
+          title: req.body.title || 'Purchase Order',
+          totalValue,
+          currency: req.body.currency || 'INR',
+          status: req.body.status || 'draft',
+          expectedDelivery: toOptionalDate(req.body.expectedDelivery),
+          deliveryAddress: req.body.deliveryAddress,
+          amendmentHistory: req.body.amendmentHistory || [],
+          items: {
+            create: items.map((item: any) => ({
+              itemName: item.itemName || item.name || 'PO Item',
+              description: item.description,
+              quantity: Number(item.quantity || 1),
+              unit: item.unit || 'Unit',
+              unitPrice: Number(item.unitPrice || 0),
+              taxRate: toNumberOrUndefined(item.taxRate),
+              totalPrice: Number(item.totalPrice || Number(item.quantity || 1) * Number(item.unitPrice || 0)),
+              technicalSpecs: item.technicalSpecs || {}
+            }))
+          }
+        },
+        include: { items: true }
+      });
+      res.status(201).json(order);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put('/api/purchase-orders/:id', authenticate, authorize('buyer', 'seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await procurementPrisma.purchaseOrder.findUnique({ where: { id } });
+      const userId = requireNumericUserId(req);
+      if (!existing || (req.user?.role === 'buyer' && existing.buyerId !== userId) || (req.user?.role === 'seller' && existing.sellerId !== userId)) {
+        return res.status(404).json({ message: 'Purchase order not found' });
+      }
+      const data = { ...req.body };
+      ['sellerId', 'purchaseRequestId', 'contractId'].forEach(key => { if (key in data) data[key] = toNumberOrUndefined(data[key]); });
+      ['totalValue'].forEach(key => { if (key in data) data[key] = toNumberOrUndefined(data[key]); });
+      if ('expectedDelivery' in data) data.expectedDelivery = toOptionalDate(data.expectedDelivery);
+      delete data.id;
+      delete data.items;
+      const order = await procurementPrisma.purchaseOrder.update({ where: { id }, data, include: { items: true, shipments: true, inspections: true, invoices: true } });
+      res.json(order);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/contracts', authenticate, authorize('buyer', 'seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const userId = requireNumericUserId(req);
+      const where = req.user?.role === 'buyer' ? { buyerId: userId } : req.user?.role === 'seller' ? { sellerId: userId } : {};
+      const contracts = await procurementPrisma.contract.findMany({ where, include: { items: true, buyer: true, seller: true, purchaseOrders: true }, orderBy: { createdAt: 'desc' } });
+      res.json(contracts);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/contracts', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const buyerId = req.user?.role === 'admin' && req.body.buyerId ? Number(req.body.buyerId) : requireNumericUserId(req);
+      const items = Array.isArray(req.body.items) ? req.body.items : [];
+      const contract = await procurementPrisma.contract.create({
+        data: {
+          contractNo: req.body.contractNo || makeDocumentNo('CON'),
+          buyerId,
+          sellerId: toNumberOrUndefined(req.body.sellerId),
+          tenderId: toNumberOrUndefined(req.body.tenderId),
+          title: req.body.title || 'Procurement Contract',
+          contractType: req.body.contractType || 'standard',
+          startDate: toOptionalDate(req.body.startDate),
+          endDate: toOptionalDate(req.body.endDate),
+          totalValue: toNumberOrUndefined(req.body.totalValue),
+          status: req.body.status || 'draft',
+          documentUrl: req.body.documentUrl,
+          terms: req.body.terms || {},
+          items: {
+            create: items.map((item: any) => ({
+              itemName: item.itemName || item.name || 'Contract Item',
+              description: item.description,
+              rate: toNumberOrUndefined(item.rate),
+              unit: item.unit || 'Unit',
+              ceilingQty: toNumberOrUndefined(item.ceilingQty)
+            }))
+          }
+        },
+        include: { items: true }
+      });
+      res.status(201).json(contract);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/shipments', authenticate, authorize('buyer', 'seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const userId = requireNumericUserId(req);
+      const orderWhere = req.user?.role === 'buyer' ? { buyerId: userId } : req.user?.role === 'seller' ? { sellerId: userId } : {};
+      const shipments = await procurementPrisma.shipment.findMany({ where: { purchaseOrder: orderWhere }, include: { purchaseOrder: true }, orderBy: { createdAt: 'desc' } });
+      res.json(shipments);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/shipments', authenticate, authorize('seller', 'buyer', 'admin'), async (req, res) => {
+    try {
+      const shipment = await procurementPrisma.shipment.create({
+        data: {
+          purchaseOrderId: Number(req.body.purchaseOrderId),
+          trackingNo: req.body.trackingNo || makeDocumentNo('SHP'),
+          carrier: req.body.carrier,
+          status: req.body.status || 'scheduled',
+          scheduledDate: toOptionalDate(req.body.scheduledDate),
+          dispatchedAt: toOptionalDate(req.body.dispatchedAt),
+          deliveredAt: toOptionalDate(req.body.deliveredAt),
+          currentLocation: req.body.currentLocation,
+          deliveryProofUrl: req.body.deliveryProofUrl,
+          timeline: req.body.timeline || []
+        }
+      });
+      res.status(201).json(shipment);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put('/api/shipments/:id', authenticate, authorize('seller', 'buyer', 'admin'), async (req, res) => {
+    try {
+      const data = { ...req.body };
+      ['scheduledDate', 'dispatchedAt', 'deliveredAt'].forEach(key => { if (key in data) data[key] = toOptionalDate(data[key]); });
+      delete data.id;
+      const shipment = await procurementPrisma.shipment.update({ where: { id: Number(req.params.id) }, data });
+      res.json(shipment);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/inspections', authenticate, authorize('buyer', 'seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const userId = requireNumericUserId(req);
+      const orderWhere = req.user?.role === 'buyer' ? { buyerId: userId } : req.user?.role === 'seller' ? { sellerId: userId } : {};
+      const reports = await procurementPrisma.inspectionReport.findMany({ where: { purchaseOrder: orderWhere }, include: { purchaseOrder: true }, orderBy: { createdAt: 'desc' } });
+      res.json(reports);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/inspections', authenticate, authorize('buyer', 'admin'), async (req, res) => {
+    try {
+      const report = await procurementPrisma.inspectionReport.create({
+        data: {
+          purchaseOrderId: Number(req.body.purchaseOrderId),
+          reportNo: req.body.reportNo || makeDocumentNo('IR'),
+          inspectedBy: req.body.inspectedBy,
+          status: req.body.status || 'pending',
+          acceptedQty: toNumberOrUndefined(req.body.acceptedQty),
+          rejectedQty: toNumberOrUndefined(req.body.rejectedQty),
+          remarks: req.body.remarks,
+          reportUrl: req.body.reportUrl,
+          checklist: req.body.checklist || []
+        }
+      });
+      res.status(201).json(report);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put('/api/inspections/:id', authenticate, authorize('buyer', 'admin'), async (req, res) => {
+    try {
+      const data = { ...req.body };
+      ['acceptedQty', 'rejectedQty'].forEach(key => { if (key in data) data[key] = toNumberOrUndefined(data[key]); });
+      delete data.id;
+      const report = await procurementPrisma.inspectionReport.update({ where: { id: Number(req.params.id) }, data });
+      res.json(report);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/invoices', authenticate, authorize('buyer', 'seller', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const userId = requireNumericUserId(req);
+      const where = req.user?.role === 'buyer' ? { buyerId: userId } : req.user?.role === 'seller' ? { sellerId: userId } : {};
+      const invoices = await procurementPrisma.invoice.findMany({ where, include: { purchaseOrder: true, buyer: true, seller: true }, orderBy: { createdAt: 'desc' } });
+      res.json(invoices);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/invoices', authenticate, authorize('seller', 'buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const userId = requireNumericUserId(req);
+      const buyerId = req.user?.role === 'buyer' ? userId : Number(req.body.buyerId);
+      const sellerId = req.user?.role === 'seller' ? userId : toNumberOrUndefined(req.body.sellerId);
+      if (!buyerId) return res.status(400).json({ message: 'Buyer is required for invoice' });
+      const amount = Number(req.body.amount || 0);
+      const taxAmount = Number(req.body.taxAmount || 0);
+      const invoice = await procurementPrisma.invoice.create({
+        data: {
+          invoiceNo: req.body.invoiceNo || makeDocumentNo('INV'),
+          purchaseOrderId: toNumberOrUndefined(req.body.purchaseOrderId),
+          buyerId,
+          sellerId,
+          amount,
+          taxAmount,
+          totalAmount: Number(req.body.totalAmount || amount + taxAmount),
+          status: req.body.status || 'uploaded',
+          invoiceUrl: req.body.invoiceUrl,
+          verificationNotes: req.body.verificationNotes,
+          dueDate: toOptionalDate(req.body.dueDate)
+        }
+      });
+      res.status(201).json(invoice);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put('/api/invoices/:id', authenticate, authorize('buyer', 'seller', 'admin'), async (req, res) => {
+    try {
+      const data = { ...req.body };
+      ['amount', 'taxAmount', 'totalAmount'].forEach(key => { if (key in data) data[key] = toNumberOrUndefined(data[key]); });
+      if ('dueDate' in data) data.dueDate = toOptionalDate(data.dueDate);
+      delete data.id;
+      const invoice = await procurementPrisma.invoice.update({ where: { id: Number(req.params.id) }, data });
+      res.json(invoice);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/auctions', authenticate, authorize('buyer', 'admin'), async (req, res) => {
+    try {
+      const auction = await procurementPrisma.auction.create({
+        data: {
+          tenderId: Number(req.body.tenderId),
+          startPrice: Number(req.body.startPrice || 0),
+          currentBid: toNumberOrUndefined(req.body.currentBid),
+          startTime: new Date(req.body.startTime || Date.now()),
+          endTime: new Date(req.body.endTime || Date.now() + 3600000),
+          status: req.body.status || 'active'
+        },
+        include: { Tender: true, bids: true }
+      });
+      res.status(201).json(auction);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/auctions', authenticate, authorize('buyer', 'seller', 'admin'), async (req, res) => {
+    try {
+      const auctions = await procurementPrisma.auction.findMany({ include: { Tender: true, bids: { include: { seller: true }, orderBy: { bidAmount: 'asc' } } }, orderBy: { createdAt: 'desc' } });
+      res.json(auctions);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/auctions/:id/bids', authenticate, authorize('seller'), async (req: AuthRequest, res) => {
+    try {
+      const auctionId = Number(req.params.id);
+      const sellerId = requireNumericUserId(req);
+      const bidAmount = Number(req.body.bidAmount);
+      const auction = await procurementPrisma.auction.findUnique({ where: { id: auctionId } });
+      if (!auction || auction.status !== 'active') return res.status(400).json({ message: 'Auction is not active' });
+      if (auction.currentBid && bidAmount >= auction.currentBid) return res.status(400).json({ message: 'Bid must be lower than current bid' });
+      const bid = await procurementPrisma.reverseAuctionBid.create({ data: { auctionId, sellerId, bidAmount } });
+      await procurementPrisma.auction.update({ where: { id: auctionId }, data: { currentBid: bidAmount } });
+      res.status(201).json(bid);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get('/api/evaluations/:tenderId', authenticate, authorize('buyer', 'admin'), async (req, res) => {
+    try {
+      const tenderId = Number(req.params.tenderId);
+      const [criteria, technical, financial, statements] = await Promise.all([
+        procurementPrisma.evaluationCriteria.findMany({ where: { tenderId } }),
+        procurementPrisma.technicalEvaluation.findMany({ where: { tenderId } }),
+        procurementPrisma.financialEvaluation.findMany({ where: { tenderId }, orderBy: { rank: 'asc' } }),
+        procurementPrisma.comparativeStatement.findMany({ where: { tenderId }, orderBy: { createdAt: 'desc' } })
+      ]);
+      res.json({ criteria, technical, financial, statements });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/evaluations/:tenderId/criteria', authenticate, authorize('buyer', 'admin'), async (req, res) => {
+    try {
+      const criterion = await procurementPrisma.evaluationCriteria.create({
+        data: {
+          tenderId: Number(req.params.tenderId),
+          type: req.body.type || 'technical',
+          name: req.body.name,
+          description: req.body.description,
+          maxScore: Number(req.body.maxScore || 100),
+          weight: Number(req.body.weight || 1),
+          isMandatory: Boolean(req.body.isMandatory)
+        }
+      });
+      res.status(201).json(criterion);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/evaluations/:tenderId/technical', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const evaluation = await procurementPrisma.technicalEvaluation.create({
+        data: {
+          tenderId: Number(req.params.tenderId),
+          bidId: toNumberOrUndefined(req.body.bidId),
+          evaluatorId: requireNumericUserId(req),
+          score: Number(req.body.score || 0),
+          status: req.body.status || 'pending',
+          remarks: req.body.remarks,
+          documentsVerified: Boolean(req.body.documentsVerified),
+          criteriaScores: req.body.criteriaScores || {}
+        }
+      });
+      res.status(201).json(evaluation);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/evaluations/:tenderId/financial', authenticate, authorize('buyer', 'admin'), async (req: AuthRequest, res) => {
+    try {
+      const quotedPrice = Number(req.body.quotedPrice || 0);
+      const benchmarkPrice = toNumberOrUndefined(req.body.benchmarkPrice);
+      const variancePercent = benchmarkPrice ? ((quotedPrice - benchmarkPrice) / benchmarkPrice) * 100 : undefined;
+      const evaluation = await procurementPrisma.financialEvaluation.create({
+        data: {
+          tenderId: Number(req.params.tenderId),
+          bidId: toNumberOrUndefined(req.body.bidId),
+          evaluatorId: requireNumericUserId(req),
+          quotedPrice,
+          benchmarkPrice,
+          variancePercent,
+          anomalyFlag: variancePercent !== undefined ? Math.abs(variancePercent) > 25 : false,
+          rank: toNumberOrUndefined(req.body.rank),
+          status: req.body.status || 'pending',
+          remarks: req.body.remarks
+        }
+      });
+      res.status(201).json(evaluation);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post('/api/evaluations/:tenderId/comparative-statement', authenticate, authorize('buyer', 'admin'), async (req, res) => {
+    try {
+      const tenderId = Number(req.params.tenderId);
+      const bids = await prisma.bid.findMany({ where: { tenderId }, include: { seller: { include: { sellerProfile: true } } }, orderBy: { unitPrice: 'asc' } as any });
+      const summary = {
+        generatedAt: new Date().toISOString(),
+        rows: bids.map((bid: any, index: number) => ({
+          rank: index + 1,
+          bidId: bid.id,
+          sellerName: bid.seller?.sellerProfile?.businessName || bid.seller?.name,
+          unitPrice: bid.unitPrice,
+          quantity: bid.quantity,
+          deliveryDays: bid.deliveryDays,
+          total: bid.unitPrice * bid.quantity,
+          status: bid.status
+        }))
+      };
+      const statement = await procurementPrisma.comparativeStatement.create({
+        data: {
+          tenderId,
+          statementNo: makeDocumentNo('CS'),
+          summary,
+          recommendedBidId: bids[0]?.id,
+          status: 'generated'
+        }
+      });
+      res.status(201).json(statement);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get('/api/notifications/stream', async (req, res) => {
     try {
       const token = String(req.query.token || '');
@@ -1829,7 +2587,77 @@ async function startServer() {
     }
   });
 
+  // --- RBAC ADMINISTRATION APIS ---
+  app.get('/api/rbac/permissions', authenticate, authorizeAdmin, async (req: AuthRequest, res) => {
+    try {
+      const perms = await prisma.rbacPermission.findMany({ orderBy: { group: 'asc' } });
+      res.json(perms);
+    } catch (err: any) { res.status(500).json({ message: err.message }); }
+  });
+
+  app.get('/api/rbac/roles', authenticate, authorizeAdmin, async (req: AuthRequest, res) => {
+    try {
+      const roles = await prisma.rbacRole.findMany({
+        include: { permissions: { include: { permission: true } }, _count: { select: { users: true } } },
+        orderBy: { name: 'asc' }
+      });
+      res.json(roles.map(r => ({
+        id: r.id, name: r.name, description: r.description,
+        userCount: r._count.users, permissionCodes: r.permissions.map(p => p.permission.code)
+      })));
+    } catch (err: any) { res.status(500).json({ message: err.message }); }
+  });
+
+  app.post('/api/rbac/roles', authenticate, authorizeAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { name, description, permissionCodes = [] } = req.body;
+      if (!name) return res.status(400).json({ message: 'Name required' });
+      const newRole = await prisma.rbacRole.create({ data: { name, description } });
+      if (permissionCodes.length > 0) {
+        const dbPerms = await prisma.rbacPermission.findMany({ where: { code: { in: permissionCodes } } });
+        await prisma.rbacRolePermission.createMany({ data: dbPerms.map(p => ({ roleId: newRole.id, permissionId: p.id })) });
+      }
+      res.status(201).json(newRole);
+    } catch (err: any) { res.status(500).json({ message: err.message }); }
+  });
+
+  app.put('/api/rbac/roles/:id/permissions', authenticate, authorizeAdmin, async (req: AuthRequest, res) => {
+    try {
+      const roleId = Number(req.params.id);
+      const { permissionCodes } = req.body;
+      if (!Array.isArray(permissionCodes)) return res.status(400).json({ message: 'Codes must be array.' });
+      await prisma.rbacRolePermission.deleteMany({ where: { roleId } });
+      const matchedPerms = await prisma.rbacPermission.findMany({ where: { code: { in: permissionCodes } } });
+      if (matchedPerms.length > 0) {
+        await prisma.rbacRolePermission.createMany({ data: matchedPerms.map(p => ({ roleId, permissionId: p.id })) });
+      }
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ message: err.message }); }
+  });
+
+  app.get('/api/rbac/users', authenticate, authorizeAdmin, async (req: AuthRequest, res) => {
+    try {
+      const users = await prisma.user.findMany({
+        select: { id: true, name: true, email: true, role: true, rbacRole: { select: { id: true, name: true } } },
+        orderBy: { id: 'desc' }
+      });
+      res.json(users);
+    } catch (err: any) { res.status(500).json({ message: err.message }); }
+  });
+
+  app.put('/api/rbac/users/:id/role', authenticate, authorizeAdmin, async (req: AuthRequest, res) => {
+    try {
+      const updated = await prisma.user.update({
+        where: { id: Number(req.params.id) },
+        data: { rbacRoleId: req.body.rbacRoleId ? Number(req.body.rbacRoleId) : null },
+        include: { rbacRole: true }
+      });
+      res.json({ success: true, user: updated });
+    } catch (err: any) { res.status(500).json({ message: err.message }); }
+  });
+
   const startListening = (port: number) => {
+
     const server = app.listen(port, () => {
       console.log(`Server running on port ${port} (Prisma/PostgreSQL)`);
     });

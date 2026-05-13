@@ -51,3 +51,60 @@ export const authorizeAdmin = (req: Request, res: Response, next: NextFunction) 
   }
   next();
 };
+
+import prisma from '../lib/prisma.js';
+
+/**
+ * Validates that the authenticated user has specific capability granted by their dynamic RBAC assignment.
+ */
+export const hasPermission = (permissionCode: string) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    try {
+      // 1. Lookup user's dynamic role and associated flattened permission matrix
+      const userWithPerms = await prisma.user.findUnique({
+        where: { id: Number(req.user.id) },
+        select: {
+          rbacRole: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!userWithPerms?.rbacRole) {
+        // Fallback: if it's an admin from standard enum, let's auto-pass.
+        if (req.user.role === 'admin') return next();
+        return res.status(403).json({ message: 'Insufficient access: No active dynamic role assigned.' });
+      }
+
+      // Extract flattened codes list
+      const capabilities = userWithPerms.rbacRole.permissions.map(rp => rp.permission.code);
+      
+      // Also handle super-admin escape hatch
+      if (req.user.role === 'admin' || userWithPerms.rbacRole.name === 'System Administrator') {
+         return next(); 
+      }
+
+      if (capabilities.includes(permissionCode)) {
+        return next();
+      }
+
+      return res.status(403).json({ 
+        message: `Forbidden: Missing required capability '${permissionCode}'` 
+      });
+
+    } catch (err) {
+      console.error('Auth RBAC Check Failed:', err);
+      return res.status(500).json({ message: 'Internal security authorization failure.' });
+    }
+  };
+};
